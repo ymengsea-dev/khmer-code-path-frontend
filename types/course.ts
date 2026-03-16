@@ -21,4 +21,6 @@ export interface Course {
   prerequisite?: string;
   achievement: string;
   locked?: boolean;
+  /** Optional completion percentage for learning view */
+  progress?: number;
 }

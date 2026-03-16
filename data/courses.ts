@@ -20,6 +20,7 @@ export const courses: Course[] = [
     ],
     achievement: "Python Developer",
     locked: false,
+    progress: 75,
   },
   {
     id: 2,
@@ -43,6 +44,7 @@ export const courses: Course[] = [
     prerequisite: "Data Structures and Algorithms",
     achievement: "Certified AI Specialist",
     locked: false,
+    progress: 35,
   },
   {
     id: 3,
@@ -65,6 +67,7 @@ export const courses: Course[] = [
     prerequisite: "AI Engineer Certification",
     achievement: "Full Stack Engineer",
     locked: true,
+    progress: 100,
   },
   {
     id: 4,

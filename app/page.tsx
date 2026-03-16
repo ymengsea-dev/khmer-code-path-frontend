@@ -8,6 +8,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { CourseGrid } from "@/components/course/CourseGrid";
 import { CourseDetailPanel } from "@/components/course/CourseDetailPanel";
 import { EmbeddedIDE } from "@/components/code/EmbeddedIDE";
+import { MyLearning } from "@/components/learning/MyLearning";
+import { ProfileView } from "@/components/profile/ProfileView";
+import { CommunityView } from "@/components/community/CommunityView";
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -27,6 +30,13 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    if (activeNav !== "courses") {
+      setSheetOpen(false);
+      setSelectedCourse(null);
+    }
+  }, [activeNav]);
+
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
     setSheetOpen(true);
@@ -43,9 +53,11 @@ export default function Home() {
         <Sidebar activeNav={activeNav} onNavChange={setActiveNav} className="mt-2 mr-2 mb-2 shrink-0" />
 
         <SidebarInset>
-          {activeNav === "code" ? (
-            <EmbeddedIDE />
-          ) : (
+          {activeNav === "code" && <EmbeddedIDE />}
+          {activeNav === "learning" && <MyLearning />}
+          {activeNav === "profile" && <ProfileView />}
+          {activeNav === "community" && <CommunityView />}
+          {activeNav === "courses" && (
             <CourseGrid
               courses={courses}
               selectedId={selectedCourse?.id}
