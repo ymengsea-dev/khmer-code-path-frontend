@@ -57,10 +57,10 @@ function SidebarLogo() {
         </div>
         <div className="min-w-0">
           <span className="font-bold text-[15px] tracking-tight truncate block text-foreground">
-            Khmer Code Path
+            AI-LMS
           </span>
           <span className="text-xs text-muted-foreground truncate block font-medium">
-            Learn • Build • Grow
+            AI-Learning Management System
           </span>
         </div>
       </div>

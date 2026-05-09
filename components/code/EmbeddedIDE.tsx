@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 
 const DEFAULT_CODE = `// Write JavaScript and click Run
-console.log("Hello, Khmer Code Path!");
+console.log("Hello, AI-LMS!");
 
 function greet(name) {
   return "Hello, " + name + "!";

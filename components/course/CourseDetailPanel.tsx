@@ -109,9 +109,7 @@ export function CourseDetailPanel({ course, onClose }: CourseDetailPanelProps) {
     <div className="flex flex-col h-full bg-white/75 dark:bg-card/80 backdrop-blur-2xl backdrop-saturate-200 text-card-foreground rounded-2xl overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-3 border-b border-transparent">
         <div className="max-w-[80%]">
-          <CardTitle className="text-lg leading-snug">
-            {course.title}
-          </CardTitle>
+          <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
           <CardDescription className="mt-0.5">
             {course.level.charAt(0) + course.level.slice(1).toLowerCase()} Level
           </CardDescription>
