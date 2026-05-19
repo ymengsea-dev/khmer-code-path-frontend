@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
+const SIDEBAR_WIDTH_ICON = "4rem";
 
 const SidebarContext = React.createContext<{
   open: boolean;
@@ -26,6 +27,7 @@ function SidebarProvider({
           {
             "--sidebar-width": SIDEBAR_WIDTH,
             "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE,
+            "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
           } as React.CSSProperties
         }
         {...props}
@@ -44,21 +46,26 @@ function useSidebar() {
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { side?: "left" | "right" }
->(({ className, side = "left", ...props }, ref) => (
-  <div
-    ref={ref}
-    data-sidebar="root"
-    className={cn(
-      "flex h-full w-[var(--sidebar-width)] flex-col text-sidebar-foreground backdrop-blur-2xl backdrop-saturate-200 overflow-hidden",
-      "bg-slate-100/95 dark:bg-sidebar/90 border-border shadow-[0_0_0_1px_rgba(0,0,0,0.06)_inset] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1)_inset]",
-      "shadow-lg shadow-black/5 dark:shadow-black/20",
-      side === "left" && "border-r rounded-r-2xl",
-      side === "right" && "border-l rounded-l-2xl",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, side = "left", ...props }, ref) => {
+  const { open } = useSidebar();
+  return (
+    <div
+      ref={ref}
+      data-sidebar="root"
+      data-state={open ? "expanded" : "collapsed"}
+      className={cn(
+        "flex h-full flex-col text-sidebar-foreground backdrop-blur-2xl backdrop-saturate-200 overflow-hidden transition-all duration-300 ease-in-out",
+        open ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-icon)]",
+        "bg-slate-100/95 dark:bg-sidebar/90 border-border shadow-[0_0_0_1px_rgba(0,0,0,0.06)_inset] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1)_inset]",
+        "shadow-lg shadow-black/5 dark:shadow-black/20",
+        side === "left" && "border-r",
+        side === "right" && "border-l",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 Sidebar.displayName = "Sidebar";
 
 const SidebarHeader = React.forwardRef<
@@ -161,22 +168,26 @@ const SidebarMenuButton = React.forwardRef<
     isActive?: boolean;
     tooltip?: string;
   }
->(({ className, isActive, tooltip, ...props }, ref) => (
-  <Button
-    ref={ref}
-    variant="ghost"
-    size="sm"
-    title={tooltip}
-    className={cn(
-      "w-full justify-start gap-3 font-normal",
-      isActive
-        ? "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, isActive, tooltip, ...props }, ref) => {
+  const { open } = useSidebar();
+  return (
+    <Button
+      ref={ref}
+      variant="ghost"
+      size="sm"
+      title={tooltip}
+      className={cn(
+        "w-full justify-start gap-3 font-normal overflow-hidden transition-all duration-200",
+        !open && "justify-center px-0",
+        isActive
+          ? "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 SidebarMenuButton.displayName = "SidebarMenuButton";
 
 const SidebarTrigger = React.forwardRef<
@@ -205,7 +216,7 @@ const SidebarInset = React.forwardRef<
   <main
     ref={ref}
     data-sidebar="inset"
-    className={cn("relative flex-1 min-w-0 overflow-hidden", className)}
+    className={cn("relative flex flex-col h-full flex-1 min-w-0 overflow-hidden", className)}
     {...props}
   />
 ));

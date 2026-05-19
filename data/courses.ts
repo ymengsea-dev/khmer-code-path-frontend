@@ -10,8 +10,7 @@ export const courses: Course[] = [
     level: "BEGINNER",
     pts: 150,
     bgColor: "from-slate-900 to-slate-700",
-    image:
-      "https://i.ytimg.com/vi/nLRL_NcnK-4/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLDxIZaciSI8V36_Hl0aGKW9Ubrl0w",
+    image: "https://quantumzeitgeist.com/wp-content/uploads/python.jpg",
     description:
       "Learn the fundamentals of Python programming, from basic syntax to data structures and algorithms. Build real-world projects and gain hands-on experience with one of the world's most popular programming languages.",
     technologies: [
@@ -66,29 +65,8 @@ export const courses: Course[] = [
     ],
     prerequisite: "AI Engineer Certification",
     achievement: "Full Stack Engineer",
-    locked: true,
-    progress: 100,
-  },
-  {
-    id: 4,
-    title: "Full Stack Web Development",
-    institution: "Meta",
-    institutionLogo: "M",
-    institutionColor: "#0082FB",
-    level: "BEGINNER",
-    pts: 150,
-    bgColor: "from-slate-800 to-slate-600",
-    image:
-      "https://qz.com/cdn-cgi/image/width=1920,quality=85,format=auto/https://assets.qz.com/media/a399849888bdd377d73966f285eba0da.jpg",
-    description:
-      "Start your web development journey with HTML, CSS, and JavaScript fundamentals. Learn responsive design and build your first web applications from scratch.",
-    technologies: [
-      { name: "HTML", color: "#E34F26" },
-      { name: "CSS", color: "#1572B6" },
-      { name: "JavaScript", color: "#F7DF1E" },
-    ],
-    achievement: "Web Developer Fundamentals",
     locked: false,
+    progress: 100,
   },
   {
     id: 5,
@@ -110,27 +88,5 @@ export const courses: Course[] = [
     ],
     achievement: "Intermediate Web Developer",
     locked: false,
-  },
-  {
-    id: 6,
-    title: "Full Stack Web Development",
-    institution: "Stanford",
-    institutionLogo: "S",
-    institutionColor: "#8C1515",
-    level: "ADVANCED",
-    pts: 150,
-    bgColor: "from-red-950 to-slate-900",
-    image:
-      "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop",
-    description:
-      "Expert-level full-stack development covering microservices, DevOps, and system design. Prepare for senior engineering roles with real-world project experience.",
-    technologies: [
-      { name: "TypeScript", color: "#3178C6" },
-      { name: "Docker", color: "#2496ED" },
-      { name: "K8s", color: "#326CE5" },
-    ],
-    prerequisite: "Full Stack Web Development (Intermediate)",
-    achievement: "Senior Full Stack Engineer",
-    locked: true,
   },
 ];

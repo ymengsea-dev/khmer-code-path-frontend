@@ -1,4 +1,5 @@
-import { Lock, Star } from "lucide-react";
+import React from "react";
+import { Lock, Star, Video, User, Clock, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +27,7 @@ function CardThumbnail({ course }: { course: Course }) {
           <img
             src={course.image}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </>
@@ -41,6 +42,13 @@ function CardThumbnail({ course }: { course: Course }) {
           `async function deploy() {\n  const k8s = new K8sClient();\n  await k8s.apply(manifest);\n  console.log("Deployed!");\n}`}
       </div>
 
+      <div className="absolute top-2 right-2">
+        <Badge variant="secondary" className="gap-1 font-bold bg-black/60 hover:bg-black/80 text-white border-0 text-[10px] py-0.5">
+          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          +{course.pts} PTS
+        </Badge>
+      </div>
+
       <div className="absolute bottom-2 left-2">
         <InstitutionBadge
           name={course.institution}
@@ -49,8 +57,8 @@ function CardThumbnail({ course }: { course: Course }) {
       </div>
 
       {course.locked && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <Lock className="w-8 h-8 text-white/60" />
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
+          <Lock className="w-6 h-6 text-white/80" />
         </div>
       )}
     </div>
@@ -58,39 +66,92 @@ function CardThumbnail({ course }: { course: Course }) {
 }
 
 export function CourseCard({ course, selected, onClick }: CourseCardProps) {
+  // Dynamically map instructors, time information, and current lesson details
+  const getInstructor = (id: number) => {
+    if (id === 1) return "Dr. SOK";
+    if (id === 2) return "Dr. SOK";
+    if (id === 3) return "Prof. MENGSEA";
+    return "Dr. SOK";
+  };
+
+  const getCurrentLesson = (title: string) => {
+    if (title.toLowerCase().includes("python")) {
+      return "Current Lesson: Binary Search Trees & AVL Trees";
+    }
+    if (title.toLowerCase().includes("web")) {
+      return "Current Lesson: React Hooks & SSR Frameworks";
+    }
+    if (title.toLowerCase().includes("ai") || title.toLowerCase().includes("engineer")) {
+      return "Current Lesson: LLM Orchestration & Prompting";
+    }
+    return "Current Lesson: Intro to Variables & Syntaxes";
+  };
+
+  const getTimeAgo = (id: number) => {
+    return id % 2 === 0 ? "1d ago" : "2h ago";
+  };
+
   return (
     <Card
-      size="sm"
       onClick={onClick}
       className={cn(
-        "group cursor-pointer transition-all duration-200 overflow-hidden",
-        selected
-          ? "border-primary ring-2 ring-primary/40 shadow-lg"
-          : "hover:shadow-md",
+        "group cursor-pointer transition-all duration-300 overflow-hidden border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-slate-300 dark:hover:border-zinc-700 hover:shadow-md flex flex-col h-full",
+        selected && "border-indigo-500 dark:border-indigo-500/80 ring-2 ring-indigo-500/20 shadow-lg"
       )}
     >
       <CardThumbnail course={course} />
-      <CardContent className="flex flex-col gap-2 p-4 pt-0 flex-1">
-        <p className="text-sm font-semibold text-card-foreground leading-snug line-clamp-2">
+      
+      <CardContent className="flex flex-col gap-2 p-4 flex-1">
+        {/* Title */}
+        <h3 className="font-extrabold text-sm text-foreground tracking-tight line-clamp-1 group-hover:text-indigo-500 transition-colors">
           {course.title}
-        </p>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <LevelBadge level={course.level} />
-          <Badge variant="secondary" className="gap-1 font-medium shrink-0">
-            <Star className="w-3.5 h-3.5 fill-current" />
-            +{course.pts} PTS
-          </Badge>
+        </h3>
+
+        {/* Level and Meta details */}
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
+          <span className="flex items-center gap-1">
+            <User className="w-3 h-3 text-indigo-500/80" />
+            {getInstructor(course.id)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3 text-emerald-500/80" />
+            {getTimeAgo(course.id)}
+          </span>
         </div>
+
+        {/* Current Lesson Detail text */}
+        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 min-h-[32px]">
+          {getCurrentLesson(course.title)}
+        </p>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+
+      <CardFooter className="p-4 pt-0 mt-auto flex items-center gap-2">
+        {/* Resume/Start Button */}
         <Button
-          variant="secondary"
+          variant={course.locked ? "secondary" : "default"}
           size="sm"
-          className="w-full"
+          className="flex-1 text-xs font-bold h-9 active:translate-y-px transition-all"
           disabled={course.locked}
         >
-          {course.locked ? "Locked" : "Start Course"}
+          {course.locked ? "Locked" : "Resume Lesson"}
         </Button>
+
+        {/* Dynamic Video Class Join Button */}
+        {!course.locked && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0 text-emerald-500 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-600 active:translate-y-px transition-all"
+            title="Join Online Class"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open("http://localhost:3000/virtual-class.html", "_blank");
+            }}
+          >
+            <Video className="w-4 h-4" />
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

@@ -1,4 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { CheckCircle2, Github, Medal, Trophy } from "lucide-react";
+import { authService } from "@/lib/services/auth-service";
+import type { UserProfile } from "@/lib/auth/backend-api";
+import { getRoleLabel, getUserInitials } from "@/lib/auth/user-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +81,28 @@ function ProgressBar({
 }
 
 export function ProfileView() {
+  const { data: session } = useSession();
+  const [displayName, setDisplayName] = useState(session?.user?.name ?? "");
+  const [email, setEmail] = useState(session?.user?.email ?? "");
+  const [roleLabel, setRoleLabel] = useState(getRoleLabel(session?.user?.role));
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const response = await authService.me();
+        const user = response?.data as UserProfile | undefined;
+        if (user?.userName?.trim()) setDisplayName(user.userName.trim());
+        if (user?.email) setEmail(user.email);
+        if (user?.role) setRoleLabel(getRoleLabel(user.role));
+      } catch {
+        /* keep session fallbacks */
+      }
+    }
+    void fetchUser();
+  }, []);
+
+  const initials = getUserInitials(displayName || email || "?");
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <header className="px-6 py-5 border-b border-border flex-shrink-0">
@@ -90,18 +119,21 @@ export function ProfileView() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600 flex items-center justify-center text-2xl font-semibold text-white shadow-md">
-                      AJ
+                      {initials}
                     </div>
                     <div className="space-y-1">
                       <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                        Alex Johnson
+                        {displayName || "—"}
                       </h2>
+                      {email ? (
+                        <p className="text-sm text-muted-foreground">{email}</p>
+                      ) : null}
                       <Badge
                         variant="secondary"
                         className="gap-1.5 text-xs font-medium px-2.5 py-1 bg-amber-500/10 text-amber-600 border-amber-500/40"
                       >
                         <Medal className="w-3.5 h-3.5 text-amber-500" />
-                        Gold Level Achiever
+                        {roleLabel}
                       </Badge>
                     </div>
                   </div>

@@ -81,7 +81,7 @@ export default function AuthLayout({
             transition={{ delay: 1.5, duration: 1 }}
             className="mt-auto flex gap-8 text-sm font-medium text-indigo-100/50"
           >
-            <span>&copy; 2026 AI-LMS</span>
+            <span>&copy; 2026 Y MENGSEA</span>
             <Link href="#" className="transition-colors hover:text-white">Privacy Policy</Link>
             <Link href="#" className="transition-colors hover:text-white">Terms of Service</Link>
           </motion.div>
@@ -129,7 +129,7 @@ export default function AuthLayout({
 
         {/* Footer for mobile */}
         <div className="mt-8 flex gap-6 text-xs font-medium text-muted-foreground lg:hidden">
-          <span>&copy; 2026 AI-LMS</span>
+          <span>&copy; 2026 Y MENGSEA</span>
           <Link href="#">Privacy</Link>
           <Link href="#">Terms</Link>
         </div>

@@ -1,58 +1,102 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
+import { signOut } from "next-auth/react";
+import {
+  fetchSessionFromServer,
+  getValidAccessToken,
+  type ClientSession,
+} from "@/lib/auth/client-session";
 
-const API_BASE_URL = "http://localhost:8080/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // Crucial for refresh token cookies
 });
 
-// Add interceptor to add access token to headers
-apiClient.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+let isRefreshing = false;
+let refreshWaiters: Array<{
+  resolve: (token: string | null) => void;
+  reject: (reason: unknown) => void;
+}> = [];
+
+function settleRefreshWaiters(error: unknown | null, token: string | null) {
+  refreshWaiters.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token);
+  });
+  refreshWaiters = [];
+}
+
+function isFreshSession(session: ClientSession | null): session is ClientSession & {
+  accessToken: string;
+} {
+  if (!session?.accessToken || session.error === "RefreshAccessTokenError") {
+    return false;
+  }
+  if (!session.accessTokenExpires) return false;
+  return Date.now() < session.accessTokenExpires - 60_000;
+}
+
+async function refreshAccessTokenForRetry(): Promise<string | null> {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      refreshWaiters.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const session = await fetchSessionFromServer();
+    const token = isFreshSession(session) ? session.accessToken : null;
+    settleRefreshWaiters(null, token);
+    return token;
+  } catch (error) {
+    settleRefreshWaiters(error, null);
+    throw error;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getValidAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Add interceptor to handle token refresh on 401
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    
-    // If error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest = error.config as RetryConfig | undefined;
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
-      
+
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-        
-        const { accessToken } = response.data.data;
-        localStorage.setItem("access_token", accessToken);
-        
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed, redirect to login or clear state
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("access_token");
-          // window.location.href = "/login";
+        const token = await refreshAccessTokenForRetry();
+
+        if (token) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
         }
-        return Promise.reject(refreshError);
+      } catch {
+        /* fall through to sign-out */
       }
+
+      await signOut({ callbackUrl: "/login" });
     }
-    
+
     return Promise.reject(error);
   }
 );

@@ -23,11 +23,22 @@ function LoginContent() {
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    if (token) {
-      localStorage.setItem("access_token", token);
-      router.push("/");
+    const oauthError = searchParams.get("error");
+    if (oauthError) {
+      setError(decodeURIComponent(oauthError).replace(/_/g, " "));
+      return;
     }
+
+    const token = searchParams.get("token");
+    if (!token) return;
+
+    const params = new URLSearchParams({ token });
+    const refresh = searchParams.get("refresh");
+    const expiresIn = searchParams.get("expiresIn");
+    if (refresh) params.set("refresh", refresh);
+    if (expiresIn) params.set("expiresIn", expiresIn);
+
+    router.replace(`/api/auth/oauth/callback?${params.toString()}`);
   }, [searchParams, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,14 +51,15 @@ function LoginContent() {
     const password = formData.get("password") as string;
 
     try {
-      const response = await authService.login({ email, password });
-      // Store access token
-      localStorage.setItem("access_token", response.data.accessToken);
-      // Redirect to home or dashboard
+      await authService.login({ email, password });
       router.push("/");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      setError(err.response?.data?.common?.message || "Invalid email or password. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Invalid email or password. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }

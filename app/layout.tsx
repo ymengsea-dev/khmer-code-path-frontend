@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { NotificationProvider } from "@/components/notifications/notification-context";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -30,7 +32,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthSessionProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </AuthSessionProvider>
       </body>
     </html>
   );

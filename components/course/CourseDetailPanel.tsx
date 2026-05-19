@@ -1,4 +1,4 @@
-import { X, Lock, Award } from "lucide-react";
+import { X, Lock, Award, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +22,8 @@ const institutionFullName: Record<string, string> = {
 interface CourseDetailPanelProps {
   course: Course;
   onClose: () => void;
+  canManage?: boolean;
+  onEdit?: () => void;
 }
 
 function InstitutionHeader({ course }: { course: Course }) {
@@ -104,7 +106,12 @@ function AchievementSection({ course }: { course: Course }) {
   );
 }
 
-export function CourseDetailPanel({ course, onClose }: CourseDetailPanelProps) {
+export function CourseDetailPanel({
+  course,
+  onClose,
+  canManage,
+  onEdit,
+}: CourseDetailPanelProps) {
   return (
     <div className="flex flex-col h-full bg-white/75 dark:bg-card/80 backdrop-blur-2xl backdrop-saturate-200 text-card-foreground rounded-2xl overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-3 border-b border-transparent">
@@ -170,7 +177,13 @@ export function CourseDetailPanel({ course, onClose }: CourseDetailPanelProps) {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-transparent">
+      <div className="p-4 border-t border-transparent flex flex-col gap-2">
+        {canManage && onEdit && (
+          <Button variant="outline" className="w-full" size="lg" onClick={onEdit}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit course
+          </Button>
+        )}
         <Button className="w-full" size="lg">
           Start This Course
         </Button>
