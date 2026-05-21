@@ -3,6 +3,7 @@ export interface NoteSummaryDto {
   title: string;
   preview: string;
   tags: string[];
+  favorite: boolean;
   sourceLabel: string | null;
   updatedAt: string;
 }
@@ -13,6 +14,9 @@ export interface NoteDto {
   bodyHtml: string;
   preview: string;
   tags: string[];
+  favorite: boolean;
+  shareToken: string | null;
+  shareEnabled: boolean;
   sourceLabel: string | null;
   lessonId: number | null;
   materialId: number | null;
@@ -32,4 +36,21 @@ export interface SaveNoteRequest {
   lessonId?: number | null;
   materialId?: number | null;
   tags?: string[];
+  favorite?: boolean;
+}
+
+export interface NoteShareDto {
+  shareToken: string;
+  sharePath: string;
+}
+
+export interface SharedNoteDto {
+  id: number;
+  title: string;
+  bodyHtml: string;
+  preview: string;
+  tags: string[];
+  sourceLabel: string | null;
+  ownerDisplayName: string;
+  updatedAt: string;
 }

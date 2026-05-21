@@ -1,5 +1,11 @@
 import { apiClient } from "../api-client";
-import type { NoteDto, NoteListDto, SaveNoteRequest } from "../types/note-api";
+import type {
+  NoteDto,
+  NoteListDto,
+  NoteShareDto,
+  SaveNoteRequest,
+  SharedNoteDto,
+} from "../types/note-api";
 
 export const noteService = {
   async list(search?: string): Promise<NoteListDto> {
@@ -11,6 +17,13 @@ export const noteService = {
 
   async get(id: number): Promise<NoteDto> {
     const response = await apiClient.get<{ data: NoteDto }>(`/notes/${id}`);
+    return response.data.data;
+  },
+
+  async getShared(token: string): Promise<SharedNoteDto> {
+    const response = await apiClient.get<{ data: SharedNoteDto }>(
+      `/notes/shared/${encodeURIComponent(token)}`
+    );
     return response.data.data;
   },
 
@@ -26,5 +39,10 @@ export const noteService = {
 
   async delete(id: number): Promise<void> {
     await apiClient.delete(`/notes/${id}`);
+  },
+
+  async enableShare(id: number): Promise<NoteShareDto> {
+    const response = await apiClient.post<{ data: NoteShareDto }>(`/notes/${id}/share`);
+    return response.data.data;
   },
 };

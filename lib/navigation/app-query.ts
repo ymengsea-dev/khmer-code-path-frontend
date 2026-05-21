@@ -10,6 +10,7 @@ export const QueryKey = {
   q: "q",
   semester: "semester",
   note: "note",
+  share: "share",
   thread: "thread",
   detail: "detail",
   lessonSource: "lessonSource",
