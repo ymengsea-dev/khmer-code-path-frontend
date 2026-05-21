@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import type { LibraryMaterialDto } from "../types/lesson-ai-api";
 import type {
   CreateLessonPayload,
   CreateLibraryItemPayload,
@@ -88,6 +89,13 @@ export const lessonService = {
     await apiClient.post(`/materials/library/${libraryItemId}/materials`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  },
+
+  async listLibraryMaterials(libraryItemId: number): Promise<LibraryMaterialDto[]> {
+    const response = await apiClient.get<{ data: LibraryMaterialDto[] }>(
+      `/materials/library/${libraryItemId}/materials`
+    );
+    return response.data.data ?? [];
   },
 
   async assignLibraryToClass(

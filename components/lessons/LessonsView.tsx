@@ -5,7 +5,6 @@ import {
   Bot,
   FileText,
   MessageCircle,
-  Redo2,
   Save,
   Send,
   Sparkles,
@@ -20,7 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { authService } from "@/lib/services/auth-service";
+import { lessonAiService } from "@/lib/services/lesson-ai-service";
 import { lessonService } from "@/lib/services/lesson-service";
+import { noteService } from "@/lib/services/note-service";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import type { LessonDetailDto, LessonSummaryDto } from "@/lib/types/lesson-api";
@@ -71,6 +72,11 @@ export function LessonsView({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [summaryMaterialId, setSummaryMaterialId] = useState<string>("");
+  const [summaryGenerating, setSummaryGenerating] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [personalSummary, setPersonalSummary] = useState<string | null>(null);
+  const [savingToNotebook, setSavingToNotebook] = useState(false);
 
   const parsedClassId = classId ? Number(classId) : NaN;
   const isTeacher = role === "teacher" || role === "admin";
@@ -151,6 +157,71 @@ export function LessonsView({
       void loadLessonDetail(id);
     }
   }, [lessonIdParam, lessons, loadLessonDetail]);
+
+  useEffect(() => {
+    setPersonalSummary(null);
+    setSummaryError(null);
+    if (lesson?.materials?.length) {
+      setSummaryMaterialId(String(lesson.materials[0].id));
+    } else {
+      setSummaryMaterialId("");
+    }
+  }, [lesson?.id, lesson?.materials]);
+
+  const displaySummary = personalSummary ?? lesson?.summary ?? null;
+
+  const handleSaveSummaryToNotebook = async () => {
+    if (!lesson || !displaySummary) return;
+    setSavingToNotebook(true);
+    try {
+      const escaped = displaySummary
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br/>");
+      await noteService.create({
+        title: `AI Summary: ${lesson.title}`,
+        bodyHtml: `<p>${escaped}</p>`,
+        sourceLabel: lesson.title,
+        lessonId: lesson.id,
+        tags: ["AI-Generated"],
+      });
+      alert("Summary saved to your Digital Notebook.");
+    } catch {
+      alert("Could not save to notebook. Open Notebook from the sidebar and try again.");
+    } finally {
+      setSavingToNotebook(false);
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    if (!lesson) return;
+    const materialId = Number(summaryMaterialId);
+    if (!Number.isFinite(materialId)) {
+      setSummaryError("Select a lesson file to summarize.");
+      return;
+    }
+    setSummaryGenerating(true);
+    setSummaryError(null);
+    try {
+      const result = await lessonAiService.generateSummaryFromLesson(
+        lesson.id,
+        materialId
+      );
+      if (result.persisted) {
+        setLesson({ ...lesson, summary: result.summary });
+        setPersonalSummary(null);
+      } else {
+        setPersonalSummary(result.summary);
+      }
+    } catch {
+      setSummaryError(
+        "Summary generation failed. Ensure Ollama is running, the file is uploaded, and you are enrolled in this class."
+      );
+    } finally {
+      setSummaryGenerating(false);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!lesson || !e.target.files?.length) return;
@@ -315,43 +386,117 @@ export function LessonsView({
                   <section className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-transparent to-blue-500/10 p-6 shadow-2xs">
                     <div className="flex flex-wrap items-center gap-3 mb-4">
                       <Sparkles className="w-5 h-5 text-violet-500 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-foreground">
-                        AI Lesson Summary
-                      </h3>
+                      <div>
+                        <h3 className="text-sm font-extrabold text-foreground">
+                          AI Lesson Summary
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Same on-demand RAG as quiz generation — indexes your selected file from
+                          MinIO when you generate.
+                        </p>
+                      </div>
                       <Badge className="text-[10px] font-bold bg-gradient-to-r from-violet-500 to-blue-500 text-white border-0">
                         {lesson.aiReady ? "Materials ready" : "Awaiting materials"}
                       </Badge>
                     </div>
-                    {lesson.summary ? (
+
+                    {lesson.materials.length > 0 && (
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-end mb-4">
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            Source file
+                          </label>
+                          <select
+                            value={summaryMaterialId}
+                            onChange={(e) => setSummaryMaterialId(e.target.value)}
+                            disabled={summaryGenerating}
+                            className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-1 text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                          >
+                            {lesson.materials.map((mat) => (
+                              <option key={mat.id} value={String(mat.id)}>
+                                {mat.fileName}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          variant="inverse"
+                          size="sm"
+                          className="h-9 gap-1.5 text-xs font-bold shrink-0"
+                          disabled={summaryGenerating || !summaryMaterialId}
+                          onClick={() => void handleGenerateSummary()}
+                        >
+                          {summaryGenerating ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                          {summaryGenerating
+                            ? "Indexing & summarizing…"
+                            : displaySummary
+                              ? "Regenerate summary"
+                              : "Generate summary"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {summaryError && (
+                      <p className="text-xs text-rose-600 dark:text-rose-400 mb-3">
+                        {summaryError}
+                      </p>
+                    )}
+
+                    {displaySummary ? (
                       <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                        {lesson.summary}
+                        {displaySummary}
                       </p>
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Summary will be available when lesson materials are uploaded and
-                        AI summarization is connected.
+                        {lesson.materials.length === 0
+                          ? "Upload lesson materials first, then generate a summary from a file."
+                          : isTeacher
+                            ? "Select a file and generate a summary for the class."
+                            : "Select a file and generate your study summary from the lesson material."}
                       </p>
                     )}
+
+                    {personalSummary && !isTeacher && (
+                      <p className="text-[10px] text-muted-foreground mt-3">
+                        Personal summary — only visible to you until your teacher publishes one
+                        for the class.
+                      </p>
+                    )}
+
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {!isTeacher && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5 text-xs font-semibold"
-                        >
-                          <Save className="w-3.5 h-3.5" />
-                          Save to Notebook
-                        </Button>
-                      )}
-                      {canManage && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5 text-xs font-semibold"
-                        >
-                          <Redo2 className="w-3.5 h-3.5" />
-                          Regenerate
-                        </Button>
+                      {displaySummary && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 text-xs font-semibold"
+                            disabled={savingToNotebook}
+                            onClick={() => void handleSaveSummaryToNotebook()}
+                          >
+                            {savingToNotebook ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Save className="w-3.5 h-3.5" />
+                            )}
+                            Save to Notebook
+                          </Button>
+                          {!isTeacher && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs font-semibold"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(displaySummary);
+                              }}
+                            >
+                              Copy summary
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </section>

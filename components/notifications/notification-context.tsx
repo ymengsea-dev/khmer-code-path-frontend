@@ -108,6 +108,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectAttemptRef = useRef(0);
 
   const refresh = useCallback(async () => {
     if (status !== "authenticated") {
@@ -135,14 +137,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (status !== "authenticated") return;
 
     let cancelled = false;
-    let eventSource: EventSource | null = null;
 
     const connect = async () => {
       const token = await getValidAccessToken();
       if (cancelled || !token) return;
 
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+
       const url = `${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
-      eventSource = new EventSource(url);
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
+      reconnectAttemptRef.current = 0;
 
       eventSource.addEventListener("notification", (event) => {
         try {
@@ -167,10 +173,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
 
       eventSource.onerror = () => {
-        eventSource?.close();
-        eventSource = null;
+        eventSource.close();
+        if (eventSourceRef.current === eventSource) {
+          eventSourceRef.current = null;
+        }
         if (!cancelled) {
-          reconnectTimer.current = setTimeout(() => void connect(), 4000);
+          const attempt = reconnectAttemptRef.current + 1;
+          reconnectAttemptRef.current = attempt;
+          const delayMs = Math.min(30_000, 2000 * 2 ** Math.min(attempt - 1, 4));
+          reconnectTimer.current = setTimeout(() => void connect(), delayMs);
         }
       };
     };
@@ -183,7 +194,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         clearTimeout(reconnectTimer.current);
         reconnectTimer.current = null;
       }
-      eventSource?.close();
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
     };
   }, [status]);
 

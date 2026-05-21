@@ -17,6 +17,8 @@ export interface LessonMaterialDto {
   contentType: string | null;
   fileSizeBytes: number;
   downloadUrl: string;
+  /** NOT_INDEXED until quiz/summary triggers on-demand RAG indexing */
+  ragStatus?: string;
 }
 
 export interface LessonDetailDto {
