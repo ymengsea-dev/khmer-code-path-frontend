@@ -1,4 +1,8 @@
 import { apiClient } from "../api-client";
+import { getValidAccessToken } from "@/lib/auth/client-session";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
 export type AiSectionType =
   | "GENERAL"
@@ -89,5 +93,86 @@ export const aiChatService = {
 
   async deleteConversation(conversationId: string) {
     await apiClient.delete(`/ai/conversations/${conversationId}`);
+  },
+
+  /**
+   * Streams the AI reply token-by-token via SSE.
+   * Calls `onChunk` for each text token received.
+   * Resolves when the `done` event arrives or the stream closes.
+   */
+  async streamMessage(
+    conversationId: string,
+    content: string,
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    const token = await getValidAccessToken();
+    const response = await fetch(
+      `${API_BASE_URL}/ai/conversations/${conversationId}/messages/stream`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ content }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Stream failed: ${response.status}`);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Normalise \r\n → \n so the parser works on both Windows and Unix line endings.
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+
+        const lines = buffer.split("\n");
+        // Keep the last (potentially incomplete) line in the buffer.
+        buffer = lines.pop() ?? "";
+
+        let isDone = false;
+        for (const line of lines) {
+          if (line.startsWith("event:") && line.includes("done")) {
+            isDone = true;
+            break;
+          }
+          if (line.startsWith("data:")) {
+            // Per SSE spec, one optional space after "data:" is consumed as a
+            // protocol separator — strip exactly one leading space if present.
+            const raw = line.slice(5);
+            const encoded = raw.startsWith(" ") ? raw.slice(1) : raw;
+            if (!encoded) continue;
+            try {
+              // Backend JSON-encodes each chunk so spaces and newlines survive
+              // the SSE wire format intact.
+              const chunk: string = JSON.parse(encoded);
+              if (chunk) onChunk(chunk);
+            } catch {
+              // Fallback for any unencoded frames (e.g. the done event data).
+              onChunk(encoded);
+            }
+          }
+        }
+        if (isDone) return;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  },
+
+  async renameConversation(conversationId: string, title: string) {
+    const response = await apiClient.patch<{ data: ConversationSummary }>(
+      `/ai/conversations/${conversationId}`,
+      { title }
+    );
+    return unwrap(response);
   },
 };

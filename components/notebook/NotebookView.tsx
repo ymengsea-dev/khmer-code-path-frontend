@@ -36,7 +36,10 @@ import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { noteService } from "@/lib/services/note-service";
 import type { NoteDto, NoteSummaryDto, SharedNoteDto } from "@/lib/types/note-api";
+import { RichTextDocumentEditor } from "@/components/editor/RichTextDocumentEditor";
 import { RichTextEditor } from "@/components/notebook/RichTextEditor";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { EMPTY_EDITOR_HTML, formatDocumentTimestamp } from "@/lib/editor/html-content";
 import { NoteTagPicker } from "@/components/notebook/NoteTagPicker";
 import {
   parseNoteTags,
@@ -59,16 +62,6 @@ function formatNoteListDate(iso: string): string {
     });
   }
   return String(d.getFullYear());
-}
-
-function formatEditorTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function matchesSearch(note: NoteSummaryDto, query: string): boolean {
@@ -94,8 +87,8 @@ function NoteTagBadge({ tag }: { tag: NoteTag }) {
   );
 }
 
-const EMPTY_BODY = "<p><br></p>";
 const AUTOSAVE_MS = 30_000;
+const NOTE_EDITOR_ID = "note-body-editor";
 
 function buildShareUrl(shareToken: string): string {
   if (typeof window === "undefined") return `/?view=notebook&share=${shareToken}`;
@@ -194,6 +187,7 @@ function NoteRow({
 
 export function NotebookView() {
   const { get, setParams } = useQueryParams();
+  const { confirm } = useConfirm();
   const [searchQuery, setSearchQuery] = useDebouncedQueryState(QueryKey.q);
   const noteParam = get(QueryKey.note);
   const shareParam = get(QueryKey.share);
@@ -202,7 +196,7 @@ export function NotebookView() {
   const [activeNote, setActiveNote] = useState<NoteDto | null>(null);
   const [sharedNote, setSharedNote] = useState<SharedNoteDto | null>(null);
   const [title, setTitle] = useState("Untitled note");
-  const [bodyHtml, setBodyHtml] = useState(EMPTY_BODY);
+  const [bodyHtml, setBodyHtml] = useState(EMPTY_EDITOR_HTML);
   const [tags, setTags] = useState<string[]>([]);
   const primaryTag = parseNoteTags(tags)[0] ?? null;
 
@@ -241,7 +235,7 @@ export function NotebookView() {
       const note = await noteService.get(id);
       setActiveNote(note);
       setTitle(note.title);
-      setBodyHtml(note.bodyHtml || EMPTY_BODY);
+      setBodyHtml(note.bodyHtml || EMPTY_EDITOR_HTML);
       setTags(note.tags ?? []);
       dirtyRef.current = false;
       setSaveStatus("saved");
@@ -289,7 +283,7 @@ export function NotebookView() {
     if (!creating) {
       setActiveNote(null);
       setTitle("Untitled note");
-      setBodyHtml(EMPTY_BODY);
+      setBodyHtml(EMPTY_EDITOR_HTML);
       setTags([]);
       setSaveStatus("idle");
       dirtyRef.current = false;
@@ -348,6 +342,19 @@ export function NotebookView() {
     return () => window.clearInterval(timer);
   }, [isSharedView, persistNote]);
 
+  useEffect(() => {
+    if (isSharedView) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      if (saving || creating || detailLoading) return;
+      void persistNote(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [creating, detailLoading, isSharedView, persistNote, saving]);
+
   const markDirty = () => {
     dirtyRef.current = true;
     setSaveStatus("dirty");
@@ -364,12 +371,12 @@ export function NotebookView() {
     try {
       const created = await noteService.create({
         title: "Untitled note",
-        bodyHtml: EMPTY_BODY,
+        bodyHtml: EMPTY_EDITOR_HTML,
         tags: [],
       });
       setActiveNote(created);
       setTitle(created.title);
-      setBodyHtml(created.bodyHtml || EMPTY_BODY);
+      setBodyHtml(created.bodyHtml || EMPTY_EDITOR_HTML);
       setTags(created.tags ?? []);
       dirtyRef.current = false;
       setSaveStatus("saved");
@@ -383,7 +390,12 @@ export function NotebookView() {
   }, [creating, loadList, saving, setParams]);
 
   const handleDeleteNote = async (note: NoteSummaryDto) => {
-    if (!window.confirm(`Delete "${note.title}" permanently?`)) return;
+    const ok = await confirm(`"${note.title}" will be permanently deleted.`, {
+      title: "Delete Note",
+      confirmLabel: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await noteService.delete(note.id);
       if (selectedId === note.id) {
@@ -503,10 +515,10 @@ export function NotebookView() {
                 {sharedNote.title}
               </h2>
               <p className="shrink-0 px-10 sm:px-14 pb-2 text-[12px] text-muted-foreground">
-                {formatEditorTimestamp(sharedNote.updatedAt)}
+                {formatDocumentTimestamp(sharedNote.updatedAt)}
               </p>
               <RichTextEditor
-                html={sharedNote.bodyHtml || EMPTY_BODY}
+                html={sharedNote.bodyHtml || EMPTY_EDITOR_HTML}
                 onChange={() => {}}
                 readOnly
                 variant="apple"
@@ -536,81 +548,64 @@ export function NotebookView() {
             </div>
           ) : selectedId != null || activeNote != null ? (
             <>
-              <div className="shrink-0 h-11 px-3 flex items-center justify-between gap-2 border-b border-black/[0.06] dark:border-white/[0.08]">
-                <NoteTagPicker
-                  tag={primaryTag}
-                  disabled={detailLoading || saving}
-                  onChange={(tag) => {
-                    setTags(tag ? serializeNoteTags([tag]) : []);
-                    markDirty();
-                  }}
-                />
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-[13px] text-muted-foreground gap-1.5"
-                    disabled={!activeNote?.id}
-                    onClick={() => void handleShare()}
-                  >
-                    <Share2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Share</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-[13px] font-medium"
-                    disabled={saving}
-                    onClick={() => void persistNote(false)}
-                  >
-                    {saving ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : saveStatus === "saved" ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    ) : (
-                      <PenSquare className="h-3.5 w-3.5" />
-                    )}
-                    <span className="hidden sm:inline ml-1">
-                      {saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}
-                    </span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    markDirty();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      document.getElementById("note-body-editor")?.focus();
-                    }
-                  }}
-                  className="shrink-0 w-full bg-transparent border-none px-10 sm:px-14 pt-4 pb-1 text-[28px] font-bold text-foreground tracking-tight outline-none placeholder:text-muted-foreground/50"
-                  placeholder="Title"
-                />
-                {activeNote && (
-                  <p className="shrink-0 px-10 sm:px-14 pb-2 text-[12px] text-muted-foreground">
-                    {formatEditorTimestamp(activeNote.updatedAt)}
-                  </p>
-                )}
-                <RichTextEditor
-                  html={bodyHtml}
-                  onChange={(html) => {
-                    setBodyHtml(html);
-                    markDirty();
-                  }}
-                  placeholder="Start writing…"
-                  disabled={detailLoading || saving}
-                  variant="apple"
-                  className="flex-1 min-h-0"
-                />
-              </div>
+              <RichTextDocumentEditor
+                title={title}
+                onTitleChange={(v) => {
+                  setTitle(v);
+                  markDirty();
+                }}
+                bodyHtml={bodyHtml}
+                onBodyChange={(html) => {
+                  setBodyHtml(html);
+                  markDirty();
+                }}
+                updatedAt={activeNote?.updatedAt}
+                disabled={detailLoading || saving}
+                editorId={NOTE_EDITOR_ID}
+                toolbar={
+                  <>
+                    <NoteTagPicker
+                      tag={primaryTag}
+                      disabled={detailLoading || saving}
+                      onChange={(tag) => {
+                        setTags(tag ? serializeNoteTags([tag]) : []);
+                        markDirty();
+                      }}
+                    />
+                    <div className="flex items-center gap-1 shrink-0 ml-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-[13px] text-muted-foreground gap-1.5"
+                        disabled={!activeNote?.id}
+                        onClick={() => void handleShare()}
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Share</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-[13px] font-medium"
+                        disabled={saving}
+                        onClick={() => void persistNote(false)}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : saveStatus === "saved" ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <PenSquare className="h-3.5 w-3.5" />
+                        )}
+                        <span className="hidden sm:inline ml-1">
+                          {saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}
+                        </span>
+                      </Button>
+                    </div>
+                  </>
+                }
+                className="flex-1 min-h-0"
+              />
 
               {(saveError || (saveStatus === "dirty" && !saving)) && (
                 <p className="shrink-0 px-6 py-2 text-[11px] text-center text-muted-foreground border-t border-black/[0.04]">

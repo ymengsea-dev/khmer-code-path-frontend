@@ -2,34 +2,42 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Course } from "@/types/course";
-import { CourseCard } from "./CourseCard";
 import { CourseBreakdown } from "./CourseBreakdown";
 import {
   TrendingUp,
   CheckCircle,
-  Video,
   Users,
   BookOpen,
-  AlertCircle,
-  Zap,
-  Activity,
   Building2,
   GraduationCap,
   ClipboardList,
   Loader2,
-  Sparkles,
   MessageSquare,
-  Plus,
+  MoreVertical,
   Pencil,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { courseService } from "@/lib/services/course-service";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { authService } from "@/lib/services/auth-service";
 import { dashboardService } from "@/lib/services/dashboard-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import type {
   AdminDashboard,
   StudentDashboard,
@@ -37,6 +45,11 @@ import type {
 } from "@/lib/types/dashboard-api";
 import { useSession } from "next-auth/react";
 import type { UserRole } from "@/lib/auth/use-user-role";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { classService } from "@/lib/services/class-service";
+import type { ClassSummary, ClassStatus } from "@/lib/types/class-api";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface CourseGridProps {
   courses: Course[];
@@ -48,6 +61,7 @@ interface CourseGridProps {
   onCreateCourse?: () => void;
   onEditCourse?: (course: Course) => void;
   onCoursesChanged?: () => void;
+  onEnterClass?: (payload: { classId: string; title: string; module: string }) => void;
 }
 
 type StatCard = {
@@ -58,114 +72,6 @@ type StatCard = {
   positive: boolean;
 };
 
-function CourseCatalogSection({
-  title,
-  courses,
-  coursesLoading,
-  coursesError,
-  selectedId,
-  onSelect,
-  canManageCourses,
-  onCreateCourse,
-  onEditCourse,
-  onCoursesChanged,
-}: {
-  title: string;
-  courses: Course[];
-  coursesLoading?: boolean;
-  coursesError?: string | null;
-  selectedId?: number;
-  onSelect: (course: Course) => void;
-  canManageCourses?: boolean;
-  onCreateCourse?: () => void;
-  onEditCourse?: (course: Course) => void;
-  onCoursesChanged?: () => void;
-}) {
-  const handleDelete = async (course: Course) => {
-    if (!confirm(`Delete "${course.title}"? This cannot be undone.`)) return;
-    try {
-      await courseService.deleteCourse(course.id);
-      onCoursesChanged?.();
-    } catch {
-      alert("Could not delete course.");
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center gap-3 flex-wrap">
-        <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase text-zinc-700 dark:text-zinc-300">
-          {title}
-        </h2>
-        {canManageCourses && onCreateCourse && (
-          <Button size="sm" onClick={onCreateCourse}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add course
-          </Button>
-        )}
-      </div>
-      {coursesError && (
-        <p className="text-sm text-destructive" role="alert">
-          {coursesError}
-        </p>
-      )}
-      {coursesLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : courses.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
-          No courses yet.
-          {canManageCourses ? " Create your first course to get started." : ""}
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-          {courses.map((course) => (
-            <div key={course.id} className="relative group">
-              <CourseCard
-                course={course}
-                selected={selectedId === course.id}
-                onClick={() => onSelect(course)}
-              />
-              {canManageCourses && (
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {onEditCourse && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="secondary"
-                      className="h-8 w-8 shadow-md"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditCourse(course);
-                      }}
-                      aria-label={`Edit ${course.title}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="h-8 w-8 shadow-md text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleDelete(course);
-                    }}
-                    aria-label={`Delete ${course.title}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function CourseGrid({
   courses,
@@ -177,22 +83,19 @@ export function CourseGrid({
   onCreateCourse,
   onEditCourse,
   onCoursesChanged,
+  onEnterClass,
 }: CourseGridProps) {
   const { data: session, status: sessionStatus } = useSession();
+  const { data: currentUser } = useCurrentUser();
+  const { confirm } = useConfirm();
+  const queryClient = useQueryClient();
   const [role, setRole] = useState<UserRole | null>(null);
-  const [displayName, setDisplayName] = useState<string | null>(
-    session?.user?.name ?? null
-  );
   const [statsLoading, setStatsLoading] = useState(true);
+  const [deletingClassId, setDeletingClassId] = useState<number | null>(null);
+  const [editingClass, setEditingClass] = useState<ClassSummary | null>(null);
   const [studentDash, setStudentDash] = useState<StudentDashboard | null>(null);
   const [teacherDash, setTeacherDash] = useState<TeacherDashboard | null>(null);
   const [adminDash, setAdminDash] = useState<AdminDashboard | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.name) {
-      setDisplayName(session.user.name);
-    }
-  }, [session?.user?.name]);
 
   useEffect(() => {
     if (sessionStatus === "loading") {
@@ -204,31 +107,12 @@ export function CourseGrid({
     async function loadProfileAndDashboard() {
       setStatsLoading(true);
 
-      let resolvedRole = session?.user?.role as UserRole | undefined;
-      let name = session?.user?.name?.trim() || null;
-
-      if (!resolvedRole) {
-        try {
-          const response = await authService.me();
-          const user = response?.data as UserProfile | undefined;
-          if (user?.role) {
-            resolvedRole = user.role.toLowerCase() as UserRole;
-          }
-          const userName = user?.userName?.trim();
-          if (userName) {
-            name = userName;
-          }
-        } catch (err) {
-          console.error("Failed to load user profile", err);
-        }
-      }
+      const resolvedRole =
+        (currentUser?.role?.toLowerCase() as UserRole | undefined) ??
+        (session?.user?.role?.toLowerCase() as UserRole | undefined);
 
       if (cancelled) {
         return;
-      }
-
-      if (name) {
-        setDisplayName(name);
       }
 
       if (!resolvedRole) {
@@ -260,7 +144,7 @@ export function CourseGrid({
     return () => {
       cancelled = true;
     };
-  }, [session?.user?.role, session?.user?.name, sessionStatus]);
+  }, [currentUser?.role, session?.user?.role, sessionStatus]);
 
   const studentStats: StatCard[] = useMemo(() => {
     if (!studentDash) return [];
@@ -378,35 +262,45 @@ export function CourseGrid({
         ? teacherStats
         : adminStats;
 
+  const resolvedRoleLive =
+    currentUser?.role?.toLowerCase() ??
+    session?.user?.role?.toLowerCase() ??
+    role;
+  const canDeleteClass =
+    resolvedRoleLive === "teacher" || resolvedRoleLive === "admin";
+
+  const handleDeleteClass = async (klass: ClassSummary) => {
+    const ok = await confirm(
+      `"${klass.name}" and all its lessons will be permanently deleted.`,
+      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" }
+    );
+    if (!ok) return;
+    setDeletingClassId(klass.id);
+    try {
+      await classService.deleteClass(klass.id);
+      await queryClient.invalidateQueries({ queryKey: ["dashboard", "classes"] });
+    } catch {
+      // silently ignore — the list will reflect the real state on next load
+    } finally {
+      setDeletingClassId(null);
+    }
+  };
+
+  const canSeeClassSection = role === "student" || role === "teacher" || role === "admin";
+  const {
+    data: classPage,
+    isLoading: classesLoading,
+    isError: classesIsError,
+  } = useQuery({
+    queryKey: ["dashboard", "classes", role],
+    queryFn: () => classService.listClasses({ size: 50 }),
+    enabled: canSeeClassSection,
+    staleTime: 60_000,
+  });
+  const classItems = classPage?.items ?? [];
+
   return (
     <div className="h-full w-full flex flex-col min-w-0 overflow-hidden bg-background">
-      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Welcome Back
-            {displayName ? (
-              <>
-                ,{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                  {displayName}
-                </span>
-              </>
-            ) : (
-              <span className="ml-1 inline-block h-6 w-24 animate-pulse rounded bg-muted align-middle" aria-hidden />
-            )}
-            <Sparkles className="w-5 h-5 text-amber-500" />
-          </h1>
-        </div>
-
-        <div className="flex items-center flex-wrap gap-3">
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-xs font-bold shadow-xs hover:bg-emerald-500/20 active:translate-y-px transition-all">
-            <Video className="w-3.5 h-3.5" />
-            <span>Join Live Class</span>
-          </button>
-          <NotificationBell />
-        </div>
-      </header>
-
       <div className="flex-1 min-h-0 overflow-y-auto p-6 gap-6 flex flex-col">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           {statsLoading ? (
@@ -452,19 +346,7 @@ export function CourseGrid({
           )}
         </div>
 
-        {role === "student" && (
-          <>
-            <CourseBreakdown />
-            <CourseCatalogSection
-              title="Continue Learning"
-              courses={courses}
-              coursesLoading={coursesLoading}
-              coursesError={coursesError}
-              selectedId={selectedId}
-              onSelect={onSelect}
-            />
-          </>
-        )}
+        {role === "student" && <CourseBreakdown />}
 
         {role === "teacher" && teacherDash && (
           <div className="flex flex-col gap-4">
@@ -505,21 +387,264 @@ export function CourseGrid({
           </div>
         )}
 
-        {(role === "admin" || role === "teacher") && canManageCourses && (
-          <CourseCatalogSection
-            title={role === "admin" ? "Course catalog" : "Your courses"}
-            courses={courses}
-            coursesLoading={coursesLoading}
-            coursesError={coursesError}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            canManageCourses={canManageCourses}
-            onCreateCourse={onCreateCourse}
-            onEditCourse={onEditCourse}
-            onCoursesChanged={onCoursesChanged}
-          />
+        {canSeeClassSection && (
+          <div className="flex flex-col gap-4">
+            <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase text-zinc-700 dark:text-zinc-300">
+              Classes
+            </h2>
+            {classesLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : classesIsError ? (
+              <p className="text-sm text-destructive" role="alert">
+                Failed to load classes.
+              </p>
+            ) : classItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-12 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
+                No classes available.
+              </p>
+            ) : (
+              <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                {classItems.map((klass: ClassSummary) => (
+                  <Card
+                    key={klass.id}
+                    className="border border-slate-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden"
+                  >
+                    <div
+                      className={`h-24 bg-linear-to-br ${klass.cardGradient} relative overflow-hidden flex items-center justify-center`}
+                    >
+                      <div className="absolute inset-0 bg-black/10" />
+                      <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                        <Badge
+                          className={
+                            klass.status === "ACTIVE"
+                              ? "bg-emerald-500 text-white font-bold"
+                              : "bg-amber-500 text-white font-bold"
+                          }
+                        >
+                          {klass.statusLabel}
+                        </Badge>
+                        <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                          {klass.code}
+                        </span>
+                      </div>
+                      <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md">
+                        {klass.name}
+                      </h3>
+                    </div>
+                    <CardContent className="p-4 flex-1 flex flex-col gap-3">
+                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5 text-emerald-500" />
+                          {klass.enrolledCount} Students
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        {klass.semesterLabel || "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground/90 leading-relaxed">
+                        Teacher: {klass.teacherName}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() =>
+                            onEnterClass?.({
+                              classId: String(klass.id),
+                              title: klass.name,
+                              module: klass.semesterLabel ?? "",
+                            })
+                          }
+                        >
+                          Open class
+                        </Button>
+
+                        {canDeleteClass && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              aria-label="Class options"
+                              className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground outline-none"
+                            >
+                              {deletingClassId === klass.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreVertical className="h-4 w-4" />
+                              )}
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => setEditingClass(klass)}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit class
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => void handleDeleteClass(klass)}
+                                disabled={deletingClassId === klass.id}
+                                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Delete class
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {editingClass && (
+                <EditClassDialog
+                  klass={editingClass}
+                  onOpenChange={(open) => { if (!open) setEditingClass(null); }}
+                  onSaved={async () => {
+                    setEditingClass(null);
+                    await queryClient.invalidateQueries({ queryKey: ["dashboard", "classes"] });
+                  }}
+                />
+              )}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+/* ─── Edit Class Dialog ─────────────────────────────────────────────────── */
+
+function EditClassDialog({
+  klass,
+  onOpenChange,
+  onSaved,
+}: {
+  klass: ClassSummary;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [name, setName] = useState(klass.name);
+  const [code, setCode] = useState(klass.code);
+  const [semester, setSemester] = useState(klass.semester ?? "");
+  const [academicYear, setAcademicYear] = useState(
+    klass.academicYear != null ? String(klass.academicYear) : ""
+  );
+  const [status, setStatus] = useState<ClassStatus>(klass.status);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!name.trim() || !code.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await classService.updateClass(klass.id, {
+        name: name.trim(),
+        code: code.trim(),
+        semester: semester.trim() || undefined,
+        academicYear: academicYear ? Number(academicYear) : undefined,
+        status,
+      });
+      await onSaved();
+    } catch {
+      setError("Could not save changes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
+            <Pencil className="h-4 w-4 text-violet-500" />
+            Edit Class
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Class name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-9 text-sm"
+              placeholder="e.g. Mathematics 101"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Class code</Label>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="h-9 text-sm"
+              placeholder="e.g. MATH101"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Semester</Label>
+              <Input
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g. Semester 1"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Academic year</Label>
+              <Input
+                type="number"
+                value={academicYear}
+                onChange={(e) => setAcademicYear(e.target.value)}
+                className="h-9 text-sm"
+                placeholder="e.g. 2025"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Status</Label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ClassStatus)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="DRAFT">Draft</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            disabled={saving || !name.trim() || !code.trim()}
+            onClick={() => void handleSave()}
+          >
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+            Save changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

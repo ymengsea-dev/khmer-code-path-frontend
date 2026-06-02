@@ -180,6 +180,10 @@ export interface RichTextEditorProps {
   readOnly?: boolean;
   /** Apple Notes–style: borderless, minimal toolbar */
   variant?: "default" | "apple";
+  /** DOM id for the contenteditable region (used for focus from title field) */
+  editorId?: string;
+  /** Extra controls at the end of the formatting toolbar (e.g. attach files) */
+  toolbarEnd?: React.ReactNode;
 }
 
 export function RichTextEditor({
@@ -190,6 +194,8 @@ export function RichTextEditor({
   disabled = false,
   readOnly = false,
   variant = "default",
+  editorId = "rich-text-body-editor",
+  toolbarEnd,
 }: RichTextEditorProps) {
   const isApple = variant === "apple";
   const editorRef = useRef<HTMLDivElement>(null);
@@ -437,9 +443,10 @@ export function RichTextEditor({
     <>
       <div
         className={cn(
-          "flex flex-col min-h-0 overflow-hidden",
+          "flex flex-col",
+          readOnly ? "overflow-clip" : "min-h-0 overflow-hidden",
           isApple
-            ? "flex-1 h-full bg-transparent"
+            ? readOnly ? "bg-transparent" : "flex-1 h-full bg-transparent"
             : "rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950",
           className
         )}
@@ -571,17 +578,26 @@ export function RichTextEditor({
             >
               <Redo className="w-3.5 h-3.5" />
             </Button>
+            {toolbarEnd ? (
+              <>
+                <div className="flex-1 min-w-2 basis-2" aria-hidden />
+                <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
+                {toolbarEnd}
+              </>
+            ) : null}
           </div>
         )}
 
         <div
           className={cn(
-            "flex-1 min-h-0 overflow-y-auto overscroll-y-contain",
+            readOnly
+              ? ""
+              : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain",
             isApple && "bg-[#fffef8] dark:bg-[#1c1c1e]"
           )}
         >
           <div
-            id="note-body-editor"
+            id={editorId}
             ref={editorRef}
             contentEditable={!disabled && !readOnly}
             suppressContentEditableWarning

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,18 +14,26 @@ import { Label } from "@/components/ui/label";
 import { classService } from "@/lib/services/class-service";
 import { userService } from "@/lib/services/user-service";
 import type { UserSummary } from "@/lib/services/user-service";
+import type { ClassConfigDto } from "@/lib/types/class-api";
 import { Loader2 } from "lucide-react";
 
 interface CreateClassDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  classConfig: ClassConfigDto | null;
+  /** Admins pick any teacher; teachers create classes assigned to themselves. */
+  isAdmin?: boolean;
+  currentTeacherId?: string;
 }
 
 export function CreateClassDialog({
   open,
   onOpenChange,
   onCreated,
+  classConfig,
+  isAdmin = false,
+  currentTeacherId,
 }: CreateClassDialogProps) {
   const [teachers, setTeachers] = useState<UserSummary[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
@@ -36,13 +44,35 @@ export function CreateClassDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [teacherId, setTeacherId] = useState("");
-  const [semester, setSemester] = useState("Semester 1");
-  const [academicYear, setAcademicYear] = useState("2026");
+  const [semester, setSemester] = useState("");
+  const [academicYear, setAcademicYear] = useState("");
   const [schedule, setSchedule] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
 
+  const semesterOptions = useMemo(
+    () =>
+      (classConfig?.semesterFilters ?? []).filter(
+        (f) => f.semester != null && f.semester !== ""
+      ),
+    [classConfig]
+  );
+
+  useEffect(() => {
+    if (!open || !classConfig) return;
+    setError(null);
+    const defs = classConfig.createDefaults;
+    setSemester(defs.semester);
+    setAcademicYear(String(defs.academicYear));
+  }, [open, classConfig]);
+
   useEffect(() => {
     if (!open) return;
+    setError(null);
+    if (!isAdmin) {
+      if (currentTeacherId) setTeacherId(currentTeacherId);
+      setTeachers([]);
+      return;
+    }
     setLoadingTeachers(true);
     userService
       .listUsers({ role: "TEACHER", size: 100 })
@@ -52,18 +82,39 @@ export function CreateClassDialog({
       })
       .catch(() => setError("Could not load teachers."))
       .finally(() => setLoadingTeachers(false));
-  }, [open]);
+  }, [open, isAdmin, currentTeacherId]);
+
+  const handleSemesterPick = (label: string) => {
+    const match = semesterOptions.find((o) => o.value === label);
+    if (match?.semester) {
+      setSemester(match.semester);
+      if (match.academicYear != null) {
+        setAcademicYear(String(match.academicYear));
+      }
+    } else {
+      setSemester(label);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!classConfig) {
+      setError("Class options are still loading. Try again in a moment.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
+      const assignedTeacherId = isAdmin ? teacherId : (currentTeacherId ?? teacherId);
+      if (!assignedTeacherId) {
+        setError("Could not determine your teacher account. Sign in again.");
+        return;
+      }
       await classService.createClass({
         code: code.trim(),
         name: name.trim(),
         description: description.trim() || undefined,
-        teacherId,
+        teacherId: assignedTeacherId,
         semester: semester.trim() || undefined,
         academicYear: Number(academicYear) || undefined,
         schedule: schedule.trim() || undefined,
@@ -84,13 +135,23 @@ export function CreateClassDialog({
     }
   };
 
+  const selectedSemesterLabel =
+    semesterOptions.find(
+      (o) =>
+        o.semester === semester &&
+        (o.academicYear == null || String(o.academicYear) === academicYear)
+    )?.value ??
+    (semester && academicYear ? `${semester}, ${academicYear}` : semester);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-base font-extrabold">Create Class</DialogTitle>
           <DialogDescription className="text-xs">
-            Assign a teacher and set up a new class for student enrollment.
+            {isAdmin
+              ? "Assign a teacher and set up a new class for student enrollment."
+              : "Set up a new class you will teach. Invite students from the class roster after creating."}
           </DialogDescription>
         </DialogHeader>
 
@@ -128,31 +189,48 @@ export function CreateClassDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Teacher</Label>
-            <select
-              value={teacherId}
-              onChange={(e) => setTeacherId(e.target.value)}
-              required
-              disabled={loadingTeachers}
-              className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
-            >
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.email})
-                </option>
-              ))}
-            </select>
-          </div>
+          {isAdmin ? (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Teacher</Label>
+              <select
+                value={teacherId}
+                onChange={(e) => setTeacherId(e.target.value)}
+                required
+                disabled={loadingTeachers}
+                className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
+              >
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Semester</Label>
-              <Input
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="h-9 text-sm"
-              />
+              {semesterOptions.length > 0 ? (
+                <select
+                  value={selectedSemesterLabel}
+                  onChange={(e) => handleSemesterPick(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
+                >
+                  {semesterOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="h-9 text-sm"
+                  disabled={!classConfig}
+                />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Academic year</Label>
@@ -161,6 +239,7 @@ export function CreateClassDialog({
                 onChange={(e) => setAcademicYear(e.target.value)}
                 type="number"
                 className="h-9 text-sm"
+                disabled={!classConfig}
               />
             </div>
           </div>
@@ -190,7 +269,12 @@ export function CreateClassDialog({
 
           <Button
             type="submit"
-            disabled={submitting || !teacherId}
+            disabled={
+              submitting ||
+              !classConfig ||
+              (!isAdmin && !currentTeacherId) ||
+              (isAdmin && !teacherId)
+            }
             className="w-full font-bold h-9"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : "Create class"}

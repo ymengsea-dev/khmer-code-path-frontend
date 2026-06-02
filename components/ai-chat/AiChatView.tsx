@@ -1,19 +1,10 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Bot,
-  Loader2,
-  Send,
-  Sparkles,
-  User,
-  BookOpen,
-  Code2,
-  Lightbulb,
-} from "lucide-react";
+import { ArrowUp, Check, Loader2, Pencil, Plus, Sparkles, SquarePen, Trash2, User, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   aiChatService,
@@ -22,6 +13,7 @@ import {
 } from "@/lib/services/ai-chat-service";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface ChatMessage {
   id: string;
@@ -29,18 +21,8 @@ interface ChatMessage {
   content: string;
 }
 
-const suggestedPrompts = [
-  { label: "Explain Big O notation", icon: BookOpen },
-  { label: "Debug my Python loop", icon: Code2 },
-  { label: "Quiz me on data structures", icon: Lightbulb },
-];
-
-const welcomeMessage: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Hi! I'm your Khmer Code Path learning assistant. Ask me about lessons, code, algorithms, or anything from your courses — I'm here to help you learn.",
-};
+const COMPOSER_MIN_HEIGHT = 24;
+const STREAM_MSG_ID = "streaming-assistant";
 
 function toUiMessage(dto: ChatMessageDto): ChatMessage {
   return {
@@ -50,34 +32,226 @@ function toUiMessage(dto: ChatMessageDto): ChatMessage {
   };
 }
 
-function formatRelativeTime(iso: string) {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days}d ago`;
+function ConversationRow({
+  thread,
+  selected,
+  onSelect,
+  onDelete,
+  onRename,
+  deleting,
+}: {
+  thread: ConversationSummary;
+  selected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onRename: (newTitle: string) => void;
+  deleting: boolean;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(thread.title);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraft(thread.title);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commitEdit = () => {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== thread.title) {
+      onRename(trimmed);
+    }
+    setEditing(false);
+  };
+
+  const cancelEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDraft(thread.title);
+    setEditing(false);
+  };
+
+  return (
+    <div className="px-2 py-0.5 group relative">
+      {editing ? (
+        <div
+          className={cn(
+            "flex items-center gap-1 rounded-xl px-3 py-2 ring-1 ring-indigo-400/60",
+            "bg-white dark:bg-zinc-800"
+          )}
+        >
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+              if (e.key === "Escape") cancelEdit();
+            }}
+            className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-foreground focus:outline-none"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); commitEdit(); }}
+            className="shrink-0 h-5 w-5 rounded flex items-center justify-center text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+            aria-label="Save"
+          >
+            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            className="shrink-0 h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
+            aria-label="Cancel"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onSelect}
+            className={cn(
+              "w-full text-left rounded-xl px-3 py-2.5 transition-all duration-150 pr-16",
+              selected
+                ? "bg-white dark:bg-zinc-800/80 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                : "hover:bg-black/4 dark:hover:bg-white/4"
+            )}
+          >
+            <p className="text-[13px] font-medium text-foreground truncate">{thread.title}</p>
+          </button>
+
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={startEdit}
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
+              aria-label={`Rename ${thread.title}`}
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              disabled={deleting}
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-40"
+              aria-label={`Delete ${thread.title}`}
+            >
+              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming?: boolean }) {
+  const isUser = msg.role === "user";
+
+  return (
+    <div className={cn("flex w-full gap-2.5 items-end", isUser ? "justify-end" : "justify-start")}>
+      {/* AI avatar — left side */}
+      {!isUser && (
+        <div className="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm mb-0.5">
+          <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "min-w-0 max-w-[90%] rounded-2xl text-[14px] leading-relaxed px-4 py-2.5 overflow-hidden",
+          isUser
+            ? "rounded-br-md bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+            : "rounded-bl-md bg-white dark:bg-zinc-800 ring-1 ring-black/5 dark:ring-white/10 text-foreground shadow-sm"
+        )}
+      >
+        {isUser ? (
+          <p className="whitespace-pre-wrap wrap-break-word">{msg.content}</p>
+        ) : (
+          <div className="min-w-0 text-[14px] leading-relaxed wrap-break-word [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="my-1.5 leading-relaxed">{children}</p>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                em: ({ children }) => <em className="italic">{children}</em>,
+                h1: ({ children }) => <h1 className="text-[17px] font-semibold mt-3 mb-1">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-[15px] font-semibold mt-3 mb-1">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-[14px] font-semibold mt-2 mb-1">{children}</h3>,
+                ul: ({ children }) => <ul className="my-1.5 pl-5 list-disc space-y-0.5">{children}</ul>,
+                ol: ({ children }) => <ol className="my-1.5 pl-5 list-decimal space-y-0.5">{children}</ol>,
+                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
+                  inline ? (
+                    <code className="text-[13px] font-mono bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-1 py-0.5 rounded">{children}</code>
+                  ) : (
+                    <code>{children}</code>
+                  ),
+                pre: ({ children }) => (
+                  <pre className="my-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-zinc-200 dark:border-zinc-700">{children}</pre>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="my-2 border-l-2 border-indigo-400 pl-3 italic text-muted-foreground">{children}</blockquote>
+                ),
+                hr: () => <hr className="my-3 border-black/10 dark:border-white/10" />,
+                a: ({ href, children }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-500 underline underline-offset-2 hover:text-indigo-600">{children}</a>
+                ),
+                table: ({ children }) => (
+                  <div className="my-2 overflow-x-auto">
+                    <table className="w-full text-[13px] border-collapse">{children}</table>
+                  </div>
+                ),
+                th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">{children}</th>,
+                td: ({ children }) => <td className="px-3 py-1.5 border border-zinc-200 dark:border-zinc-700">{children}</td>,
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+            {streaming && (
+              <span
+                className="inline-block w-[2px] h-[14px] bg-current ml-0.5 align-middle"
+                style={{ animation: "cursor-blink 1s step-end infinite" }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* User avatar — right side */}
+      {isUser && (
+        <div className="shrink-0 h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shadow-sm mb-0.5">
+          <User className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" strokeWidth={2} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AiChatView() {
   const { get, setParams } = useQueryParams();
+  const { confirm } = useConfirm();
   const conversationIdFromUrl = get(QueryKey.thread);
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationIdState] = useState<string | null>(
     conversationIdFromUrl
   );
-  const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // True after the first load snaps to bottom; resets on unmount (tab switch).
+  const didInitialScrollRef = useRef(false);
 
   const setActiveConversationId = useCallback(
     (id: string | null) => {
@@ -95,11 +269,7 @@ export function AiChatView() {
 
   const loadMessages = useCallback(async (conversationId: string) => {
     const rows = await aiChatService.listMessages(conversationId);
-    if (rows.length === 0) {
-      setMessages([welcomeMessage]);
-    } else {
-      setMessages(rows.map(toUiMessage));
-    }
+    setMessages(rows.map(toUiMessage));
   }, []);
 
   useEffect(() => {
@@ -119,22 +289,17 @@ export function AiChatView() {
           setActiveConversationId(activeId);
           await loadMessages(activeId);
         } else {
-          const created = await aiChatService.createConversation({ sectionType: "GENERAL" });
-          if (cancelled) return;
-          setConversations([created]);
-          setActiveConversationId(created.id);
-          setMessages([welcomeMessage]);
+          setActiveConversationId(null);
+          setMessages([]);
         }
       } catch (err) {
         if (!cancelled) {
           console.error("AI chat bootstrap failed:", err);
-          setError("Could not load your conversations. Refresh and try again.");
+          setError("Could not load conversations. Refresh and try again.");
           setActiveConversationIdState(null);
         }
       } finally {
-        if (!cancelled) {
-          setIsBootstrapping(false);
-        }
+        if (!cancelled) setIsBootstrapping(false);
       }
     })();
     return () => {
@@ -143,11 +308,52 @@ export function AiChatView() {
   }, [conversationIdFromUrl, loadConversations, loadMessages, setActiveConversationId]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // First load after mount: snap to bottom instantly so the latest messages are
+    // visible without a visible scroll animation (avoids the jarring tab-switch jump).
+    if (!didInitialScrollRef.current && !isBootstrapping) {
+      didInitialScrollRef.current = true;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+
+    // While actively messaging / streaming: only smooth-scroll if the user is
+    // already near the bottom — never hijack when they've scrolled up to read.
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom > 150) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages, isLoading, isBootstrapping]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(COMPOSER_MIN_HEIGHT, Math.min(el.scrollHeight, 160))}px`;
+  }, [input]);
+
+  useEffect(() => {
+    if (!isBootstrapping && activeConversationId && !isLoading) {
+      textareaRef.current?.focus();
+    }
+  }, [activeConversationId, isBootstrapping, isLoading]);
+
+  // Accumulate stream chunks in a ref so React batching never discards them.
+  const streamBufferRef = useRef("");
+  const rafRef = useRef<number | null>(null);
+
+  const flushStreamBuffer = useCallback(() => {
+    rafRef.current = null;
+    const text = streamBufferRef.current;
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === STREAM_MSG_ID);
+      if (idx === -1) return prev;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], content: text };
+      return updated;
     });
-  }, [messages, isLoading]);
+  }, []);
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -155,31 +361,51 @@ export function AiChatView() {
 
     setError(null);
     setInput("");
-
-    const userMessage: ChatMessage = {
-      id: `pending-${Date.now()}`,
-      role: "user",
-      content: trimmed,
-    };
-    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    streamBufferRef.current = "";
+
+    setMessages((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, role: "user", content: trimmed },
+      { id: STREAM_MSG_ID, role: "assistant", content: "" },
+    ]);
 
     try {
-      const reply = await aiChatService.sendMessage(activeConversationId, trimmed);
-      setMessages(reply.messages.map(toUiMessage));
+      await aiChatService.streamMessage(
+        activeConversationId,
+        trimmed,
+        (chunk) => {
+          // Accumulate in a ref — immune to React batching.
+          streamBufferRef.current += chunk;
+          // Schedule a single rAF flush so the DOM updates each frame.
+          if (rafRef.current === null) {
+            rafRef.current = requestAnimationFrame(flushStreamBuffer);
+          }
+        }
+      );
+
+      // Cancel any pending frame, then do a final synchronous flush.
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      flushStreamBuffer();
+
+      // Finalise: give the message a stable id and refresh the sidebar.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === STREAM_MSG_ID ? { ...m, id: `assistant-${Date.now()}` } : m
+        )
+      );
       await loadConversations();
     } catch (err) {
-      console.error("AI chat send failed:", err);
+      console.error("AI chat stream failed:", err);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      setMessages((prev) => prev.filter((m) => m.id !== STREAM_MSG_ID));
       setError("Unable to reach the AI service. Check your connection and try again.");
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content:
-            "Sorry, I ran into a problem answering that. Please try again in a moment.",
-        },
-      ]);
     } finally {
       setIsLoading(false);
       textareaRef.current?.focus();
@@ -193,7 +419,7 @@ export function AiChatView() {
       const created = await aiChatService.createConversation({ sectionType: "GENERAL" });
       await loadConversations();
       setActiveConversationId(created.id);
-      setMessages([welcomeMessage]);
+      setMessages([]);
     } catch {
       setError("Could not start a new conversation.");
     } finally {
@@ -215,6 +441,53 @@ export function AiChatView() {
     }
   };
 
+  const handleDeleteConversation = async (id: string) => {
+    const target = conversations.find((c) => c.id === id);
+    if (!target) return;
+    const ok = await confirm(`Delete "${target.title}"? This cannot be undone.`, {
+      title: "Delete Conversation",
+      confirmLabel: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setDeletingConversationId(id);
+    setError(null);
+    try {
+      await aiChatService.deleteConversation(id);
+      const remaining = conversations.filter((c) => c.id !== id);
+      setConversations(remaining);
+
+      if (activeConversationId === id) {
+        if (remaining.length > 0) {
+          const nextId = remaining[0].id;
+          setActiveConversationId(nextId);
+          await loadMessages(nextId);
+        } else {
+          setActiveConversationId(null);
+          setMessages([]);
+        }
+      }
+    } catch {
+      setError("Could not delete this conversation.");
+    } finally {
+      setDeletingConversationId(null);
+    }
+  };
+
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    setRenamingConversationId(id);
+    setError(null);
+    try {
+      const updated = await aiChatService.renameConversation(id, newTitle);
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: updated.title } : c)));
+    } catch {
+      setError("Could not rename this conversation.");
+    } finally {
+      setRenamingConversationId(null);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void sendMessage(input);
@@ -227,221 +500,205 @@ export function AiChatView() {
     }
   };
 
-  const showSuggestions =
-    !isBootstrapping && messages.length <= 1 && !isLoading && messages[0]?.id === "welcome";
-
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-md shrink-0">
-        <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-          AI Chat
-          <Bot className="w-5 h-5 text-violet-500" />
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Ask questions about your courses, code, and study materials.
-        </p>
-      </header>
+    <div className="flex flex-1 min-h-0 h-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
+      <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row">
 
-      <div className="flex-1 min-h-0 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,300px)_1fr] gap-6 h-full min-h-0">
-          <Card className="hidden lg:flex flex-col overflow-hidden border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-2xs min-h-0">
-            <div className="p-4 border-b border-slate-200/80 dark:border-zinc-800 shrink-0">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
-                <span className="text-sm font-bold text-foreground">Recent chats</span>
+        {/* Sidebar */}
+        <aside className="w-full lg:w-[280px] xl:w-[300px] shrink-0 flex flex-col min-h-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border-r border-black/6 dark:border-white/6">
+          <div className="shrink-0 px-4 pt-5 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-[17px] font-semibold tracking-tight text-foreground">AI Chat</h1>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Your private workspace</p>
               </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {isBootstrapping && conversations.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-3 py-2">Loading…</p>
-              ) : (
-                conversations.map((thread) => (
-                  <button
-                    key={thread.id}
-                    type="button"
-                    onClick={() => void handleSelectConversation(thread.id)}
-                    className={cn(
-                      "w-full text-left rounded-lg px-3 py-2.5 transition-all",
-                      activeConversationId === thread.id
-                        ? "bg-violet-500/10 border border-violet-500/20"
-                        : "hover:bg-slate-100/80 dark:hover:bg-zinc-800/60 border border-transparent"
-                    )}
-                  >
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {thread.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {thread.preview}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/70 mt-1">
-                      {formatRelativeTime(thread.updatedAt)}
-                    </p>
-                  </button>
-                ))
-              )}
-            </div>
-            <div className="p-3 border-t border-slate-200/80 dark:border-zinc-800 shrink-0">
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="w-full text-xs font-semibold h-8"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
                 disabled={isBootstrapping}
                 onClick={() => void handleNewConversation()}
+                aria-label="New chat"
               >
-                New conversation
+                <SquarePen className="h-[17px] w-[17px]" strokeWidth={2} />
               </Button>
             </div>
-          </Card>
+          </div>
 
-          <Card className="flex flex-col overflow-hidden border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-2xs min-h-[480px] lg:min-h-0">
-            <div className="px-4 py-3 border-b border-slate-200/80 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-gradient-to-r from-violet-500/5 via-transparent to-indigo-500/5">
-              <div className="flex items-center gap-2.5">
-                <div className="size-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-sm">
-                  <Bot className="size-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">
-                    {activeConversation?.title ?? "Learning Assistant"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <span className="size-1.5 rounded-full bg-emerald-500" />
-                    {isBootstrapping ? "Loading…" : "Ready to help"}
-                  </p>
-                </div>
+          <div className="mx-4 h-px bg-black/6 dark:bg-white/6 mb-2" />
+
+          <div className="flex-1 overflow-y-auto min-h-0 px-1.5 pb-3">
+            {isBootstrapping && conversations.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
-              <Badge
-                variant="secondary"
-                className="text-[10px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border-0"
-              >
-                AI Powered
-              </Badge>
-            </div>
-
-            <div
-              ref={scrollRef}
-              className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4"
-            >
-              {isBootstrapping ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
-                </div>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex gap-3",
-                      msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "size-8 rounded-full shrink-0 flex items-center justify-center",
-                        msg.role === "user"
-                          ? "bg-slate-200 dark:bg-zinc-800"
-                          : "bg-gradient-to-br from-violet-500 to-indigo-600"
-                      )}
-                    >
-                      {msg.role === "user" ? (
-                        <User className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Bot className="w-4 h-4 text-white" />
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                        msg.role === "user"
-                          ? "bg-foreground text-background rounded-tr-md"
-                          : "bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 text-foreground rounded-tl-md"
-                      )}
-                    >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {isLoading && (
-                <div className="flex gap-3">
-                  <div className="size-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="rounded-2xl rounded-tl-md px-4 py-3 bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800">
-                    <Loader2 className="w-4 h-4 animate-spin text-violet-500" />
-                  </div>
-                </div>
-              )}
-
-              {showSuggestions && (
-                <div className="pt-2 space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Try asking
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestedPrompts.map(({ label, icon: Icon }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={() => void sendMessage(label)}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-violet-500/5 hover:border-violet-500/30 transition-colors"
-                      >
-                        <Icon className="w-3.5 h-3.5 text-violet-500" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {error && (
-              <p className="px-4 pb-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+            ) : conversations.length === 0 ? (
+              <div className="px-4 py-10 flex flex-col items-center gap-3 text-center">
+                <p className="text-[12px] text-muted-foreground">No conversation history</p>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 border-0 shadow-none"
+                  disabled={isBootstrapping}
+                  onClick={() => void handleNewConversation()}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  New Chat
+                </Button>
+              </div>
+            ) : (
+              conversations.map((thread) => (
+                <ConversationRow
+                  key={thread.id}
+                  thread={thread}
+                  selected={activeConversationId === thread.id}
+                  onSelect={() => void handleSelectConversation(thread.id)}
+                  onDelete={() => void handleDeleteConversation(thread.id)}
+                  onRename={(newTitle) => void handleRenameConversation(thread.id, newTitle)}
+                  deleting={deletingConversationId === thread.id}
+                />
+              ))
             )}
+          </div>
+        </aside>
 
+        {/* Main area */}
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
+
+          {/* Top bar */}
+          <div className="shrink-0 h-[52px] px-5 flex items-center justify-center border-b border-black/6 dark:border-white/6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
+            <p className="text-[14px] font-semibold text-foreground truncate max-w-[60%] text-center tracking-tight">
+              {activeConversation?.title ?? "New Chat"}
+            </p>
+          </div>
+
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-6">
+            {isBootstrapping ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="mx-auto max-w-3xl flex flex-col gap-3">
+                {messages.length === 0 && !isLoading ? (
+                  <div className="flex flex-col items-center justify-center text-center mt-24 mb-10 select-none">
+                    <div className="relative mb-5">
+                      <div className="absolute inset-0 rounded-full bg-linear-to-br from-indigo-400 to-violet-500 blur-xl opacity-30 scale-150" />
+                      <div className="relative h-14 w-14 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <Sparkles className="h-6 w-6 text-white" strokeWidth={2} />
+                      </div>
+                    </div>
+                    {activeConversationId ? (
+                      <>
+                        <h2 className="text-[20px] font-semibold text-foreground mb-1.5 tracking-tight">AI Assistant</h2>
+                        <p className="text-muted-foreground text-[14px] max-w-xs leading-relaxed">
+                          Ask anything about your class content, get explanations, or explore ideas.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-[20px] font-semibold text-foreground mb-1.5 tracking-tight">No conversation selected</h2>
+                        <p className="text-muted-foreground text-[14px] max-w-xs leading-relaxed mb-4">
+                          Start a new chat to begin talking with your AI assistant.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="rounded-full bg-linear-to-br from-indigo-500 to-violet-600 text-white hover:from-indigo-600 hover:to-violet-700 shadow-sm shadow-indigo-500/30 border-0"
+                          disabled={isBootstrapping}
+                          onClick={() => void handleNewConversation()}
+                        >
+                          <Plus className="h-4 w-4 mr-1.5" />
+                          New Chat
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+
+                {messages.map((msg) => (
+                  <MessageBubble
+                    key={msg.id}
+                    msg={msg}
+                    streaming={msg.id === STREAM_MSG_ID}
+                  />
+                ))}
+
+                {/* Show typing dots only before the streaming placeholder is added */}
+                {isLoading && !messages.some((m) => m.id === STREAM_MSG_ID) ? (
+                  <div className="flex justify-start items-end gap-2.5 mt-1">
+                    <div className="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
+                      <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                    </div>
+                    <div className="rounded-2xl rounded-bl-md bg-white dark:bg-zinc-800 ring-1 ring-black/5 dark:ring-white/10 px-4 py-3 inline-flex items-center gap-1.5 shadow-sm">
+                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.3s]" />
+                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.15s]" />
+                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce" />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          {error ? (
+            <p className="px-6 py-1.5 text-[12px] text-center text-red-500">{error}</p>
+          ) : null}
+
+          {/* Composer */}
+          <div className="shrink-0 px-4 sm:px-6 pb-4 pt-2 bg-neutral-50 dark:bg-zinc-950">
             <form
               onSubmit={handleSubmit}
-              className="p-4 border-t border-slate-200/80 dark:border-zinc-800 shrink-0 bg-slate-50/50 dark:bg-zinc-950/30"
+              className="mx-auto max-w-3xl flex items-end gap-2 rounded-2xl ring-1 ring-black/8 dark:ring-white/8 bg-white dark:bg-zinc-900 px-4 py-2.5 shadow-md shadow-black/4 focus-within:ring-indigo-400/60 dark:focus-within:ring-indigo-500/40 focus-within:shadow-lg transition-all duration-200"
             >
-              <div className="flex gap-2 items-end">
+              <div className="flex-1 min-w-0">
                 <textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask about lessons, code, or study topics..."
+                  placeholder="Ask anything…"
                   rows={1}
+                  aria-label="Message"
                   disabled={isLoading || isBootstrapping || !activeConversationId}
                   className={cn(
-                    "flex-1 min-h-[44px] max-h-32 resize-none rounded-xl border border-slate-200/80 dark:border-zinc-800",
-                    "bg-white dark:bg-zinc-950 px-4 py-3 text-sm shadow-2xs",
-                    "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30",
-                    "disabled:opacity-50"
+                    "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent py-0.5",
+                    "text-[14px] leading-6 text-foreground placeholder:text-muted-foreground",
+                    "focus-visible:outline-none disabled:opacity-50"
                   )}
                 />
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!input.trim() || isLoading || isBootstrapping || !activeConversationId}
-                  className="size-11 shrink-0 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 hover:opacity-90 text-white border-0 shadow-sm disabled:opacity-40"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                Press Enter to send · Shift+Enter for a new line
-              </p>
+
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || isLoading || isBootstrapping || !activeConversationId}
+                className={cn(
+                  "h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5 inline-flex items-center justify-center",
+                  "bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-500/30",
+                  "hover:from-indigo-600 hover:to-violet-700",
+                  "disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none",
+                  "dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500",
+                  "transition-all duration-150"
+                )}
+                aria-label="Send message"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-[15px] h-[15px] animate-spin" />
+                ) : (
+                  <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
+                )}
+              </Button>
             </form>
-          </Card>
-        </div>
+            <p className="mt-1.5 text-center text-[11px] text-muted-foreground/60">
+              Enter to send · Shift+Enter for new line
+            </p>
+          </div>
+
+        </main>
       </div>
     </div>
   );
 }
+

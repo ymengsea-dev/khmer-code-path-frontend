@@ -8,7 +8,10 @@ export interface ClassSummary {
   teacherName: string;
   semester: string | null;
   academicYear: number | null;
+  semesterLabel: string;
   status: ClassStatus;
+  statusLabel: string;
+  cardGradient: string;
   enrolledCount: number;
   createdAt?: string;
   updatedAt?: string;
@@ -41,11 +44,45 @@ export interface ClassDetail {
   };
 }
 
+export interface SemesterFilterDto {
+  value: string;
+  label: string;
+  semester?: string | null;
+  academicYear?: number | null;
+}
+
+export interface LessonTabDto {
+  id: string;
+  label: string;
+}
+
+export interface ClassConfigDto {
+  allSemestersLabel: string;
+  semesterFilters: SemesterFilterDto[];
+  lessonTabs: LessonTabDto[];
+  cardGradients: string[];
+  createDefaults: {
+    semester: string;
+    academicYear: number;
+  };
+}
+
 export interface CreateClassPayload {
   code: string;
   name: string;
   description?: string;
   teacherId: string;
+  semester?: string;
+  academicYear?: number;
+  schedule?: string;
+  roomNumber?: string;
+  status?: ClassStatus;
+}
+
+export interface UpdateClassPayload {
+  code?: string;
+  name?: string;
+  description?: string;
   semester?: string;
   academicYear?: number;
   schedule?: string;

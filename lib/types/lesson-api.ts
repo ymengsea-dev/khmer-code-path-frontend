@@ -51,6 +51,36 @@ export interface UpdateLessonPayload {
   moduleTag?: string;
 }
 
+export interface LibraryMaterialSummaryDto {
+  id: number;
+  libraryItemId: number;
+  fileName: string;
+  contentType: string | null;
+  fileSizeBytes: number;
+  ragStatus?: string;
+  /** True when stored in the teacher file pool (not on a lesson template). */
+  poolFile?: boolean;
+}
+
+export interface LibraryViewDto {
+  id: string;
+  label: string;
+  searchPlaceholder?: string | null;
+}
+
+export interface LibraryCreateDefaultsDto {
+  title: string;
+  iconType: LibraryIconTypeDto;
+  gradient: string;
+}
+
+export interface MaterialLibraryConfigDto {
+  views: LibraryViewDto[];
+  createDefaults: LibraryCreateDefaultsDto;
+  uploadAccept: string;
+  filePoolLabel?: string;
+}
+
 export interface MaterialLibraryItemDto {
   id: number;
   title: string;
@@ -59,11 +89,20 @@ export interface MaterialLibraryItemDto {
   iconType: LibraryIconTypeDto;
   gradient: string;
   assetCount: number;
+  materials?: LibraryMaterialSummaryDto[];
   updatedAt: string;
 }
 
 export interface CreateLibraryItemPayload {
   title: string;
+  moduleTag?: string;
+  description?: string;
+  iconType?: LibraryIconTypeDto;
+  gradient?: string;
+}
+
+export interface UpdateLibraryItemPayload {
+  title?: string;
   moduleTag?: string;
   description?: string;
   iconType?: LibraryIconTypeDto;

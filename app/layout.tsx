@@ -3,7 +3,9 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { AppQueryProvider } from "@/components/providers/query-provider";
 import { NotificationProvider } from "@/components/notifications/notification-context";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -32,9 +34,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthSessionProvider>
-          <NotificationProvider>{children}</NotificationProvider>
-        </AuthSessionProvider>
+        <AppQueryProvider>
+          <AuthSessionProvider>
+            <NotificationProvider>
+              <ConfirmProvider>{children}</ConfirmProvider>
+            </NotificationProvider>
+          </AuthSessionProvider>
+        </AppQueryProvider>
       </body>
     </html>
   );

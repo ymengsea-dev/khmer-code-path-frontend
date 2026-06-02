@@ -47,6 +47,7 @@ export interface NotificationItem {
   highlighted?: boolean;
   invitationId?: number;
   actionableInvitation: boolean;
+  classId?: number | null;
 }
 
 interface NotificationContextValue {
@@ -99,6 +100,7 @@ function mapDto(dto: NotificationDto): NotificationItem {
     invitationId,
     actionableInvitation:
       dto.type === "CLASS_INVITATION" && invitationId != null && !dto.read,
+    classId: dto.classId,
   };
 }
 
@@ -133,6 +135,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     void refresh();
   }, [refresh]);
 
+  // Request browser notification permission once when authenticated
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+  }, [status]);
+
   useEffect(() => {
     if (status !== "authenticated") return;
 
@@ -158,6 +169,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const without = prev.filter((n) => n.id !== item.id);
             return [item, ...without];
           });
+
+          // Native browser notification
+          if (
+            typeof window !== "undefined" &&
+            "Notification" in window &&
+            Notification.permission === "granted" &&
+            document.visibilityState === "hidden"
+          ) {
+            try {
+              new Notification(item.title, {
+                body: item.message || undefined,
+                icon: "/favicon.ico",
+                tag: item.id,
+              });
+            } catch {
+              // some browsers block Notification constructor in certain contexts
+            }
+          }
         } catch {
           // ignore malformed payloads
         }

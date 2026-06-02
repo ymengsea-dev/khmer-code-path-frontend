@@ -1,9 +1,11 @@
 import { apiClient } from "../api-client";
 import type {
+  ClassConfigDto,
   ClassDetail,
   ClassPage,
   ClassStudent,
   CreateClassPayload,
+  UpdateClassPayload,
 } from "../types/class-api";
 import type { ClassComment } from "../types/dashboard-api";
 import type { ClassInvitationDto } from "../types/class-invitation-api";
@@ -19,6 +21,11 @@ export interface ListClassesParams {
 }
 
 export const classService = {
+  async getClassConfig(): Promise<ClassConfigDto> {
+    const response = await apiClient.get<{ data: ClassConfigDto }>("/classes/config");
+    return response.data.data;
+  },
+
   async listClasses(params: ListClassesParams = {}): Promise<ClassPage> {
     const response = await apiClient.get<{ data: ClassPage }>("/classes", {
       params: {
@@ -81,6 +88,15 @@ export const classService = {
       `/classes/invitations/${invitationId}/decline`
     );
     return response.data.data;
+  },
+
+  async updateClass(classId: number, payload: UpdateClassPayload): Promise<ClassDetail> {
+    const response = await apiClient.put<{ data: ClassDetail }>(`/classes/${classId}`, payload);
+    return response.data.data;
+  },
+
+  async deleteClass(classId: number): Promise<void> {
+    await apiClient.delete(`/classes/${classId}`);
   },
 
   async removeStudents(classId: number, studentIds: string[]): Promise<void> {

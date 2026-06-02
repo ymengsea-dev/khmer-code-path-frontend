@@ -23,12 +23,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSession } from "next-auth/react";
-import { authService } from "@/lib/services/auth-service";
 import {
   userService,
   type UserSummary,
 } from "@/lib/services/user-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import { cn } from "@/lib/utils";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
@@ -41,6 +39,7 @@ import {
 } from "@/lib/navigation/app-query";
 import { AddUserDialog } from "./AddUserDialog";
 import { UserPermissionsTab } from "./UserPermissionsTab";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 type AppRole = "student" | "teacher" | "admin";
 
@@ -130,14 +129,17 @@ function StatusBadge({ active }: { active?: boolean }) {
 
 export function UserManagementView() {
   const { data: session, status: sessionStatus } = useSession();
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const { get, setParams } = useQueryParams();
   const [searchQuery, setSearchQuery] = useDebouncedQueryState(QueryKey.q);
   const activeTab = parseUserTab(get(QueryKey.userTab));
   const statusFilter = parseUserStatus(get(QueryKey.userStatus));
 
-  const sessionRole = session?.user?.role as AppRole | undefined;
-  const [role, setRole] = useState<AppRole | null>(sessionRole ?? null);
-  const [roleLoaded, setRoleLoaded] = useState(sessionStatus !== "loading");
+  const sessionRole = session?.user?.role?.toLowerCase() as AppRole | undefined;
+  const resolvedRole =
+    (currentUser?.role?.toLowerCase() as AppRole | undefined) ?? sessionRole ?? "student";
+  const [role, setRole] = useState<AppRole | null>(resolvedRole ?? null);
+  const [roleLoaded, setRoleLoaded] = useState(sessionStatus !== "loading" && !userLoading);
   const [rows, setRows] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -152,31 +154,10 @@ export function UserManagementView() {
   const isTeacher = role === "teacher";
 
   useEffect(() => {
-    if (sessionStatus === "loading") {
-      return;
-    }
-    if (sessionRole) {
-      setRole(sessionRole);
-      setRoleLoaded(true);
-      return;
-    }
-
-    async function loadRole() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        const r = user?.role?.toLowerCase();
-        if (r === "admin" || r === "teacher" || r === "student") {
-          setRole(r);
-        }
-      } catch {
-        /* keep session/default */
-      } finally {
-        setRoleLoaded(true);
-      }
-    }
-    void loadRole();
-  }, [sessionStatus, sessionRole]);
+    if (sessionStatus === "loading" || userLoading) return;
+    setRole(resolvedRole);
+    setRoleLoaded(true);
+  }, [sessionStatus, userLoading, resolvedRole]);
 
   const setActiveTab = useCallback(
     (tab: UserManagementTab) => {

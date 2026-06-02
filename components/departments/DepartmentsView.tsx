@@ -12,11 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { authService } from "@/lib/services/auth-service";
 import { departmentService } from "@/lib/services/department-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import { cn } from "@/lib/utils";
 import type { Department } from "@/data/departments";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import {
   DepartmentFormDialog,
   type DepartmentFormValues,
@@ -142,8 +141,11 @@ function DeptStats({ dept }: { dept: Department }) {
 }
 
 export function DepartmentsView() {
-  const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
-  const [roleLoaded, setRoleLoaded] = useState(false);
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
+  const role =
+    (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ??
+    "student";
+  const roleLoaded = !userLoading;
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,24 +170,6 @@ export function DepartmentsView() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    async function loadRole() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        const r = user?.role?.toLowerCase();
-        if (r === "admin" || r === "teacher" || r === "student") {
-          setRole(r);
-        }
-      } catch {
-        /* default */
-      } finally {
-        setRoleLoaded(true);
-      }
-    }
-    void loadRole();
   }, []);
 
   useEffect(() => {

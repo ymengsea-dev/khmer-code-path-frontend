@@ -1,14 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { Course } from "@/types/course";
-import { courseService } from "@/lib/services/course-service";
-import { CourseFormDialog } from "@/components/course/CourseFormDialog";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CourseGrid } from "@/components/course/CourseGrid";
-import { CourseDetailPanel } from "@/components/course/CourseDetailPanel";
 import { EmbeddedIDE } from "@/components/code/EmbeddedIDE";
 import { MyLearning } from "@/components/learning/MyLearning";
 import { MyTasksView } from "@/components/tasks/MyTasksView";
@@ -22,12 +17,42 @@ import { UserManagementView } from "@/components/users/UserManagementView";
 import { DepartmentsView } from "@/components/departments/DepartmentsView";
 import { OperationsView } from "@/components/operations/OperationsView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
+import { classService } from "@/lib/services/class-service";
+import type { ClassSummary } from "@/lib/types/class-api";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey, parseView, type AppView } from "@/lib/navigation/app-query";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useCoursesQuery } from "@/lib/hooks/use-courses-query";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useSession } from "next-auth/react";
+import { LogOut, Settings, User as UserIcon } from "lucide-react";
+import { getUserInitials } from "@/lib/auth/user-display";
 import { authService } from "@/lib/services/auth-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 
 const ADMIN_BLOCKED_VIEWS: AppView[] = ["tasks", "code", "notebook", "learning"];
+
+const VIEW_LABELS: Record<AppView, string> = {
+  courses:        "Dashboard",
+  classes:        "Classes",
+  lessons:        "Class Detail",
+  tasks:          "Quizzes",
+  notebook:       "Notebook",
+  "ai-chat":      "AI Assistant",
+  code:           "Code Sandbox",
+  learning:       "My Learning",
+  profile:        "Profile",
+  settings:       "Settings",
+  users:          "User Management",
+  departments:    "Departments",
+  operations:     "Operations",
+  "course-content": "Course Content",
+};
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -49,7 +74,6 @@ export function HomePage() {
   const courseParam = searchParams.get(QueryKey.course);
   const lessonParam = searchParams.get(QueryKey.lesson);
   const moduleParam = searchParams.get(QueryKey.module);
-  const detailId = searchParams.get(QueryKey.detail);
 
   useEffect(() => {
     if (!viewParam) {
@@ -63,53 +87,19 @@ export function HomePage() {
     if (!lessonParam) return null;
     return { title: lessonParam, module: moduleParam ?? "" };
   }, [lessonParam, moduleParam]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [coursesError, setCoursesError] = useState<string | null>(null);
-  const [courseFormOpen, setCourseFormOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-
-  const selectedCourse = useMemo(
-    () => courses.find((c) => String(c.id) === detailId) ?? null,
-    [detailId, courses]
-  );
-  const [sheetOpen, setSheetOpen] = useState(Boolean(detailId));
-  const [appRole, setAppRole] = useState<"student" | "teacher" | "admin">("student");
-
-  const canManageCourses = appRole === "admin" || appRole === "teacher";
-
-  const loadCourses = useCallback(async () => {
-    setCoursesLoading(true);
-    setCoursesError(null);
-    try {
-      setCourses(await courseService.listCourses({ size: 100 }));
-    } catch {
-      setCoursesError("Failed to load courses.");
-      setCourses([]);
-    } finally {
-      setCoursesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadCourses();
-  }, [loadCourses]);
-
-  useEffect(() => {
-    async function loadRole() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        const r = user?.role?.toLowerCase();
-        if (r === "admin" || r === "teacher" || r === "student") {
-          setAppRole(r);
-        }
-      } catch {
-        /* keep default */
-      }
-    }
-    void loadRole();
-  }, []);
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+    isError: coursesIsError,
+  } = useCoursesQuery();
+  const coursesError = coursesIsError ? "Failed to load courses." : null;
+  const { data: session } = useSession();
+  const { data: currentUser } = useCurrentUser();
+  const [lessonClasses, setLessonClasses] = useState<ClassSummary[]>([]);
+  const appRole = (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ?? "student";
+  const displayName =
+    currentUser?.userName?.trim() || session?.user?.name?.trim() || null;
+  const initials = getUserInitials(displayName || session?.user?.email || "?");
 
   useEffect(() => {
     if (appRole !== "admin" || !viewParam) return;
@@ -126,12 +116,19 @@ export function HomePage() {
   }, [appRole, viewParam, setParams]);
 
   useEffect(() => {
-    if (detailId && selectedCourse) {
-      setSheetOpen(true);
-    } else if (!detailId) {
-      setSheetOpen(false);
-    }
-  }, [detailId, selectedCourse]);
+    let cancelled = false;
+    classService
+      .listClasses({ size: 100 })
+      .then((page) => {
+        if (!cancelled) setLessonClasses(page.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLessonClasses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appRole]);
 
   const handleNavChange = useCallback(
     (id: string, courseId?: string) => {
@@ -144,7 +141,7 @@ export function HomePage() {
         updates[QueryKey.course] = courseId;
         updates[QueryKey.lesson] = null;
         updates[QueryKey.module] = null;
-      } else if (view === "courses") {
+      } else if (view === "classes") {
         updates[QueryKey.course] = null;
         updates[QueryKey.lesson] = null;
         updates[QueryKey.module] = null;
@@ -153,9 +150,7 @@ export function HomePage() {
         updates[QueryKey.module] = null;
       }
 
-      if (view !== "courses") {
-        updates[QueryKey.detail] = null;
-      }
+      updates[QueryKey.detail] = null;
 
       setParams(updates);
     },
@@ -176,120 +171,112 @@ export function HomePage() {
     [setParams, appRole]
   );
 
-  const handleCourseSelect = useCallback(
-    (course: Course) => {
-      setParams({
-        [QueryKey.view]: "courses",
-        [QueryKey.detail]: String(course.id),
-      });
-      setSheetOpen(true);
-    },
-    [setParams]
-  );
-
-  const handleCloseDetail = useCallback(() => {
-    setParams({ [QueryKey.detail]: null });
-    setSheetOpen(false);
-  }, [setParams]);
-
-  useEffect(() => {
-    if (viewParam && viewParam !== "courses" && detailId) {
-      setParams({ [QueryKey.detail]: null });
-    }
-  }, [viewParam, detailId, setParams]);
-
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
         <Sidebar
           activeNav={activeNav}
           activeCourseId={activeCourseId}
+          lessonClasses={lessonClasses}
           onNavChange={handleNavChange}
           className="shrink-0"
         />
 
         <SidebarInset>
-          {activeNav === "code" && <EmbeddedIDE />}
-          {activeNav === "learning" && <MyLearning />}
-          {activeNav === "tasks" && <MyTasksView />}
-          {activeNav === "profile" && <ProfileView />}
-          {activeNav === "settings" && <SettingsView />}
-          {activeNav === "notebook" && <NotebookView />}
-          {activeNav === "ai-chat" && <AiChatView />}
-          {activeNav === "lessons" && (
-            <LessonsView
-              classId={activeCourseId}
-              lessonIdParam={searchParams.get(QueryKey.lessonId)}
-              classTitle={lessonContext?.title}
-              classModule={lessonContext?.module}
-            />
-          )}
-          {activeNav === "classes" && (
-            <ClassesView onEnterClass={handleEnterClass} />
-          )}
-          {activeNav === "users" && <UserManagementView />}
-          {activeNav === "departments" && <DepartmentsView />}
-          {activeNav === "operations" && <OperationsView />}
-          {activeNav === "course-content" && <CourseContentView />}
-          {activeNav === "courses" && (
-            <CourseGrid
-              courses={courses}
-              coursesLoading={coursesLoading}
-              coursesError={coursesError}
-              selectedId={selectedCourse?.id}
-              onSelect={handleCourseSelect}
-              canManageCourses={canManageCourses}
-              onCreateCourse={() => {
-                setEditingCourse(null);
-                setCourseFormOpen(true);
-              }}
-              onEditCourse={(course) => {
-                setEditingCourse(course);
-                setCourseFormOpen(true);
-              }}
-              onCoursesChanged={() => void loadCourses()}
-            />
-          )}
+          {/* Shared top header — persists across all views */}
+          <header className="shrink-0 px-6 py-4 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-md flex items-center justify-between gap-4">
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+              {VIEW_LABELS[activeNav] ?? "Dashboard"}
+            </h1>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+
+              {/* Profile dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="cursor-pointer outline-none rounded-full flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-[11px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 hover:ring-violet-400 transition-all shrink-0">
+                    {initials}
+                  </div>
+                  {displayName && (
+                    <span className="text-sm font-semibold text-foreground hidden sm:block">
+                      {displayName}
+                    </span>
+                  )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={8} className="w-48 p-1">
+                  <DropdownMenuItem
+                    className="cursor-pointer text-xs"
+                    onClick={() => handleNavChange("profile")}
+                  >
+                    <UserIcon className="w-3.5 h-3.5 mr-2" />
+                    View Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-xs"
+                    onClick={() => handleNavChange("settings")}
+                  >
+                    <Settings className="w-3.5 h-3.5 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 cursor-pointer text-xs"
+                    onClick={() => void authService.logout()}
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+
+          {/* View area fills remaining height */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            {activeNav === "code" && <EmbeddedIDE />}
+            {activeNav === "learning" && <MyLearning />}
+            {activeNav === "tasks" && <MyTasksView />}
+            {activeNav === "profile" && <ProfileView />}
+            {activeNav === "settings" && <SettingsView />}
+            {activeNav === "notebook" && <NotebookView />}
+            {activeNav === "ai-chat" && <AiChatView />}
+            {activeNav === "lessons" && (
+              <LessonsView
+                classId={activeCourseId}
+                lessonIdParam={searchParams.get(QueryKey.lessonId)}
+                classTitle={lessonContext?.title}
+                classModule={lessonContext?.module}
+                onBackToClasses={() =>
+                  setParams({
+                    [QueryKey.view]: "classes",
+                    [QueryKey.course]: null,
+                    [QueryKey.lesson]: null,
+                    [QueryKey.module]: null,
+                    [QueryKey.lessonId]: null,
+                    [QueryKey.tab]: null,
+                  })
+                }
+              />
+            )}
+            {activeNav === "classes" && (
+              <ClassesView onEnterClass={handleEnterClass} />
+            )}
+            {activeNav === "users" && <UserManagementView />}
+            {activeNav === "departments" && <DepartmentsView />}
+            {activeNav === "operations" && <OperationsView />}
+            {activeNav === "course-content" && <CourseContentView />}
+            {activeNav === "courses" && (
+              <CourseGrid
+                courses={courses}
+                coursesLoading={coursesLoading}
+                coursesError={coursesError}
+                onSelect={() => {}}
+                onEnterClass={handleEnterClass}
+                canManageCourses={false}
+              />
+            )}
+          </div>
         </SidebarInset>
       </div>
-
-      <Sheet
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open);
-          if (!open) handleCloseDetail();
-        }}
-      >
-        <SheetContent
-          side="right"
-          className="p-3 pl-3 w-full sm:max-w-sm lg:max-w-md xl:max-w-[24rem] bg-transparent !border-0 border-l-0 data-[side=right]:!border-l-0 shadow-none rounded-l-2xl outline-none"
-          showCloseButton={false}
-        >
-          {selectedCourse && (
-            <CourseDetailPanel
-              course={selectedCourse}
-              onClose={handleCloseDetail}
-              canManage={canManageCourses}
-              onEdit={() => {
-                setEditingCourse(selectedCourse);
-                setCourseFormOpen(true);
-              }}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
-
-      <CourseFormDialog
-        open={courseFormOpen}
-        onOpenChange={setCourseFormOpen}
-        course={editingCourse}
-        onSaved={() => {
-          void loadCourses();
-          if (editingCourse && detailId === String(editingCourse.id)) {
-            /* detail sheet will refresh from courses state */
-          }
-        }}
-      />
     </SidebarProvider>
   );
 }

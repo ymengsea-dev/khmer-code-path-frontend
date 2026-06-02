@@ -2,14 +2,14 @@ import { classService } from "@/lib/services/class-service";
 import { lessonService } from "@/lib/services/lesson-service";
 import type { LibraryMaterialDto } from "@/lib/types/lesson-ai-api";
 
-export type QuizSourceKind = "lesson" | "library";
+export type QuizSourceKind = "lesson" | "library" | "library-content";
 
 export interface QuizMaterialSource {
   key: string;
   kind: QuizSourceKind;
   lessonId?: number;
   libraryItemId?: number;
-  materialId: number;
+  materialId?: number;
   label: string;
   fileName: string;
   group: string;
@@ -23,10 +23,29 @@ function libraryKey(libraryItemId: number, materialId: number) {
   return `library:${libraryItemId}:${materialId}`;
 }
 
+function libraryContentKey(libraryItemId: number) {
+  return `library-content:${libraryItemId}`;
+}
+
 export function parseQuizMaterialSourceKey(key: string): QuizMaterialSource | null {
   const parts = key.split(":");
+  const kind = parts[0];
+
+  if (kind === "library-content" && parts.length === 2) {
+    const owner = Number(parts[1]);
+    if (Number.isNaN(owner)) return null;
+    return {
+      key,
+      kind: "library-content",
+      libraryItemId: owner,
+      label: "",
+      fileName: "Written notes",
+      group: "",
+    };
+  }
+
   if (parts.length !== 3) return null;
-  const [kind, ownerId, materialId] = parts;
+  const [, ownerId, materialId] = parts;
   const matId = Number(materialId);
   const owner = Number(ownerId);
   if (Number.isNaN(matId) || Number.isNaN(owner)) return null;
@@ -89,6 +108,23 @@ export async function loadQuizMaterialSources(): Promise<QuizMaterialSource[]> {
 
   const templates = await lessonService.listLibrary();
   for (const template of templates) {
+    // Written notes source (generated from the template's text content)
+    const hasNotes =
+      template.description != null &&
+      template.description.trim() !== "" &&
+      template.description.trim() !== "<p></p>";
+    if (hasNotes) {
+      sources.push({
+        key: libraryContentKey(template.id),
+        kind: "library-content",
+        libraryItemId: template.id,
+        fileName: "Written notes",
+        group: "Lesson templates (Course Content)",
+        label: `${template.title} — Written notes`,
+      });
+    }
+
+    // Uploaded file sources
     if (template.assetCount <= 0) continue;
     let materials: LibraryMaterialDto[];
     try {

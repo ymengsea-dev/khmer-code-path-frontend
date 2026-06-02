@@ -12,9 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { authService } from "@/lib/services/auth-service";
 import { operationsService } from "@/lib/services/operations-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import { cn } from "@/lib/utils";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import {
@@ -30,6 +28,7 @@ import type {
   InfraStatusRow,
 } from "@/data/operations";
 import { AddAssetDialog, type AssetFormValues } from "./AddAssetDialog";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 const OPS_TABS: { id: OperationsTab; label: string }[] = [
   { id: "inventory", label: "Physical Inventory" },
@@ -108,9 +107,12 @@ function InfraCard({
 export function OperationsView() {
   const { get, setParams } = useQueryParams();
   const activeTab = parseOpsTab(get(QueryKey.opsTab));
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
 
-  const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
-  const [roleLoaded, setRoleLoaded] = useState(false);
+  const role =
+    (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ??
+    "student";
+  const roleLoaded = !userLoading;
 
   const [assets, setAssets] = useState<PhysicalAsset[]>([]);
   const [requests, setRequests] = useState<TeacherRequest[]>([]);
@@ -141,24 +143,6 @@ export function OperationsView() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    async function loadRole() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        const r = user?.role?.toLowerCase();
-        if (r === "admin" || r === "teacher" || r === "student") {
-          setRole(r);
-        }
-      } catch {
-        /* default */
-      } finally {
-        setRoleLoaded(true);
-      }
-    }
-    void loadRole();
   }, []);
 
   useEffect(() => {

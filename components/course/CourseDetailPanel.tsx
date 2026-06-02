@@ -1,4 +1,5 @@
-import { X, Lock, Award, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Lock, Award, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,19 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Course } from "@/types/course";
+import { courseService } from "@/lib/services/course-service";
 import { TechChip } from "./TechChip";
-
-const institutionFullName: Record<string, string> = {
-  MIT: "Massachusetts Inst. of Technology",
-  Stanford: "Stanford University",
-  Meta: "Meta",
-};
 
 interface CourseDetailPanelProps {
   course: Course;
   onClose: () => void;
-  canManage?: boolean;
-  onEdit?: () => void;
 }
 
 function InstitutionHeader({ course }: { course: Course }) {
@@ -37,7 +31,7 @@ function InstitutionHeader({ course }: { course: Course }) {
           {course.institutionLogo}
         </div>
         <span className="text-sm font-semibold text-card-foreground">
-          {institutionFullName[course.institution] ?? course.institution}
+          {course.institution}
         </span>
       </CardContent>
     </Card>
@@ -91,7 +85,7 @@ function AchievementSection({ course }: { course: Course }) {
             className="text-[9px] font-bold"
             style={{ color: course.institutionColor }}
           >
-            {institutionFullName[course.institution] ?? course.institution}
+            {course.institution}
           </p>
           <p className="text-[8px] text-muted-foreground mt-1">
             Certificate of Completion
@@ -109,16 +103,46 @@ function AchievementSection({ course }: { course: Course }) {
 export function CourseDetailPanel({
   course,
   onClose,
-  canManage,
-  onEdit,
 }: CourseDetailPanelProps) {
+  const [liveCourse, setLiveCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    courseService
+      .getCourse(course.id)
+      .then((data) => {
+        if (!cancelled) {
+          setLiveCourse(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadError("Could not refresh this course. Showing cached info.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [course.id]);
+
+  const displayCourse = liveCourse ?? course;
+
   return (
     <div className="flex flex-col h-full bg-white/75 dark:bg-card/80 backdrop-blur-2xl backdrop-saturate-200 text-card-foreground rounded-2xl overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-3 border-b border-transparent">
         <div className="max-w-[80%]">
-          <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
+          <CardTitle className="text-lg leading-snug">{displayCourse.title}</CardTitle>
           <CardDescription className="mt-0.5">
-            {course.level.charAt(0) + course.level.slice(1).toLowerCase()} Level
+            {displayCourse.level.charAt(0) + displayCourse.level.slice(1).toLowerCase()} Level
           </CardDescription>
         </div>
         <Button
@@ -134,21 +158,29 @@ export function CourseDetailPanel({
 
       <ScrollArea className="flex-1 px-5">
         <div className="py-4">
-          <InstitutionHeader course={course} />
+          {loading ? (
+            <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading latest course details…
+            </div>
+          ) : null}
+          {loadError ? <p className="mb-3 text-xs text-amber-600">{loadError}</p> : null}
+
+          <InstitutionHeader course={displayCourse} />
 
           <div className="mb-4">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Technologies Learned
             </p>
             <div className="flex flex-wrap gap-2">
-              {course.technologies.map((t) => (
+              {displayCourse.technologies.map((t) => (
                 <TechChip key={t.name} name={t.name} color={t.color} />
               ))}
             </div>
           </div>
 
-          {course.prerequisite && (
-            <PrerequisiteNotice prerequisite={course.prerequisite} />
+          {displayCourse.prerequisite && (
+            <PrerequisiteNotice prerequisite={displayCourse.prerequisite} />
           )}
 
           <div className="mb-4">
@@ -156,7 +188,7 @@ export function CourseDetailPanel({
               Course Level
             </p>
             <Badge variant="default" className="font-bold tracking-wider">
-              {course.level} LEVEL
+              {displayCourse.level} LEVEL
             </Badge>
           </div>
 
@@ -167,23 +199,17 @@ export function CourseDetailPanel({
               Description
             </p>
             <p className="text-sm text-card-foreground leading-relaxed">
-              {course.description}
+              {displayCourse.description}
             </p>
           </div>
 
           <Separator className="my-4 bg-transparent" />
 
-          <AchievementSection course={course} />
+          <AchievementSection course={displayCourse} />
         </div>
       </ScrollArea>
 
       <div className="p-4 border-t border-transparent flex flex-col gap-2">
-        {canManage && onEdit && (
-          <Button variant="outline" className="w-full" size="lg" onClick={onEdit}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit course
-          </Button>
-        )}
         <Button className="w-full" size="lg">
           Start This Course
         </Button>

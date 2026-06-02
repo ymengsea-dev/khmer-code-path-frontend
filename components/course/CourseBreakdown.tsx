@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authService } from "@/lib/services/auth-service";
 import { progressService } from "@/lib/services/progress-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import type { GradeBreakdownDto } from "@/lib/types/progress-api";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 function gradeBadgeClass(grade: string) {
   if (grade === "—" || !grade) {
@@ -22,6 +21,8 @@ function gradeBadgeClass(grade: string) {
 }
 
 export function CourseBreakdown() {
+  const { data: currentUser } = useCurrentUser();
+  const studentId = currentUser?.userId;
   const [rows, setRows] = useState<GradeBreakdownDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +33,6 @@ export function CourseBreakdown() {
       setLoading(true);
       setError(null);
       try {
-        const meRes = await authService.me();
-        const user = meRes?.data as UserProfile | undefined;
-        const studentId = user?.userId;
         if (!studentId) {
           setRows([]);
           return;
@@ -54,7 +52,7 @@ export function CourseBreakdown() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [studentId]);
 
   return (
     <section className="flex flex-col gap-4 shrink-0">

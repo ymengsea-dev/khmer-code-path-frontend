@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   LayoutGrid,
-  User as UserIcon,
   BookOpen,
-  ChevronRight,
-  Sparkles,
   Code2,
   PanelLeftClose,
   PanelLeft,
-  LogOut,
-  Settings,
   Search,
-  Bell,
   Bot,
   ClipboardList,
   Notebook,
@@ -27,7 +21,6 @@ import {
 import {
   Sidebar as SidebarRoot,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -36,84 +29,40 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { authService } from "@/lib/services/auth-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
-import { getRoleLabel, getUserInitials } from "@/lib/auth/user-display";
-import { sidebarCourses } from "@/data/sidebar-courses";
+import type { ClassSummary } from "@/lib/types/class-api";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 interface AppSidebarProps {
   activeNav: string;
   activeCourseId?: string | null;
+  lessonClasses?: ClassSummary[];
   onNavChange: (id: string, courseId?: string) => void;
   className?: string;
 }
 
-export function Sidebar({ activeNav, activeCourseId, onNavChange, className }: AppSidebarProps) {
+export function Sidebar({
+  activeNav,
+  activeCourseId,
+  lessonClasses = [],
+  onNavChange,
+  className,
+}: AppSidebarProps) {
   const { open, setOpen } = useSidebar();
   const { data: session } = useSession();
-  const [displayName, setDisplayName] = useState(session?.user?.name ?? "");
-  const [roleLabel, setRoleLabel] = useState(
-    getRoleLabel(session?.user?.role)
-  );
-  const [appRole, setAppRole] = useState<"student" | "teacher" | "admin">(
-    "student"
-  );
+  const { data: currentUser } = useCurrentUser();
+  const roleRaw = (currentUser?.role ?? session?.user?.role ?? "student").toLowerCase();
+  const appRole: "student" | "teacher" | "admin" =
+    roleRaw === "admin" || roleRaw === "teacher" || roleRaw === "student"
+      ? roleRaw
+      : "student";
   const isAdmin = appRole === "admin";
   const showUserManagement = isAdmin || appRole === "teacher";
   const showDepartments = isAdmin;
   const showOperations = isAdmin;
   const showLearnerNav = !isAdmin;
   const isTeacher = appRole === "teacher";
-
-  useEffect(() => {
-    if (session?.user?.name) {
-      setDisplayName(session.user.name);
-    }
-    if (session?.user?.role) {
-      setRoleLabel(getRoleLabel(session.user.role));
-      const r = session.user.role.toLowerCase();
-      if (r === "admin" || r === "teacher" || r === "student") {
-        setAppRole(r);
-      }
-    }
-  }, [session?.user?.name, session?.user?.role]);
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        if (user?.userName?.trim()) {
-          setDisplayName(user.userName.trim());
-        }
-        if (user?.role) {
-          setRoleLabel(getRoleLabel(user.role));
-          const r = user.role.toLowerCase();
-          if (r === "admin" || r === "teacher" || r === "student") {
-            setAppRole(r);
-          }
-        }
-      } catch {
-        /* keep session fallbacks */
-      }
-    }
-    void fetchUser();
-  }, []);
-
-  const initials = getUserInitials(displayName || session?.user?.email || "?");
-
-  const handleLogout = () => {
-    void authService.logout();
-  };
 
   return (
     <SidebarRoot side="left" className={cn("shrink-0 border-r border-slate-200/80 dark:border-zinc-800/80 bg-slate-50/90 dark:bg-zinc-950/90", className)}>
@@ -438,14 +387,14 @@ export function Sidebar({ activeNav, activeCourseId, onNavChange, className }: A
         </SidebarGroup>
         )}
 
-        {/* Section 3: Courses List */}
+        {/* Section 3: Classes List */}
         {showLearnerNav && (
         <SidebarGroup className="space-y-1">
           <SidebarGroupLabel className={cn("flex items-center justify-between group/label px-2 h-6", !open && "justify-center px-0")}>
             {open ? (
               <>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                  Courses
+                  Classes
                 </span>
                 <div className="flex items-center gap-1 opacity-0 group-hover/label:opacity-100 transition-opacity">
                   <button className="p-0.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors text-muted-foreground/60 hover:text-foreground">
@@ -462,23 +411,26 @@ export function Sidebar({ activeNav, activeCourseId, onNavChange, className }: A
           </SidebarGroupLabel>
           
           <SidebarMenu className="gap-0.5">
-            {sidebarCourses.map((course) => (
-              <SidebarMenuItem key={course.id}>
+            {lessonClasses.map((klass) => (
+              <SidebarMenuItem key={klass.id}>
                 <SidebarMenuButton
-                  isActive={activeNav === "lessons" && activeCourseId === course.id}
-                  onClick={() => onNavChange("lessons", course.id)}
+                  isActive={activeNav === "lessons" && activeCourseId === String(klass.id)}
+                  onClick={() => onNavChange("lessons", String(klass.id))}
                   className={cn(
                     "rounded-lg px-2 py-1.5 transition-all duration-150 border border-transparent text-[13px] font-medium h-8.5",
-                    activeNav === "lessons" && activeCourseId === course.id
+                    activeNav === "lessons" && activeCourseId === String(klass.id)
                       ? "bg-slate-200/70 dark:bg-zinc-800 text-foreground font-semibold shadow-2xs"
                       : "text-zinc-600 dark:text-zinc-400 hover:bg-slate-200/40 dark:hover:bg-zinc-900/40 hover:text-foreground"
                   )}
                 >
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                    <span className={cn("size-2.5 rounded-sm shrink-0 shadow-xs", course.colorClass)} />
+                    <span
+                      className="size-2.5 rounded-sm shrink-0 shadow-xs"
+                      style={{ backgroundColor: "#8b5cf6" }}
+                    />
                   </span>
                   {open && (
-                    <span className="flex-1 text-left truncate">{course.name}</span>
+                    <span className="flex-1 text-left truncate">{klass.name}</span>
                   )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -489,70 +441,6 @@ export function Sidebar({ activeNav, activeCourseId, onNavChange, className }: A
 
       </SidebarContent>
 
-      {/* Footer Profile Dropdown */}
-      <SidebarFooter className="pt-2 px-3 pb-3">
-        <div className="flex flex-col gap-3">
-          <Separator className="bg-gradient-to-r from-transparent via-border to-transparent opacity-80" />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger className={cn(
-              "group flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-slate-200/50 dark:border-zinc-800/50 shadow-2xs hover:shadow-xs hover:bg-white dark:hover:bg-zinc-900 transition-all duration-200 cursor-pointer outline-none w-full",
-              !open && "justify-center px-0 border-0 shadow-none bg-transparent hover:bg-transparent"
-            )}>
-              <div
-                className="w-8.5 h-8.5 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm ring-1 ring-white/30 dark:ring-white/20 group-hover:ring-white/40 transition-shadow"
-                title={displayName || undefined}
-              >
-                {initials}
-              </div>
-              
-              {open && (
-                <>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-xs font-semibold text-foreground truncate">
-                      {displayName || "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-500 dark:text-amber-400 shrink-0" />
-                      <span>{roleLabel}</span>
-                    </p>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-                </>
-              )}
-            </DropdownMenuTrigger>
-            
-            <DropdownMenuContent
-              align="start"
-              side="right"
-              sideOffset={8}
-              className="w-52 p-1"
-            >
-              <DropdownMenuItem
-                className="cursor-pointer text-xs"
-                onClick={() => onNavChange("profile")}
-              >
-                <UserIcon className="w-3.5 h-3.5 mr-2" />
-                <span>View Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer text-xs"
-                onClick={() => onNavChange("settings")}
-              >
-                <Settings className="w-3.5 h-3.5 mr-2" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive focus:bg-destructive/10 cursor-pointer text-xs"
-              >
-                <LogOut className="w-3.5 h-3.5 mr-2" />
-                <span>Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </SidebarFooter>
 
     </SidebarRoot>
   );

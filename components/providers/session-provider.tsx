@@ -45,7 +45,7 @@ export function AuthSessionProvider({
   children: React.ReactNode;
 }) {
   return (
-    <SessionProvider refetchInterval={60} refetchOnWindowFocus>
+    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
       <SessionErrorHandler>{children}</SessionErrorHandler>
     </SessionProvider>
   );

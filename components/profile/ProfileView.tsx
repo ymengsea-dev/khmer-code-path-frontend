@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { CheckCircle2, Github, Medal, Trophy } from "lucide-react";
-import { authService } from "@/lib/services/auth-service";
-import type { UserProfile } from "@/lib/auth/backend-api";
 import { getRoleLabel, getUserInitials } from "@/lib/auth/user-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 const ACHIEVEMENT_BADGES = [
   "Python Mastery",
@@ -82,24 +80,10 @@ function ProgressBar({
 
 export function ProfileView() {
   const { data: session } = useSession();
-  const [displayName, setDisplayName] = useState(session?.user?.name ?? "");
-  const [email, setEmail] = useState(session?.user?.email ?? "");
-  const [roleLabel, setRoleLabel] = useState(getRoleLabel(session?.user?.role));
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const response = await authService.me();
-        const user = response?.data as UserProfile | undefined;
-        if (user?.userName?.trim()) setDisplayName(user.userName.trim());
-        if (user?.email) setEmail(user.email);
-        if (user?.role) setRoleLabel(getRoleLabel(user.role));
-      } catch {
-        /* keep session fallbacks */
-      }
-    }
-    void fetchUser();
-  }, []);
+  const { data: currentUser } = useCurrentUser();
+  const displayName = currentUser?.userName?.trim() || session?.user?.name || "";
+  const email = currentUser?.email || session?.user?.email || "";
+  const roleLabel = getRoleLabel(currentUser?.role ?? session?.user?.role);
 
   const initials = getUserInitials(displayName || email || "?");
 

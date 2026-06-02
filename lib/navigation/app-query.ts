@@ -19,6 +19,9 @@ export const QueryKey = {
   userStatus: "userStatus",
   opsTab: "opsTab",
   contentModule: "contentModule",
+  contentId: "contentId",
+  contentTab: "contentTab",
+  quizId: "quizId",
 } as const;
 
 export type AppView =
@@ -101,18 +104,3 @@ export function parseView(value: string | null): AppView {
   return "courses";
 }
 
-export const DEFAULT_SEMESTER = "all";
-
-export function semesterToParam(label: string): string | null {
-  if (label === "All Semesters") return null;
-  return encodeURIComponent(label);
-}
-
-export function semesterFromParam(value: string | null): string {
-  if (!value) return "All Semesters";
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}

@@ -40,31 +40,55 @@ export function ClassStudentsDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [inviteLoadError, setInviteLoadError] = useState<string | null>(null);
 
   const load = async () => {
     if (!classId) return;
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setInviteLoadError(null);
     try {
       const roster = await classService.listClassStudents(classId);
       setEnrolled(roster);
-      const invitations = canManage
-        ? await classService.listClassInvitations(classId)
-        : [];
-      setPending(invitations);
       if (canManage) {
-        const page = await userService.listUsers({ role: "STUDENT", size: 200 });
-        const blocked = new Set([
-          ...roster.map((s) => s.id),
-          ...invitations.map((i) => i.studentId),
+        const [invitesResult, usersResult] = await Promise.allSettled([
+          classService.listClassInvitations(classId),
+          userService.listUsers({ role: "STUDENT", size: 200 }),
         ]);
-        setAvailableStudents(
-          (page.items ?? []).filter((s) => !blocked.has(s.id))
-        );
+
+        const invitations =
+          invitesResult.status === "fulfilled" ? invitesResult.value : [];
+        setPending(invitations);
+
+        if (usersResult.status === "fulfilled") {
+          const blocked = new Set([
+            ...roster.map((s) => s.id),
+            ...invitations.map((i) => i.studentId),
+          ]);
+          setAvailableStudents(
+            (usersResult.value.items ?? []).filter((s) => !blocked.has(s.id))
+          );
+        } else {
+          setAvailableStudents([]);
+        }
+
+        if (invitesResult.status === "rejected") {
+          setInviteLoadError("Could not load pending invitations.");
+        } else if (usersResult.status === "rejected") {
+          setInviteLoadError(
+            "Student directory is unavailable for this account. You can still view roster."
+          );
+        }
+      } else {
+        setPending([]);
+        setAvailableStudents([]);
       }
     } catch {
       setError("Could not load class roster.");
+      setEnrolled([]);
+      setPending([]);
+      setAvailableStudents([]);
     } finally {
       setLoading(false);
     }
@@ -191,6 +215,9 @@ export function ClassStudentsDialog({
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Invite students
                 </Label>
+                {inviteLoadError && (
+                  <p className="mt-2 text-xs text-amber-600">{inviteLoadError}</p>
+                )}
                 <select
                   multiple
                   value={selectedToAdd}
@@ -210,7 +237,9 @@ export function ClassStudentsDialog({
                 <Button
                   type="button"
                   className="mt-2 w-full h-9 text-xs font-bold gap-1.5"
-                  disabled={saving || selectedToAdd.length === 0}
+                  disabled={
+                    saving || selectedToAdd.length === 0 || availableStudents.length === 0
+                  }
                   onClick={() => void handleInvite()}
                 >
                   {saving ? (
