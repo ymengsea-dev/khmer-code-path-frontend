@@ -300,7 +300,7 @@ export function CourseGrid({
   const classItems = classPage?.items ?? [];
 
   return (
-    <div className="h-full w-full flex flex-col min-w-0 overflow-hidden bg-background">
+    <div className="h-full w-full flex flex-col min-w-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto p-6 gap-6 flex flex-col">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           {statsLoading ? (
@@ -359,11 +359,11 @@ export function CourseGrid({
                 Classes page.
               </p>
             ) : (
-              <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/40 shadow-2xs overflow-hidden divide-y divide-slate-100 dark:divide-zinc-800/80">
+              <div className="border border-zinc-200/70 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/40 shadow-2xs overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/80">
                 {teacherDash.recentQuestions.map((q) => (
                   <div
                     key={q.id}
-                    className="px-5 py-4 hover:bg-slate-50/80 dark:hover:bg-zinc-900/30 transition-colors"
+                    className="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">

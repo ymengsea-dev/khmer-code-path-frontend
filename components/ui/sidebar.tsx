@@ -53,11 +53,16 @@ const Sidebar = React.forwardRef<
       ref={ref}
       data-sidebar="root"
       data-state={open ? "expanded" : "collapsed"}
+      style={{
+        background: "rgba(255,255,255,0.62)",
+        backdropFilter: "blur(32px) saturate(1.8)",
+        WebkitBackdropFilter: "blur(32px) saturate(1.8)",
+        border: "1px solid rgba(255,255,255,0.55)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.88), 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+      }}
       className={cn(
         "flex h-[calc(100%-1.5rem)] flex-col text-sidebar-foreground overflow-hidden transition-all duration-300 ease-in-out my-3 ml-3 rounded-[28px]",
         open ? "w-(--sidebar-width)" : "w-(--sidebar-width-icon)",
-        "bg-white/56 border border-white/70 shadow-[inset_0_1px_0_rgb(255_255_255/0.75),inset_0_0_0_1px_rgb(255_255_255/0.18)]",
-        "shadow-2xl shadow-zinc-950/8 dark:bg-zinc-200/10 dark:border-white/12 dark:shadow-black/22",
         side === "right" && "mr-3 ml-0",
         className
       )}
@@ -170,17 +175,17 @@ const SidebarMenuButton = React.forwardRef<
 >(({ className, isActive, tooltip, ...props }, ref) => {
   const { open } = useSidebar();
   return (
-    <Button
+    <button
       ref={ref}
-      variant="ghost"
-      size="sm"
       title={tooltip}
+      style={isActive ? { backgroundColor: "rgba(208, 212, 218, 0.45)" } : undefined}
       className={cn(
-        "w-full justify-start gap-3.5 rounded-xl font-medium overflow-hidden transition-all duration-150",
+        "w-full flex items-center gap-3.5 rounded-xl px-3 h-10 text-sm font-medium overflow-hidden transition-all duration-150 outline-none",
         !open && "justify-center px-0",
         isActive
-          ? "bg-zinc-200/70 text-zinc-950 shadow-none hover:bg-zinc-200/80 hover:text-zinc-950 dark:bg-white/14 dark:text-white"
-          : "text-zinc-800 hover:bg-zinc-200/45 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-white/8 dark:hover:text-white",
+          ? "text-zinc-900 dark:bg-white/14 dark:text-white"
+          : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/8 dark:hover:text-white",
+        !isActive && "sidebar-nav-hover",
         className
       )}
       {...props}

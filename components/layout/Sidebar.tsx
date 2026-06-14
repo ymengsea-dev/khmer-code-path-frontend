@@ -5,7 +5,7 @@ import {
   LayoutGrid,
   BookOpen,
   Code2,
-  PanelLeftClose,
+  PanelLeft,
   Search,
   Bot,
   ClipboardList,
@@ -69,7 +69,7 @@ export function Sidebar({
   return (
     <SidebarRoot side="left" className={cn("shrink-0", className)}>
       
-      <SidebarHeader className={cn("px-4 pb-3 pt-3 relative", !open && "px-2")}>
+      <SidebarHeader className="px-2 pb-3 pt-3 relative">
         <div className={cn("relative flex flex-col gap-2.5 transition-all duration-300 w-full", !open && "items-center")}>
           <div className={cn("flex items-center justify-between gap-2", !open && "justify-center")}>
             <button
@@ -99,31 +99,45 @@ export function Sidebar({
                 className="text-zinc-400 hover:text-zinc-700 transition-colors p-1.5 rounded-lg hover:bg-zinc-100/70 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/8 shrink-0"
                 title="Minimize Sidebar"
               >
-                <PanelLeftClose className="w-4 h-4" />
+                <PanelLeft className="w-4 h-4" />
               </button>
             ) : null}
           </div>
 
-          {/* Clean Command/Search Bar */}
+          {/* Search Bar */}
           {open ? (
             <button
               type="button"
               onClick={onOpenSearch}
-              className="h-9 w-full rounded-xl bg-zinc-100/70 px-3 flex items-center justify-between text-sm text-zinc-600 hover:bg-zinc-100/90 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 transition-all cursor-pointer"
+              className="h-10 w-full rounded-2xl px-3 flex items-center justify-between text-sm text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
+              style={{
+                background: "rgba(255,255,255,0.55)",
+                border: "1px solid rgba(255,255,255,0.70)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 4px rgba(0,0,0,0.05)",
+                backdropFilter: "blur(8px)",
+              }}
             >
-              <span className="flex items-center gap-2 min-w-0">
-                <Search className="w-4 h-4 text-zinc-500 dark:text-zinc-200" />
-                <span className="font-semibold">Search</span>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Search className="w-4 h-4 shrink-0" />
+                <span className="font-medium text-sm">Search</span>
               </span>
-              <span className="text-[10px] text-zinc-400 font-bold bg-white/18 px-1.5 py-0.5 rounded-md border border-white/35 shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] dark:bg-white/5 dark:border-white/10 dark:text-zinc-300">/</span>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0"
+                style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.85)" }}>
+                <span>⌘</span><span>/</span>
+              </span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onOpenSearch}
-              className="size-9 rounded-xl bg-zinc-100/70 flex items-center justify-center text-sm text-zinc-600 hover:bg-zinc-100/90 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 transition-all cursor-pointer"
+              className="h-10 w-full rounded-2xl flex items-center justify-center text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
+              style={{
+                background: "rgba(255,255,255,0.55)",
+                border: "1px solid rgba(255,255,255,0.70)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 4px rgba(0,0,0,0.05)",
+              }}
             >
-              <span className="font-bold text-[10px]">⌘</span>
+              <Search className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -444,8 +458,9 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <span
                       className={cn(
-                        "size-2.5 rounded-sm shrink-0 shadow-xs bg-linear-to-br",
-                        klass.cardGradient
+                        "size-2.5 rounded-sm shrink-0",
+                        // Use only the "from-*" color as a solid bg (e.g. "from-indigo-500 to-purple-600" → "bg-indigo-500")
+                        klass.cardGradient.split(" ")[0].replace(/^from-/, "bg-")
                       )}
                     />
                   </span>

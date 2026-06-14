@@ -91,7 +91,7 @@ export function SettingsView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 shrink-0">
         <h1 className="text-xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">

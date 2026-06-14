@@ -176,7 +176,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
   ══════════════════════════════════════════════════════════════ */
   if (stage === "confirm") {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-lg w-full rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-md p-8 space-y-6">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-950/50 mb-2">
@@ -219,7 +219,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
               Cancel
             </Button>
             <Button
-              className="flex-1 font-bold bg-violet-600 hover:bg-violet-700 text-white"
+              className="flex-1 font-bold"
               disabled={loadingQuiz}
               onClick={() => void startQuiz()}
             >
@@ -241,7 +241,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
   ══════════════════════════════════════════════════════════════ */
   if (stage === "failed") {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-md w-full rounded-2xl border border-rose-300/60 dark:border-rose-800/40 bg-white dark:bg-zinc-900/60 shadow-md p-8 space-y-5 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-rose-100 dark:bg-rose-950/50">
             <XCircle className="w-7 h-7 text-rose-600 dark:text-rose-400" />
@@ -276,7 +276,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
         ? Math.round((result.score / result.totalQuestions) * 100)
         : null;
     return (
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-md w-full rounded-2xl border border-emerald-300/60 dark:border-emerald-800/40 bg-white dark:bg-zinc-900/60 shadow-md p-8 space-y-5 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/50">
             <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />

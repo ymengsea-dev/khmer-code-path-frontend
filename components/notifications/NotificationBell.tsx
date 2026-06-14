@@ -208,7 +208,7 @@ export function NotificationBell({ className }: { className?: string }) {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          "relative inline-flex items-center justify-center rounded-md p-1.5 text-foreground/80 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+          "relative inline-flex items-center justify-center text-zinc-600 outline-none transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-ring/50",
           className
         )}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
@@ -223,39 +223,45 @@ export function NotificationBell({ className }: { className?: string }) {
 
       <DropdownMenuContent
         align="end"
-        sideOffset={8}
-        className="w-[min(100vw-2rem,400px)] p-0 overflow-hidden rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl"
+        sideOffset={10}
+        className="w-[min(100vw-2rem,380px)] p-0 overflow-hidden rounded-3xl border border-white/50 dark:border-white/12 shadow-2xl shadow-black/12 notif-panel data-[state=open]:notif-panel-open data-[state=closed]:notif-panel-closed"
+        style={{
+          background: "rgba(255,255,255,0.72)",
+          backdropFilter: "blur(28px) saturate(1.8)",
+          WebkitBackdropFilter: "blur(28px) saturate(1.8)",
+          transformOrigin: "top right",
+        }}
       >
-        <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-zinc-800 px-4 py-3.5">
-          <h3 className="text-base font-bold text-foreground">Notifications</h3>
+        {/* header */}
+        <div className="flex items-center justify-between border-b border-black/6 dark:border-white/8 px-5 py-3.5">
+          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">Notifications</h3>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              void markAllRead();
-            }}
+            onClick={(e) => { e.preventDefault(); void markAllRead(); }}
             disabled={unreadCount === 0}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/40 px-3 py-1 text-xs font-semibold text-[#305FC9] shadow-sm backdrop-blur-md transition-all hover:bg-white/65 active:scale-95 disabled:opacity-35 disabled:pointer-events-none"
+            style={{ backdropFilter: "blur(12px) saturate(1.6)", WebkitBackdropFilter: "blur(12px) saturate(1.6)" }}
           >
-            <CheckCheck className="size-4" />
-            Mark all as read
+            <CheckCheck className="size-3.5" />
+            Mark all read
           </button>
         </div>
 
-        <div className="max-h-[min(70vh,420px)] overflow-y-auto">
+        {/* body */}
+        <div className="max-h-[min(70vh,420px)] overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="size-6 animate-spin" />
+              <Loader2 className="size-5 animate-spin" />
             </div>
           ) : sections.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">
+            <p className="py-12 text-center text-sm text-zinc-400 dark:text-zinc-500">
               No notifications yet
             </p>
           ) : (
             sections.map(([section, items], sectionIdx) => (
               <div key={section}>
-                <div className="bg-slate-100/90 dark:bg-zinc-900/80 px-4 py-2">
-                  <span className="text-sm font-medium text-muted-foreground">
+                <div className="px-5 py-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                     {section}
                   </span>
                 </div>
@@ -270,13 +276,13 @@ export function NotificationBell({ className }: { className?: string }) {
                         acting={actingId === item.id}
                       />
                       {idx < items.length - 1 && (
-                        <div className="h-px bg-slate-100 dark:bg-zinc-800/80 mx-4" />
+                        <div className="h-px bg-black/5 dark:bg-white/6 mx-5" />
                       )}
                     </React.Fragment>
                   ))}
                 </div>
                 {sectionIdx < sections.length - 1 && (
-                  <div className="h-px bg-slate-200/80 dark:bg-zinc-800" />
+                  <div className="h-px bg-black/6 dark:bg-white/8 mx-3 my-1" />
                 )}
               </div>
             ))

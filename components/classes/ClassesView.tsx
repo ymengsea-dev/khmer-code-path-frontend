@@ -314,7 +314,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
       : "All";
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">

@@ -137,22 +137,13 @@ export function HomePage() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        const target = event.target as HTMLElement | null;
-        const isTypingOutsideSearch =
-          !commandOpen &&
-          (target?.tagName === "INPUT" ||
-            target?.tagName === "TEXTAREA" ||
-            target?.isContentEditable);
-        if (isTypingOutsideSearch) return;
-
+      // Cmd+/ (Mac) or Ctrl+/ (Windows/Linux) — toggle search
+      if (event.key === "/" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setCommandOpen((open) => !open);
+        return;
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setCommandOpen(true);
-      }
+
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -226,22 +217,27 @@ export function HomePage() {
         />
 
         <SidebarInset>
-          {/* Shared top header — persists across all views */}
-          <header className="shrink-0 m-3 mb-0 rounded-2xl px-6 py-4 liquid-glass flex items-center justify-between gap-4">
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+          {/* Shared top header — Apple liquid glass floating pills */}
+          <header className="shrink-0 flex items-center justify-between gap-3 px-4 pt-4 pb-1">
+
+            {/* Left — page title */}
+            <h1 className="text-xl font-bold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap px-1">
               {VIEW_LABELS[activeNav] ?? "Dashboard"}
             </h1>
-            <div className="flex items-center gap-2">
-              <NotificationBell />
 
-              {/* Profile dropdown */}
+            {/* Right — action pills */}
+            <div className="flex items-center gap-2.5">
+              {/* Notification pill */}
+              <NotificationBell className="topbar-pill h-10 px-3 rounded-full inline-flex items-center justify-center" />
+
+              {/* Avatar + name pill */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="cursor-pointer outline-none rounded-full flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-white to-zinc-200 flex items-center justify-center text-[11px] font-bold text-zinc-800 shadow-sm ring-1 ring-zinc-200/70 dark:from-zinc-100 dark:to-zinc-300 dark:ring-white/15 transition-all shrink-0">
+                <DropdownMenuTrigger className="topbar-pill h-10 flex items-center gap-2.5 px-3 cursor-pointer outline-none">
+                  <div className="w-7 h-7 rounded-full bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-700 ring-1 ring-zinc-300/70 dark:bg-zinc-700 dark:text-zinc-200 dark:ring-white/15 shrink-0">
                     {initials}
                   </div>
                   {displayName && (
-                    <span className="text-sm font-semibold text-foreground hidden sm:block">
+                    <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 hidden sm:block pr-1">
                       {displayName}
                     </span>
                   )}
