@@ -12,7 +12,7 @@ declare module "next-auth" {
   interface Session {
     accessToken?: string;
     accessTokenExpires?: number;
-    error?: "RefreshAccessTokenError";
+    error?: "RefreshAccessTokenError" | "BackendUnavailable";
     user: DefaultSession["user"] & {
       id: string;
       role: "student" | "teacher" | "admin";
@@ -26,6 +26,6 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     accessTokenExpires?: number;
-    error?: "RefreshAccessTokenError" | "RefreshTokenMissing";
+    error?: "RefreshAccessTokenError" | "RefreshTokenMissing" | "BackendUnavailable";
   }
 }

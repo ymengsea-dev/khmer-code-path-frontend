@@ -101,8 +101,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      if (token.error === "RefreshAccessTokenError") {
-        session.error = "RefreshAccessTokenError";
+      if (
+        token.error === "RefreshAccessTokenError" ||
+        token.error === "BackendUnavailable"
+      ) {
+        session.error = token.error;
       }
 
       session.accessToken = token.accessToken as string | undefined;

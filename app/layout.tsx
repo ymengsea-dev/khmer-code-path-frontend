@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { AppQueryProvider } from "@/components/providers/query-provider";
+import { ThemeBootstrap } from "@/components/providers/theme-bootstrap";
 import { NotificationProvider } from "@/components/notifications/notification-context";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 
@@ -36,9 +37,11 @@ export default function RootLayout({
       >
         <AppQueryProvider>
           <AuthSessionProvider>
-            <NotificationProvider>
-              <ConfirmProvider>{children}</ConfirmProvider>
-            </NotificationProvider>
+            <ThemeBootstrap>
+              <NotificationProvider>
+                <ConfirmProvider>{children}</ConfirmProvider>
+              </NotificationProvider>
+            </ThemeBootstrap>
           </AuthSessionProvider>
         </AppQueryProvider>
       </body>

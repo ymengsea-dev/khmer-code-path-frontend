@@ -36,6 +36,7 @@ export type AppView =
   | "profile"
   | "settings"
   | "users"
+  | "gradebook"
   | "departments"
   | "operations"
   | "course-content";
@@ -70,6 +71,7 @@ const VALID_VIEWS = new Set<string>([
   "profile",
   "settings",
   "users",
+  "gradebook",
   "departments",
   "operations",
   "course-content",

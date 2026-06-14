@@ -27,6 +27,17 @@ export interface AuthData extends AuthTokens {
   user: UserProfile;
 }
 
+export class BackendRefreshError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly networkError = false
+  ) {
+    super(message);
+    this.name = "BackendRefreshError";
+  }
+}
+
 export async function backendLogin(
   email: string,
   password: string
@@ -56,28 +67,41 @@ export async function backendLogin(
 export async function backendRefresh(
   refreshToken: string
 ): Promise<AuthTokens & { user?: UserProfile }> {
-  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: `ailms_refresh_token=${encodeURIComponent(refreshToken)}`,
-    },
-    body: JSON.stringify({ refreshToken }),
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `ailms_refresh_token=${encodeURIComponent(refreshToken)}`,
+      },
+      body: JSON.stringify({ refreshToken }),
+      cache: "no-store",
+    });
+  } catch (error) {
+    throw new BackendRefreshError(
+      error instanceof Error ? error.message : "Backend is unavailable",
+      undefined,
+      true
+    );
+  }
 
-  const body = (await res.json()) as ApiEnvelope<
+  const body = (await res.json().catch(() => null)) as ApiEnvelope<
     AuthTokens & { user?: UserProfile }
-  >;
+  > | null;
 
   if (!res.ok) {
     const detail =
       body?.status?.detail ?? body?.status?.message ?? "Refresh failed";
-    throw new Error(detail);
+    throw new BackendRefreshError(detail, res.status, false);
   }
 
-  if (!body.data?.accessToken) {
-    throw new Error("Invalid refresh response from server");
+  if (!body?.data?.accessToken) {
+    throw new BackendRefreshError(
+      "Invalid refresh response from server",
+      res.status,
+      false
+    );
   }
 
   return body.data;

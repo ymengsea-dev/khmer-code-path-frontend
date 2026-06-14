@@ -17,17 +17,23 @@ export const apiClient = axios.create({
 });
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+type RefreshRetryResult =
+  | { token: string; backendUnavailable?: false }
+  | { token: null; backendUnavailable: boolean };
 
 let isRefreshing = false;
 let refreshWaiters: Array<{
-  resolve: (token: string | null) => void;
+  resolve: (result: RefreshRetryResult) => void;
   reject: (reason: unknown) => void;
 }> = [];
 
-function settleRefreshWaiters(error: unknown | null, token: string | null) {
+function settleRefreshWaiters(
+  error: unknown | null,
+  result: RefreshRetryResult | null
+) {
   refreshWaiters.forEach(({ resolve, reject }) => {
     if (error) reject(error);
-    else resolve(token);
+    else resolve(result ?? { token: null, backendUnavailable: false });
   });
   refreshWaiters = [];
 }
@@ -42,7 +48,7 @@ function isFreshSession(session: ClientSession | null): session is ClientSession
   return Date.now() < session.accessTokenExpires - 60_000;
 }
 
-async function refreshAccessTokenForRetry(): Promise<string | null> {
+async function refreshAccessTokenForRetry(): Promise<RefreshRetryResult> {
   if (isRefreshing) {
     return new Promise((resolve, reject) => {
       refreshWaiters.push({ resolve, reject });
@@ -53,8 +59,14 @@ async function refreshAccessTokenForRetry(): Promise<string | null> {
   try {
     const session = await fetchSessionFromServer();
     const token = isFreshSession(session) ? session.accessToken : null;
-    settleRefreshWaiters(null, token);
-    return token;
+    const result: RefreshRetryResult = token
+      ? { token }
+      : {
+          token: null,
+          backendUnavailable: session?.error === "BackendUnavailable",
+        };
+    settleRefreshWaiters(null, result);
+    return result;
   } catch (error) {
     settleRefreshWaiters(error, null);
     throw error;
@@ -84,11 +96,16 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const token = await refreshAccessTokenForRetry();
+        const refreshResult = await refreshAccessTokenForRetry();
 
-        if (token) {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        if (refreshResult.token) {
+          originalRequest.headers.Authorization =
+            `Bearer ${refreshResult.token}`;
           return apiClient(originalRequest);
+        }
+
+        if (refreshResult.backendUnavailable) {
+          return Promise.reject(error);
         }
       } catch {
         /* fall through to sign-out */

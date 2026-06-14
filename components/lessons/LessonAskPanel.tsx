@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Send, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { aiChatService } from "@/lib/services/ai-chat-service";
+import { lessonAiService } from "@/lib/services/lesson-ai-service";
+import type { LessonCitationDto } from "@/lib/types/lesson-ai-api";
 
 interface UiMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  citations?: LessonCitationDto[];
 }
 
 interface LessonAskPanelProps {
@@ -17,6 +19,7 @@ interface LessonAskPanelProps {
   lessonTitle: string;
   aiReady: boolean;
   hasLessonContent: boolean;
+  materialId?: number | null;
 }
 
 export function LessonAskPanel({
@@ -24,49 +27,18 @@ export function LessonAskPanel({
   lessonTitle,
   aiReady,
   hasLessonContent,
+  materialId,
 }: LessonAskPanelProps) {
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const bootstrap = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const list = await aiChatService.listConversations("LESSON", String(lessonId));
-      let id = list[0]?.id;
-      if (!id) {
-        const created = await aiChatService.createConversation({
-          sectionType: "LESSON",
-          sectionRef: String(lessonId),
-          title: lessonTitle,
-        });
-        id = created.id;
-      }
-      setConversationId(id);
-      const rows = await aiChatService.listMessages(id);
-      setMessages(
-        rows.map((m) => ({
-          id: String(m.id),
-          role: m.role === "USER" ? "user" : "assistant",
-          content: m.content,
-        }))
-      );
-    } catch {
-      setError("Could not start the lesson assistant. Try again later.");
-      setMessages([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [lessonId, lessonTitle]);
-
   useEffect(() => {
-    void bootstrap();
-  }, [bootstrap]);
+    setMessages([]);
+    setError(null);
+  }, [lessonId, lessonTitle]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -74,7 +46,7 @@ export function LessonAskPanel({
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || !conversationId || sending) return;
+    if (!text || sending) return;
     setSending(true);
     setError(null);
     setInput("");
@@ -85,20 +57,24 @@ export function LessonAskPanel({
     };
     setMessages((prev) => [...prev, optimistic]);
     try {
-      const reply = await aiChatService.sendMessage(conversationId, text);
+      const reply = await lessonAiService.askLesson(lessonId, {
+        question: text,
+        materialId,
+      });
       setMessages((prev) => {
         const withoutTmp = prev.filter((m) => m.id !== optimistic.id);
         return [
           ...withoutTmp,
           {
-            id: String(reply.userMessage.id),
+            id: `user-${Date.now()}`,
             role: "user",
-            content: reply.userMessage.content,
+            content: text,
           },
           {
-            id: String(reply.assistantMessage.id),
+            id: `assistant-${Date.now()}`,
             role: "assistant",
-            content: reply.assistantMessage.content,
+            content: reply.answer,
+            citations: reply.citations,
           },
         ];
       });
@@ -110,14 +86,6 @@ export function LessonAskPanel({
       setSending(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -153,7 +121,30 @@ export function LessonAskPanel({
                     : "bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 text-foreground"
                 )}
               >
-                {msg.content}
+                <p>{msg.content}</p>
+                {msg.role === "assistant" && msg.citations?.length ? (
+                  <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
+                    <p className="text-[11px] font-bold uppercase text-muted-foreground">
+                      Sources
+                    </p>
+                    {msg.citations.map((citation, index) => (
+                      <div
+                        key={`${citation.sourceName}-${citation.chunkIndex ?? index}`}
+                        className="rounded-md bg-muted/60 px-2 py-1.5 text-xs"
+                      >
+                        <p className="font-semibold">
+                          {citation.sourceName}
+                          {citation.chunkIndex != null
+                            ? ` · chunk ${citation.chunkIndex + 1}`
+                            : ""}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-muted-foreground">
+                          {citation.excerpt}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               {msg.role === "user" ? (
                 <User className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />

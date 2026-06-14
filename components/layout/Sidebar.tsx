@@ -17,6 +17,7 @@ import {
   Building2,
   Wrench,
   Layers,
+  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar as SidebarRoot,
@@ -39,6 +40,7 @@ interface AppSidebarProps {
   activeCourseId?: string | null;
   lessonClasses?: ClassSummary[];
   onNavChange: (id: string, courseId?: string) => void;
+  onOpenSearch?: () => void;
   className?: string;
 }
 
@@ -47,6 +49,7 @@ export function Sidebar({
   activeCourseId,
   lessonClasses = [],
   onNavChange,
+  onOpenSearch,
   className,
 }: AppSidebarProps) {
   const { open, setOpen } = useSidebar();
@@ -80,7 +83,7 @@ export function Sidebar({
               aria-label="Go to dashboard"
             >
               <div className="relative shrink-0">
-                <div className="w-6.5 h-6.5 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-sm ring-1 ring-white/20 dark:ring-white/10">
+                <div className="w-6.5 h-6.5 rounded-lg bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-sm ring-1 ring-white/20 dark:ring-white/10">
                   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
                     <path d="M12 2L2 22h20L12 2zm0 3.8L18.7 19H5.3L12 5.8z" />
                   </svg>
@@ -116,17 +119,25 @@ export function Sidebar({
 
           {/* Clean Command/Search Bar */}
           {open ? (
-            <div className="w-full h-8 px-2.5 rounded-lg border border-slate-200/60 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 flex items-center justify-between text-xs text-muted-foreground hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer shadow-sm">
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="w-full h-8 px-2.5 rounded-lg border border-slate-200/60 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 flex items-center justify-between text-xs text-muted-foreground hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer shadow-sm"
+            >
               <span className="flex items-center gap-2">
                 <Search className="w-3.5 h-3.5 text-muted-foreground/75" />
                 <span className="font-medium text-[11px]">Command</span>
               </span>
               <span className="text-[10px] text-muted-foreground/60 font-semibold bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-slate-200/40 dark:border-zinc-700/50 shadow-2xs">/</span>
-            </div>
+            </button>
           ) : (
-            <div className="size-8 rounded-lg border border-slate-200/60 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 flex items-center justify-center text-xs text-muted-foreground hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer shadow-sm">
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="size-8 rounded-lg border border-slate-200/60 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 flex items-center justify-center text-xs text-muted-foreground hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer shadow-sm"
+            >
               <span className="font-bold text-[10px]">⌘</span>
-            </div>
+            </button>
           )}
         </div>
       </SidebarHeader>
@@ -175,6 +186,26 @@ export function Sidebar({
                   {open && (
                     <span className="flex-1 text-left">User Management</span>
                   )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            {isTeacher && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "gradebook"}
+                  onClick={() => onNavChange("gradebook")}
+                  className={cn(
+                    "rounded-lg px-2 py-1.5 transition-all duration-150 border border-transparent text-[13px] font-medium h-8.5 group",
+                    activeNav === "gradebook"
+                      ? "bg-slate-200/70 dark:bg-zinc-800 text-foreground font-semibold shadow-2xs"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-slate-200/40 dark:hover:bg-zinc-900/40 hover:text-foreground"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <GraduationCap className="w-4 h-4" />
+                  </span>
+                  {open && <span className="flex-1 text-left">Gradebook</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}

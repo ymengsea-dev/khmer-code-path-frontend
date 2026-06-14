@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
   CheckCircle,
   Clock,
@@ -10,9 +11,12 @@ import {
   FlaskConical,
   Loader2,
   MoreVertical,
+  Plus,
+  Save,
   Sparkles,
   FileText,
   Trash2,
+  X,
   Zap,
   Users,
   HelpCircle,
@@ -48,7 +52,7 @@ import {
   type QuizMaterialSource,
 } from "@/lib/quiz-material-sources";
 import type { QuizGenerateDto } from "@/lib/types/lesson-ai-api";
-import type { QuizDto } from "@/lib/types/quiz-api";
+import type { QuizDto, QuizResults } from "@/lib/types/quiz-api";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useQueryState } from "@/lib/hooks/use-query-params";
@@ -80,6 +84,21 @@ function parseQuizQuestions(content: string): ParsedQuestion[] | null {
 }
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
+
+function normalizeQuestion(question: ParsedQuestion): ParsedQuestion {
+  const rawOptions = Array.isArray(question.options) ? question.options.map(String) : [];
+  const options = rawOptions.length >= 2 ? rawOptions : ["", ""];
+  return {
+    question: String(question.question ?? ""),
+    options,
+    correctIndex: Math.min(Math.max(question.correctIndex ?? 0, 0), options.length - 1),
+    explanation: question.explanation != null ? String(question.explanation) : "",
+  };
+}
+
+function serializeQuizQuestions(questions: ParsedQuestion[]): string {
+  return JSON.stringify(questions.map(normalizeQuestion), null, 2);
+}
 
 function QuizPreviewPanel({
   content,
@@ -166,6 +185,195 @@ function QuizPreviewPanel({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function EditableQuizPanel({
+  content,
+  onQuestionsChange,
+}: {
+  content: string;
+  onQuestionsChange: (questions: ParsedQuestion[]) => void;
+}) {
+  const questions = (parseQuizQuestions(content) ?? []).map(normalizeQuestion);
+
+  const updateQuestions = (next: ParsedQuestion[]) => {
+    onQuestionsChange(next.map(normalizeQuestion));
+  };
+
+  const updateQuestion = (index: number, updater: (question: ParsedQuestion) => ParsedQuestion) => {
+    updateQuestions(questions.map((question, qi) => (qi === index ? updater(question) : question)));
+  };
+
+  if (questions.length === 0) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-amber-600">
+          This quiz could not be parsed into editable questions. You can still review the raw output below.
+        </p>
+        <pre className="text-xs whitespace-pre-wrap font-mono text-foreground p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60">
+          {content}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 p-1">
+      {questions.map((q, qi) => (
+        <div
+          key={qi}
+          className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden"
+        >
+          <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center mt-1">
+                {qi + 1}
+              </span>
+              <textarea
+                value={q.question}
+                onChange={(event) =>
+                  updateQuestion(qi, (current) => ({
+                    ...current,
+                    question: event.target.value,
+                  }))
+                }
+                rows={2}
+                className="min-h-16 flex-1 resize-y rounded-lg border border-slate-200 dark:border-zinc-800 bg-background px-3 py-2 text-sm font-semibold text-foreground"
+                placeholder="Question"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              disabled={questions.length <= 1}
+              onClick={() => updateQuestions(questions.filter((_, index) => index !== qi))}
+              aria-label="Remove question"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="px-4 py-4 space-y-3">
+            {q.options.map((option, oi) => (
+              <div key={oi} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuestion(qi, (current) => ({
+                      ...current,
+                      correctIndex: oi,
+                    }))
+                  }
+                  className={cn(
+                    "h-8 w-8 shrink-0 rounded-full text-xs font-bold flex items-center justify-center border",
+                    oi === q.correctIndex
+                      ? "bg-emerald-500 text-white border-emerald-500"
+                      : "bg-background text-muted-foreground border-slate-200 dark:border-zinc-800"
+                  )}
+                  title="Mark as correct answer"
+                >
+                  {OPTION_LABELS[oi] ?? oi + 1}
+                </button>
+                <Input
+                  value={option}
+                  onChange={(event) =>
+                    updateQuestion(qi, (current) => ({
+                      ...current,
+                      options: current.options.map((value, index) =>
+                        index === oi ? event.target.value : value
+                      ),
+                    }))
+                  }
+                  placeholder={`Option ${OPTION_LABELS[oi] ?? oi + 1}`}
+                  className="h-9 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  disabled={q.options.length <= 2}
+                  onClick={() =>
+                    updateQuestion(qi, (current) => {
+                      const nextOptions = current.options.filter((_, index) => index !== oi);
+                      return {
+                        ...current,
+                        options: nextOptions,
+                        correctIndex:
+                          current.correctIndex === oi
+                            ? 0
+                            : current.correctIndex > oi
+                              ? current.correctIndex - 1
+                              : current.correctIndex,
+                      };
+                    })
+                  }
+                  aria-label="Remove option"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              disabled={q.options.length >= 6}
+              onClick={() =>
+                updateQuestion(qi, (current) => ({
+                  ...current,
+                  options: [...current.options, ""],
+                }))
+              }
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add option
+            </Button>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Explanation</Label>
+              <textarea
+                value={q.explanation ?? ""}
+                onChange={(event) =>
+                  updateQuestion(qi, (current) => ({
+                    ...current,
+                    explanation: event.target.value,
+                  }))
+                }
+                rows={2}
+                className="w-full resize-y rounded-lg border border-slate-200 dark:border-zinc-800 bg-background px-3 py-2 text-sm text-foreground"
+                placeholder="Explain why the correct answer is right"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="gap-2"
+        onClick={() =>
+          updateQuestions([
+            ...questions,
+            {
+              question: "New question",
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctIndex: 0,
+              explanation: "",
+            },
+          ])
+        }
+      >
+        <Plus className="h-4 w-4" />
+        Add Question
+      </Button>
     </div>
   );
 }
@@ -354,7 +562,17 @@ export function MyTasksView() {
   const [publishedPreviewQuiz, setPublishedPreviewQuiz] = useState<QuizDto | null>(null);
   const [assignFromCardOpen, setAssignFromCardOpen] = useState(false);
   const [assignFromCardQuiz, setAssignFromCardQuiz] = useState<QuizDto | null>(null);
-  const { confirm } = useConfirm();
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<QuizDto | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDuration, setEditDuration] = useState("30");
+  const [editContent, setEditContent] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const { confirm, alert } = useConfirm();
 
   const selectedSource = useMemo(() => {
     if (!lessonSource) return null;
@@ -452,6 +670,98 @@ export function MyTasksView() {
     }
   }, []);
 
+  const handleReviewResults = useCallback(async (quizId: number) => {
+    setResultsOpen(true);
+    setResultsLoading(true);
+    setQuizResults(null);
+    try {
+      const results = await quizService.getResults(quizId);
+      setQuizResults(results);
+    } catch (err) {
+      setResultsOpen(false);
+      void alert(getApiErrorMessage(err, "Could not load quiz results."), {
+        title: "Quiz results error",
+        variant: "destructive",
+      });
+      console.error(
+        "Failed to load quiz results:",
+        getApiErrorMessage(err, "Could not load quiz results.")
+      );
+    } finally {
+      setResultsLoading(false);
+    }
+  }, [alert]);
+
+  const handleEditPublishedQuiz = useCallback(async (quiz: QuizDto) => {
+    if ((quiz.submittedCount ?? 0) > 0 || (quiz.failedCount ?? 0) > 0) {
+      void alert("This quiz already has student attempts. Duplicate and edit it instead.", {
+        title: "Cannot edit quiz",
+        variant: "info",
+      });
+      return;
+    }
+    try {
+      const full = await quizService.getQuiz(quiz.id);
+      const content =
+        full.generatedContent ??
+        serializeQuizQuestions(
+          (full.questions ?? []).map((q) => ({
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correctIndex ?? 0,
+            explanation: q.explanation ?? "",
+          }))
+        );
+      setEditingQuiz(full);
+      setEditTitle(full.title);
+      setEditDescription(full.description ?? "");
+      setEditDuration(String(full.durationMinutes ?? 30));
+      setEditContent(content);
+      setEditOpen(true);
+    } catch (err) {
+      void alert(getApiErrorMessage(err, "Could not load quiz for editing."), {
+        title: "Edit quiz error",
+        variant: "destructive",
+      });
+    }
+  }, [alert]);
+
+  const handleSavePublishedQuiz = useCallback(async () => {
+    if (!editingQuiz) return;
+    const questions = parseQuizQuestions(editContent) ?? [];
+    if (questions.length === 0) {
+      void alert("Quiz questions are not valid. Please add at least one question.", {
+        title: "Invalid quiz",
+        variant: "destructive",
+      });
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await quizService.update(editingQuiz.id, {
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        durationMinutes: Number(editDuration) || null,
+        questionCount: questions.length,
+        generatedContent: serializeQuizQuestions(questions),
+      });
+      setEditOpen(false);
+      setEditingQuiz(null);
+      await loadQuizzes();
+      void alert("Quiz updated successfully.", {
+        title: "Saved",
+        variant: "success",
+      });
+    } catch (err) {
+      void alert(getApiErrorMessage(err, "Could not update quiz."), {
+        title: "Save failed",
+        variant: "destructive",
+      });
+    } finally {
+      setEditSaving(false);
+    }
+  }, [alert, editContent, editDescription, editDuration, editTitle, editingQuiz, loadQuizzes]);
+
   useEffect(() => {
     if (isTeacher) void loadSources();
   }, [isTeacher, loadSources]);
@@ -502,6 +812,18 @@ export function MyTasksView() {
       setGenerating(false);
     }
   };
+
+  const handleGeneratedQuestionsChange = useCallback((questions: ParsedQuestion[]) => {
+    setGeneratedQuiz((prev) =>
+      prev
+        ? {
+            ...prev,
+            questionCount: questions.length,
+            generatedContent: serializeQuizQuestions(questions),
+          }
+        : prev
+    );
+  }, []);
 
   /* ── Quiz taking (student) ── */
   if (activeQuiz) {
@@ -640,7 +962,7 @@ export function MyTasksView() {
                     onClick={() => setPreviewOpen(true)}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
-                    Preview
+                    Edit Quiz
                   </Button>
                   <Button
                     size="sm"
@@ -686,6 +1008,8 @@ export function MyTasksView() {
                   isTeacher={isTeacher}
                   onStart={() => setActiveQuiz(quiz)}
                   onCardClick={isTeacher ? () => void handlePreviewPublishedQuiz(quiz.id) : undefined}
+                  onEdit={() => void handleEditPublishedQuiz(quiz)}
+                  onReview={() => void handleReviewResults(quiz.id)}
                   onAssign={() => void handleAssignFromCard(quiz.id)}
                   onDelete={() => void handleDeletePublishedQuiz(quiz)}
                 />
@@ -703,7 +1027,7 @@ export function MyTasksView() {
             <div>
               <DialogTitle className="text-base font-extrabold flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-violet-500" />
-                Quiz Preview
+                Edit Generated Quiz
               </DialogTitle>
               {generatedQuiz && (
                 <DialogDescription className="text-xs mt-1">
@@ -724,9 +1048,14 @@ export function MyTasksView() {
             )}
           </div>
 
-          {/* Scrollable question list */}
+          {/* Scrollable editable question list */}
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50">
-            {generatedQuiz && <QuizPreviewPanel content={generatedQuiz.generatedContent} />}
+            {generatedQuiz && (
+              <EditableQuizPanel
+                content={generatedQuiz.generatedContent}
+                onQuestionsChange={handleGeneratedQuestionsChange}
+              />
+            )}
           </div>
 
           {/* Footer */}
@@ -784,6 +1113,228 @@ export function MyTasksView() {
           }}
         />
       )}
+
+      {/* Edit published quiz dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="w-[88vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
+          <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
+            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-500" />
+              Edit Published Quiz
+            </DialogTitle>
+            <DialogDescription className="text-xs mt-1">
+              Edit is available only before students submit or fail this quiz.
+            </DialogDescription>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50 space-y-4">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Quiz title</Label>
+                <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Time limit (minutes)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={editDuration}
+                  onChange={(event) => setEditDuration(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Description</Label>
+              <Input
+                value={editDescription}
+                onChange={(event) => setEditDescription(event.target.value)}
+                placeholder="Optional description"
+              />
+            </div>
+            {editContent ? (
+              <EditableQuizPanel
+                content={editContent}
+                onQuestionsChange={(questions) => setEditContent(serializeQuizQuestions(questions))}
+              />
+            ) : (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold"
+              disabled={editSaving || !editTitle.trim()}
+              onClick={() => void handleSavePublishedQuiz()}
+            >
+              {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Teacher quiz results dialog */}
+      <Dialog open={resultsOpen} onOpenChange={setResultsOpen}>
+        <DialogContent className="w-[90vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
+          <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
+            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-violet-500" />
+              Quiz Results
+            </DialogTitle>
+            {quizResults ? (
+              <DialogDescription className="text-xs mt-1">
+                <span className="font-semibold text-foreground">{quizResults.quiz.title}</span>
+                {" · "}
+                {quizResults.quiz.className}
+              </DialogDescription>
+            ) : null}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50">
+            {resultsLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+              </div>
+            ) : quizResults ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  {[
+                    ["Enrolled", quizResults.enrolledStudents],
+                    ["Submitted", quizResults.submittedCount],
+                    ["Failed", quizResults.failedCount],
+                    ["Not started", quizResults.notStartedCount],
+                    ["Average", `${quizResults.averageScorePercent}%`],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 px-4 py-3"
+                    >
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-xl font-black text-foreground">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden">
+                  <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_1fr] gap-3 px-4 py-3 text-xs font-bold text-muted-foreground border-b border-slate-100 dark:border-zinc-800">
+                    <span>Student</span>
+                    <span>Status</span>
+                    <span>Score</span>
+                    <span>Submitted</span>
+                  </div>
+                  {quizResults.submissions.length === 0 ? (
+                    <p className="px-4 py-8 text-sm text-muted-foreground text-center">
+                      No student submissions yet.
+                    </p>
+                  ) : (
+                    quizResults.submissions.map((submission) => (
+                      <div
+                        key={submission.submissionId}
+                        className="border-b last:border-b-0 border-slate-100 dark:border-zinc-800"
+                      >
+                        <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_1fr] gap-3 px-4 py-3 text-sm">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{submission.studentName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{submission.studentEmail}</p>
+                          </div>
+                          <div>
+                            <Badge
+                              className={cn(
+                                "text-[10px] font-bold border-0",
+                                submission.status === "SUBMITTED"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              )}
+                            >
+                              {submission.status}
+                            </Badge>
+                            {submission.failReason ? (
+                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                {submission.failReason}
+                              </p>
+                            ) : null}
+                          </div>
+                          <p className="font-semibold text-foreground">
+                            {submission.score ?? "—"} / {submission.totalQuestions}
+                            {submission.scorePercent != null ? (
+                              <span className="block text-xs text-muted-foreground">
+                                {submission.scorePercent}%
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {submission.submittedAt
+                              ? new Date(submission.submittedAt).toLocaleString()
+                              : "—"}
+                          </p>
+                        </div>
+
+                        {submission.wrongAnswers.length > 0 ? (
+                          <div className="mx-4 mb-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 p-3 space-y-3">
+                            <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                              Wrong / unanswered questions ({submission.wrongAnswers.length})
+                            </p>
+                            {submission.wrongAnswers.map((wrong, index) => (
+                              <div
+                                key={`${submission.submissionId}-${wrong.questionId}`}
+                                className="rounded-lg bg-white dark:bg-zinc-950/70 border border-rose-100 dark:border-rose-900/50 p-3"
+                              >
+                                <p className="text-sm font-semibold text-foreground">
+                                  {index + 1}. {wrong.question}
+                                </p>
+                                <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
+                                  <div className="rounded-md bg-rose-500/10 px-2 py-1.5">
+                                    <span className="font-bold text-rose-700 dark:text-rose-300">
+                                      Student answer:
+                                    </span>{" "}
+                                    <span className="text-foreground">
+                                      {wrong.selectedAnswer ?? "Not answered"}
+                                    </span>
+                                  </div>
+                                  <div className="rounded-md bg-emerald-500/10 px-2 py-1.5">
+                                    <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                                      Correct answer:
+                                    </span>{" "}
+                                    <span className="text-foreground">
+                                      {wrong.correctAnswer ?? "—"}
+                                    </span>
+                                  </div>
+                                </div>
+                                {wrong.explanation ? (
+                                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                                    {wrong.explanation}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : submission.status === "SUBMITTED" ? (
+                          <div className="mx-4 mb-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                            All answers correct.
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <Button variant="outline" size="sm" onClick={() => setResultsOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Published quiz preview dialog */}
       <Dialog open={publishedPreviewOpen} onOpenChange={setPublishedPreviewOpen}>
@@ -850,6 +1401,8 @@ function QuizCard({
   isTeacher,
   onStart,
   onCardClick,
+  onEdit,
+  onReview,
   onAssign,
   onDelete,
 }: {
@@ -857,6 +1410,8 @@ function QuizCard({
   isTeacher: boolean;
   onStart: () => void;
   onCardClick?: () => void;
+  onEdit?: () => void;
+  onReview?: () => void;
   onAssign?: () => void;
   onDelete?: () => void;
 }) {
@@ -908,6 +1463,20 @@ function QuizCard({
                   <MoreVertical className="w-4 h-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
+                  {(quiz.submittedCount ?? 0) === 0 && (quiz.failedCount ?? 0) === 0 ? (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Edit Quiz
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); onReview?.(); }}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Review Results
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => { e.stopPropagation(); onAssign?.(); }}
                   >
@@ -937,9 +1506,35 @@ function QuizCard({
         </p>
 
         {isTeacher && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Eye className="w-3.5 h-3.5" />
-            Click to preview
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
+                <p className="text-muted-foreground">Submitted</p>
+                <p className="font-black text-foreground">
+                  {quiz.submittedCount ?? 0}
+                  {quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
+                <p className="text-muted-foreground">Failed</p>
+                <p className="font-black text-foreground">{quiz.failedCount ?? 0}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
+                <p className="text-muted-foreground">Pending</p>
+                <p className="font-black text-foreground">
+                  {quiz.enrolledStudents != null
+                    ? Math.max(
+                        0,
+                        quiz.enrolledStudents - (quiz.submittedCount ?? 0) - (quiz.failedCount ?? 0)
+                      )
+                    : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Eye className="w-3.5 h-3.5" />
+              Click to preview
+            </div>
           </div>
         )}
         {!isTeacher && isPending && (

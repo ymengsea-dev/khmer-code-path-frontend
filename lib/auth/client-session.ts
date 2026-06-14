@@ -6,7 +6,7 @@ const REFRESH_BUFFER_MS = 60_000;
 export type ClientSession = Session & {
   accessToken?: string;
   accessTokenExpires?: number;
-  error?: "RefreshAccessTokenError";
+  error?: "RefreshAccessTokenError" | "BackendUnavailable";
 };
 
 let inflightSessionFetch: Promise<ClientSession | null> | null = null;
@@ -36,7 +36,7 @@ export function fetchSessionFromServer(): Promise<ClientSession | null> {
 }
 
 function isSessionTokenFresh(session: ClientSession | null | undefined): boolean {
-  if (!session?.accessToken || session.error) return false;
+  if (!session?.accessToken || session.error === "RefreshAccessTokenError") return false;
   if (!session.accessTokenExpires) return false;
   return Date.now() < session.accessTokenExpires - REFRESH_BUFFER_MS;
 }

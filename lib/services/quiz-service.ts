@@ -3,6 +3,8 @@ import type {
   CreateQuizPayload,
   QuizAttemptResult,
   QuizDto,
+  QuizResults,
+  UpdateQuizPayload,
 } from "../types/quiz-api";
 
 export const quizService = {
@@ -28,6 +30,18 @@ export const quizService = {
   /** Get a single quiz with its questions (answers hidden for students) */
   async getQuiz(id: number): Promise<QuizDto> {
     const response = await apiClient.get<{ data: QuizDto }>(`/quizzes/${id}`);
+    return response.data.data;
+  },
+
+  /** Teacher: review aggregate results and submissions for a quiz */
+  async getResults(id: number): Promise<QuizResults> {
+    const response = await apiClient.get<{ data: QuizResults }>(`/quizzes/${id}/results`);
+    return response.data.data;
+  },
+
+  /** Teacher: update a quiz before student attempts exist */
+  async update(quizId: number, payload: UpdateQuizPayload): Promise<QuizDto> {
+    const response = await apiClient.put<{ data: QuizDto }>(`/quizzes/${quizId}`, payload);
     return response.data.data;
   },
 

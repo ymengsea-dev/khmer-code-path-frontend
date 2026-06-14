@@ -1,5 +1,9 @@
 import type { JWT } from "next-auth/jwt";
-import { backendRefresh, type LmsRole } from "./backend-api";
+import {
+  BackendRefreshError,
+  backendRefresh,
+  type LmsRole,
+} from "./backend-api";
 
 const REFRESH_BUFFER_MS = 60_000;
 
@@ -41,6 +45,12 @@ async function performRefresh(token: JWT): Promise<JWT> {
     };
   } catch (error) {
     console.error("[auth] refreshAccessToken failed:", error);
+    if (
+      error instanceof BackendRefreshError &&
+      (error.networkError || !error.status || error.status >= 500)
+    ) {
+      return { ...token, error: "BackendUnavailable" };
+    }
     return { ...token, error: "RefreshAccessTokenError" };
   }
 }

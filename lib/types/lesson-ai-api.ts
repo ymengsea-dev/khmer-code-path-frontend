@@ -17,6 +17,35 @@ export interface LessonSummaryGenerateDto {
   persisted: boolean;
 }
 
+export interface LessonCitationDto {
+  sourceType: string;
+  materialId: number | null;
+  sourceName: string;
+  chunkIndex: number | null;
+  excerpt: string;
+}
+
+export interface LessonAnswerDto {
+  lessonId: number;
+  answer: string;
+  citations: LessonCitationDto[];
+}
+
+export interface LessonImproveDto {
+  lessonId: number;
+  improvedContent: string;
+  persisted: boolean;
+}
+
+export interface MaterialRagStatusDto {
+  lessonId: number | null;
+  materialId: number;
+  status: string;
+  chunkCount: number;
+  indexedAt: string | null;
+  errorMessage: string | null;
+}
+
 export interface QuizGenerateDto {
   lessonId: number | null;
   materialId: number | null;

@@ -154,15 +154,8 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
       setResult(res);
       setStage("result");
     } catch {
-      setResult({
-        quizId: quiz.id,
-        score: null,
-        totalQuestions: questions.length,
-        status: "SUBMITTED",
-        failReason: null,
-        submittedAt: new Date().toISOString(),
-      });
-      setStage("result");
+      setFailReason("Could not submit your answers. Please check your connection and try again.");
+      setStage("failed");
     } finally {
       setSubmitting(false);
     }

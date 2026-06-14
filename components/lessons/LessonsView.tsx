@@ -175,6 +175,11 @@ export function LessonsView({
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [personalSummary, setPersonalSummary] = useState<string | null>(null);
   const [savingToNotebook, setSavingToNotebook] = useState(false);
+  const [improveGoal, setImproveGoal] = useState(
+    "Improve clarity, add learning objectives, examples, and short exercises."
+  );
+  const [improvingLesson, setImprovingLesson] = useState(false);
+  const [improvedContent, setImprovedContent] = useState<string | null>(null);
 
   const [rosterOpen, setRosterOpen] = useState(false);
   const [deletingLessonId, setDeletingLessonId] = useState<number | null>(null);
@@ -279,6 +284,7 @@ export function LessonsView({
   useEffect(() => {
     setPersonalSummary(null);
     setSummaryError(null);
+    setImprovedContent(null);
     if (lesson?.materials?.length) {
       setSummaryMaterialId(String(lesson.materials[0].id));
     } else {
@@ -340,6 +346,32 @@ export function LessonsView({
     }
   };
 
+  const handleImproveLesson = async (persist: boolean) => {
+    if (!lesson) return;
+    setImprovingLesson(true);
+    try {
+      const result = await lessonAiService.improveLesson(lesson.id, {
+        goal: improveGoal,
+        persist,
+      });
+      setImprovedContent(result.improvedContent);
+      if (result.persisted) {
+        setLesson({ ...lesson, description: result.improvedContent });
+        void showAlert("Improved lesson content saved.", {
+          title: "Lesson updated",
+          variant: "success",
+        });
+      }
+    } catch {
+      void showAlert("Could not improve this lesson content.", {
+        title: "AI improvement failed",
+        variant: "destructive",
+      });
+    } finally {
+      setImprovingLesson(false);
+    }
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!lesson || !e.target.files?.length) return;
     setUploading(true);
@@ -368,6 +400,23 @@ export function LessonsView({
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(link.href);
+  };
+
+  const handleQueueMaterialIndex = async (materialId: number) => {
+    if (!lesson) return;
+    try {
+      const status = await lessonAiService.queueMaterialIndex(lesson.id, materialId);
+      void showAlert(`AI indexing status: ${status.status}`, {
+        title: "Indexing queued",
+        variant: "success",
+      });
+      await loadLessonDetail(lesson.id);
+    } catch {
+      void showAlert("Could not queue AI indexing for this file.", {
+        title: "Indexing failed",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteClass = async () => {
@@ -431,7 +480,7 @@ export function LessonsView({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-clip bg-[#fffef8] dark:bg-[#1c1c1e]">
-      <header className="shrink-0 px-4 sm:px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="shrink-0 px-4 sm:px-6 py-4 border-b border-black/6 dark:border-white/8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3 min-w-0">
           {onBackToClasses ? (
             <Button
@@ -497,7 +546,7 @@ export function LessonsView({
 
       {!loading && !error && visibleTabs.length > 0 ? (
         <>
-          <div className="shrink-0 px-4 sm:px-6 flex gap-1 border-b border-black/[0.06] dark:border-white/[0.08] overflow-x-auto">
+          <div className="shrink-0 px-4 sm:px-6 flex gap-1 border-b border-black/6 dark:border-white/8 overflow-x-auto">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -594,14 +643,25 @@ export function LessonsView({
                         key={file.id}
                         className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/30"
                       >
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-foreground truncate">
                             {file.fileName}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {formatBytes(file.fileSizeBytes)}
+                            {file.ragStatus ? ` · AI: ${file.ragStatus}` : ""}
                           </p>
                         </div>
+                        {isTeacher ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs font-semibold shrink-0"
+                            onClick={() => void handleQueueMaterialIndex(file.id)}
+                          >
+                            Index AI
+                          </Button>
+                        ) : null}
                         <Button
                           variant="outline"
                           size="sm"
@@ -620,7 +680,7 @@ export function LessonsView({
             {activeTab === "ai" && lesson && (
               <div className="space-y-10">
                 {!isTeacher ? (
-                  <section className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent p-6">
+                  <section className="rounded-xl border border-violet-500/20 bg-linear-to-br from-violet-500/5 to-transparent p-6">
                     <div className="flex flex-wrap items-center gap-3 mb-4">
                       <Sparkles className="w-5 h-5 text-violet-500" />
                       <h2 className="text-sm font-extrabold text-foreground">Lesson summary</h2>
@@ -726,12 +786,75 @@ export function LessonsView({
                   </section>
                 ) : null}
 
+                {isTeacher ? (
+                  <section className="rounded-xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Sparkles className="w-5 h-5 text-amber-500" />
+                      <h2 className="text-sm font-extrabold text-foreground">
+                        Improve lesson content
+                      </h2>
+                      <Badge className="text-[10px] font-bold bg-amber-600 text-white border-0">
+                        Teacher AI
+                      </Badge>
+                    </div>
+                    <textarea
+                      value={improveGoal}
+                      onChange={(event) => setImproveGoal(event.target.value)}
+                      rows={3}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      placeholder="Tell AI how to improve this lesson..."
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        disabled={improvingLesson}
+                        onClick={() => void handleImproveLesson(false)}
+                      >
+                        {improvingLesson ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        Preview Improvement
+                      </Button>
+                      <Button
+                        variant="inverse"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        disabled={improvingLesson}
+                        onClick={() => void handleImproveLesson(true)}
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Generate and Save
+                      </Button>
+                    </div>
+                    {improvedContent ? (
+                      <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+                        <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">
+                          Preview
+                        </p>
+                        <div
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: improvedContent }}
+                        />
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
+
                 <section>
                   <LessonAskPanel
                     lessonId={lesson.id}
                     lessonTitle={lesson.title}
                     aiReady={lesson.aiReady}
                     hasLessonContent={Boolean(lesson.description?.trim())}
+                    materialId={
+                      lesson.materials.length > 0
+                        ? Number(summaryMaterialId || lesson.materials[0].id)
+                        : null
+                    }
                   />
                 </section>
               </div>

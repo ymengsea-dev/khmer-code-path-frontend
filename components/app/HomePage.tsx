@@ -14,6 +14,7 @@ import { NotebookView } from "@/components/notebook/NotebookView";
 import { LessonsView } from "@/components/lessons/LessonsView";
 import { AiChatView } from "@/components/ai-chat/AiChatView";
 import { UserManagementView } from "@/components/users/UserManagementView";
+import { TeacherGradebookView } from "@/components/gradebook/TeacherGradebookView";
 import { DepartmentsView } from "@/components/departments/DepartmentsView";
 import { OperationsView } from "@/components/operations/OperationsView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
@@ -24,6 +25,8 @@ import { QueryKey, parseView, type AppView } from "@/lib/navigation/app-query";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { useCoursesQuery } from "@/lib/hooks/use-courses-query";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { GlobalCommandPalette } from "@/components/search/GlobalCommandPalette";
+import type { GlobalSearchResultDto } from "@/lib/types/search-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +52,7 @@ const VIEW_LABELS: Record<AppView, string> = {
   profile:        "Profile",
   settings:       "Settings",
   users:          "User Management",
+  gradebook:      "Gradebook",
   departments:    "Departments",
   operations:     "Operations",
   "course-content": "Course Content",
@@ -96,6 +100,7 @@ export function HomePage() {
   const { data: session } = useSession();
   const { data: currentUser } = useCurrentUser();
   const [lessonClasses, setLessonClasses] = useState<ClassSummary[]>([]);
+  const [commandOpen, setCommandOpen] = useState(false);
   const appRole = (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ?? "student";
   const displayName =
     currentUser?.userName?.trim() || session?.user?.name?.trim() || null;
@@ -129,6 +134,26 @@ export function HomePage() {
       cancelled = true;
     };
   }, [appRole]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+      if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleNavChange = useCallback(
     (id: string, courseId?: string) => {
@@ -171,6 +196,20 @@ export function HomePage() {
     [setParams, appRole]
   );
 
+  const handleSearchNavigate = useCallback(
+    (result: GlobalSearchResultDto) => {
+      const updates: Record<string, string | null> = {
+        [QueryKey.view]: result.targetView,
+        [QueryKey.detail]: null,
+      };
+      Object.entries(result.targetParams ?? {}).forEach(([key, value]) => {
+        updates[key] = value;
+      });
+      setParams(updates);
+    },
+    [setParams]
+  );
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
@@ -179,6 +218,7 @@ export function HomePage() {
           activeCourseId={activeCourseId}
           lessonClasses={lessonClasses}
           onNavChange={handleNavChange}
+          onOpenSearch={() => setCommandOpen(true)}
           className="shrink-0"
         />
 
@@ -194,7 +234,7 @@ export function HomePage() {
               {/* Profile dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="cursor-pointer outline-none rounded-full flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-[11px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 hover:ring-violet-400 transition-all shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-[11px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 hover:ring-violet-400 transition-all shrink-0">
                     {initials}
                   </div>
                   {displayName && (
@@ -233,7 +273,7 @@ export function HomePage() {
           {/* View area fills remaining height */}
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {activeNav === "code" && <EmbeddedIDE />}
-            {activeNav === "learning" && <MyLearning />}
+            {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}
             {activeNav === "tasks" && <MyTasksView />}
             {activeNav === "profile" && <ProfileView />}
             {activeNav === "settings" && <SettingsView />}
@@ -261,6 +301,7 @@ export function HomePage() {
               <ClassesView onEnterClass={handleEnterClass} />
             )}
             {activeNav === "users" && <UserManagementView />}
+            {activeNav === "gradebook" && <TeacherGradebookView />}
             {activeNav === "departments" && <DepartmentsView />}
             {activeNav === "operations" && <OperationsView />}
             {activeNav === "course-content" && <CourseContentView />}
@@ -276,6 +317,11 @@ export function HomePage() {
             )}
           </div>
         </SidebarInset>
+        <GlobalCommandPalette
+          open={commandOpen}
+          onOpenChange={setCommandOpen}
+          onNavigate={handleSearchNavigate}
+        />
       </div>
     </SidebarProvider>
   );

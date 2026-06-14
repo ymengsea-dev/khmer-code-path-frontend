@@ -1,289 +1,480 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { CheckCircle2, Github, Medal, Trophy } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  BookOpen,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  GraduationCap,
+  Loader2,
+  Medal,
+  ShieldCheck,
+  Star,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { getRoleLabel, getUserInitials } from "@/lib/auth/user-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { profileSummaryService } from "@/lib/services/profile-summary-service";
+import type { AdminDashboard, StudentDashboard, TeacherDashboard } from "@/lib/types/dashboard-api";
+import type { ComponentType } from "react";
 
-const ACHIEVEMENT_BADGES = [
-  "Python Mastery",
-  "Data Science Certified",
-  "Cloud Architect",
-  "Algorithms Specialist",
-  "Data Development",
-  "Digital Learning",
-];
+type Role = "student" | "teacher" | "admin";
 
-const COMPLETED_REPOS = [
-  {
-    name: "Introduction to Python Programming",
-    slug: "intro-python-johnson",
-  },
-  {
-    name: "AI Engineer Certification",
-    slug: "ai-certification-johnson",
-  },
-  {
-    name: "Full Stack Web Development",
-    slug: "fullstack-meta-johnson",
-  },
-];
+interface ProfileMetric {
+  label: string;
+  value: string;
+  helper: string;
+  icon: ComponentType<{ className?: string }>;
+}
 
-const SKILL_PATH = [
-  { name: "Data Structures", progress: 85 },
-  { name: "Machine Learning", progress: 60 },
-  { name: "Database Design", progress: 40 },
-];
+interface Achievement {
+  title: string;
+  description: string;
+  earned: boolean;
+  icon: ComponentType<{ className?: string }>;
+}
 
-const DIGITAL_BADGES = [
-  {
-    issuer: "MIT",
-    title: "Certified Python Programmer",
-    color: "from-rose-50 to-rose-100",
-    accent: "border-rose-500",
-  },
-  {
-    issuer: "Stanford",
-    title: "AI Engineer Certification",
-    color: "from-amber-50 to-amber-100",
-    accent: "border-amber-500",
-  },
-  {
-    issuer: "Meta",
-    title: "Certified Full Stack Developer",
-    color: "from-sky-50 to-sky-100",
-    accent: "border-sky-500",
-  },
-];
-
-function ProgressBar({
-  value,
-  color,
-}: {
-  value: number;
-  color: string;
-}) {
+function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="w-full h-2.5 rounded-full bg-muted overflow-hidden">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <div
-        className={cn("h-full rounded-full bg-gradient-to-r", color)}
-        style={{ width: `${value}%` }}
+        className="h-full rounded-full bg-linear-to-r from-violet-500 to-sky-500"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
       />
     </div>
   );
 }
 
+function numberText(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "N/A";
+  return String(value);
+}
+
+function percentText(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "N/A";
+  return `${Math.round(value)}%`;
+}
+
+function buildMetrics({
+  role,
+  studentDashboard,
+  teacherDashboard,
+  adminDashboard,
+  noteCount,
+  quizCount,
+}: {
+  role: Role;
+  studentDashboard: StudentDashboard | null;
+  teacherDashboard: TeacherDashboard | null;
+  adminDashboard: AdminDashboard | null;
+  noteCount: number;
+  quizCount: number;
+}): ProfileMetric[] {
+  if (role === "teacher") {
+    return [
+      {
+        label: "Active Classes",
+        value: numberText(teacherDashboard?.activeClasses),
+        helper: "Classes you manage",
+        icon: Users,
+      },
+      {
+        label: "Published Quizzes",
+        value: numberText(teacherDashboard?.quizzes),
+        helper: "Created for students",
+        icon: ClipboardList,
+      },
+      {
+        label: "Student Questions",
+        value: numberText(teacherDashboard?.studentQuestions),
+        helper: "Recent class discussions",
+        icon: BookOpen,
+      },
+      {
+        label: "Notebook Notes",
+        value: numberText(noteCount),
+        helper: "Saved teaching notes",
+        icon: FileText,
+      },
+    ];
+  }
+
+  if (role === "admin") {
+    return [
+      {
+        label: "Students",
+        value: numberText(adminDashboard?.totalStudents),
+        helper: "Registered learners",
+        icon: GraduationCap,
+      },
+      {
+        label: "Teachers",
+        value: numberText(adminDashboard?.totalInstructors),
+        helper: "Active instructors",
+        icon: Users,
+      },
+      {
+        label: "Classes",
+        value: numberText(adminDashboard?.totalClasses),
+        helper: "Across the LMS",
+        icon: BookOpen,
+      },
+      {
+        label: "Departments",
+        value: numberText(adminDashboard?.totalDepartments),
+        helper: "Academic groups",
+        icon: ShieldCheck,
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Enrolled Classes",
+      value: numberText(studentDashboard?.coursesEnrolled),
+      helper: "Current learning load",
+      icon: BookOpen,
+    },
+    {
+      label: "Completed Classes",
+      value: numberText(studentDashboard?.coursesCompleted),
+      helper: "Finished learning",
+      icon: CheckCircle2,
+    },
+    {
+      label: "Quizzes Completed",
+      value: numberText(studentDashboard?.quizzesCompleted),
+      helper: `${quizCount} assigned quiz${quizCount === 1 ? "" : "zes"}`,
+      icon: ClipboardList,
+    },
+    {
+      label: "Attendance",
+      value: percentText(studentDashboard?.attendanceRate),
+      helper: "Overall attendance rate",
+      icon: Trophy,
+    },
+  ];
+}
+
+function buildAchievements({
+  role,
+  studentDashboard,
+  teacherDashboard,
+  adminDashboard,
+  noteCount,
+  favoriteNoteCount,
+  submittedQuizCount,
+}: {
+  role: Role;
+  studentDashboard: StudentDashboard | null;
+  teacherDashboard: TeacherDashboard | null;
+  adminDashboard: AdminDashboard | null;
+  noteCount: number;
+  favoriteNoteCount: number;
+  submittedQuizCount: number;
+}): Achievement[] {
+  if (role === "teacher") {
+    return [
+      {
+        title: "Class Builder",
+        description: `${teacherDashboard?.activeClasses ?? 0} active classes`,
+        earned: (teacherDashboard?.activeClasses ?? 0) > 0,
+        icon: BookOpen,
+      },
+      {
+        title: "Quiz Creator",
+        description: `${teacherDashboard?.quizzes ?? 0} published quizzes`,
+        earned: (teacherDashboard?.quizzes ?? 0) > 0,
+        icon: ClipboardList,
+      },
+      {
+        title: "Student Mentor",
+        description: `${teacherDashboard?.studentQuestions ?? 0} student questions`,
+        earned: (teacherDashboard?.studentQuestions ?? 0) > 0,
+        icon: Users,
+      },
+    ];
+  }
+
+  if (role === "admin") {
+    return [
+      {
+        title: "LMS Operator",
+        description: `${adminDashboard?.totalClasses ?? 0} classes managed`,
+        earned: (adminDashboard?.totalClasses ?? 0) > 0,
+        icon: ShieldCheck,
+      },
+      {
+        title: "People Manager",
+        description: `${adminDashboard?.totalStudents ?? 0} students registered`,
+        earned: (adminDashboard?.totalStudents ?? 0) > 0,
+        icon: Users,
+      },
+      {
+        title: "Academic Structure",
+        description: `${adminDashboard?.totalDepartments ?? 0} departments configured`,
+        earned: (adminDashboard?.totalDepartments ?? 0) > 0,
+        icon: GraduationCap,
+      },
+    ];
+  }
+
+  return [
+    {
+      title: "Active Learner",
+      description: `${studentDashboard?.coursesEnrolled ?? 0} enrolled classes`,
+      earned: (studentDashboard?.coursesEnrolled ?? 0) > 0,
+      icon: BookOpen,
+    },
+    {
+      title: "Quiz Finisher",
+      description: `${submittedQuizCount} submitted quizzes`,
+      earned: submittedQuizCount > 0,
+      icon: ClipboardList,
+    },
+    {
+      title: "Notebook Builder",
+      description: `${noteCount} saved notes`,
+      earned: noteCount > 0,
+      icon: FileText,
+    },
+    {
+      title: "Favorite Collector",
+      description: `${favoriteNoteCount} favorite notes`,
+      earned: favoriteNoteCount > 0,
+      icon: Star,
+    },
+  ];
+}
+
 export function ProfileView() {
   const { data: session } = useSession();
   const { data: currentUser } = useCurrentUser();
+  const role = (currentUser?.role?.toLowerCase() as Role | undefined) ?? "student";
   const displayName = currentUser?.userName?.trim() || session?.user?.name || "";
   const email = currentUser?.email || session?.user?.email || "";
   const roleLabel = getRoleLabel(currentUser?.role ?? session?.user?.role);
-
   const initials = getUserInitials(displayName || email || "?");
+  const studentId = currentUser?.userId;
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["profile-summary", role, studentId],
+    enabled: Boolean(currentUser),
+    queryFn: () => profileSummaryService.getProfileSummary(),
+  });
+
+  const metrics = useMemo(
+    () =>
+      buildMetrics({
+        role,
+        studentDashboard: data?.studentDashboard ?? null,
+        teacherDashboard: data?.teacherDashboard ?? null,
+        adminDashboard: data?.adminDashboard ?? null,
+        noteCount: data?.notes.total ?? 0,
+        quizCount: data?.quizzes.length ?? 0,
+      }),
+    [data, role]
+  );
+
+  const achievements = useMemo(
+    () =>
+      buildAchievements({
+        role,
+        studentDashboard: data?.studentDashboard ?? null,
+        teacherDashboard: data?.teacherDashboard ?? null,
+        adminDashboard: data?.adminDashboard ?? null,
+        noteCount: data?.notes.total ?? 0,
+        favoriteNoteCount: data?.notes.items.filter((note) => note.favorite).length ?? 0,
+        submittedQuizCount:
+          data?.quizzes.filter((quiz) => quiz.submissionStatus === "SUBMITTED").length ?? 0,
+      }),
+    [data, role]
+  );
+
+  const averageGrade =
+    data?.gradeRows.length
+      ? Math.round(
+          data.gradeRows.reduce((sum, row) => sum + (row.numericGrade ?? 0), 0) /
+            data.gradeRows.length
+        )
+      : null;
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <header className="px-6 py-5 border-b border-border flex-shrink-0">
-        <h1 className="text-xl font-bold text-foreground">Profile View</h1>
+      <header className="px-6 py-5 border-b border-border shrink-0">
+        <h1 className="text-xl font-bold text-foreground">Profile</h1>
       </header>
 
       <ScrollArea className="flex-1">
-        <div className="p-6 pt-5 grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-5">
-          {/* Left side: profile + achievements + repos + skills */}
-          <div className="space-y-4">
-            {/* Profile header card */}
-            <Card className="overflow-hidden border-border/80 shadow-sm">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600 flex items-center justify-center text-2xl font-semibold text-white shadow-md">
-                      {initials}
-                    </div>
-                    <div className="space-y-1">
-                      <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                        {displayName || "—"}
-                      </h2>
-                      {email ? (
-                        <p className="text-sm text-muted-foreground">{email}</p>
-                      ) : null}
-                      <Badge
-                        variant="secondary"
-                        className="gap-1.5 text-xs font-medium px-2.5 py-1 bg-amber-500/10 text-amber-600 border-amber-500/40"
-                      >
-                        <Medal className="w-3.5 h-3.5 text-amber-500" />
-                        {roleLabel}
-                      </Badge>
-                    </div>
+        <div className="p-6 pt-5 space-y-5">
+          <Card className="overflow-hidden border-border/80 shadow-sm">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-linear-to-br from-sky-500 via-indigo-500 to-violet-600 flex items-center justify-center text-2xl font-semibold text-white shadow-md">
+                    {initials}
                   </div>
-                  <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs">
-                    <Badge className="gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/40">
-                      <Trophy className="w-3.5 h-3.5" />
-                      +110 / +50 PTS
-                    </Badge>
-                    <Badge className="gap-1 bg-sky-500/10 text-sky-600 border-sky-500/40">
-                      <Trophy className="w-3.5 h-3.5" />
-                      +52 / +150 PTS
+                  <div className="space-y-1">
+                    <h2 className="text-lg sm:text-xl font-bold text-foreground">
+                      {displayName || "Unknown User"}
+                    </h2>
+                    {email ? <p className="text-sm text-muted-foreground">{email}</p> : null}
+                    <Badge
+                      variant="secondary"
+                      className="gap-1.5 text-xs font-medium px-2.5 py-1 bg-amber-500/10 text-amber-600 border-amber-500/40"
+                    >
+                      <Medal className="w-3.5 h-3.5 text-amber-500" />
+                      {roleLabel}
                     </Badge>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Achievement badges */}
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">
-                  My Achievement badges
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {ACHIEVEMENT_BADGES.map((name) => (
-                  <div
-                    key={name}
-                    className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-2.5 py-2"
-                  >
-                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-white">
-                      <Trophy className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-xs font-medium text-foreground leading-snug">
-                      {name}
-                    </span>
+                {averageGrade != null ? (
+                  <div className="rounded-xl border border-border/70 px-4 py-3 min-w-36">
+                    <p className="text-xs text-muted-foreground">Average Grade</p>
+                    <p className="text-2xl font-black text-foreground">{averageGrade}%</p>
+                    <ProgressBar value={averageGrade} />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Course git repositories */}
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">
-                  Course git repository (completed)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-2.5 text-sm">
-                {COMPLETED_REPOS.map((repo) => (
-                  <div
-                    key={repo.slug}
-                    className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-xs sm:text-[13px] font-medium text-foreground">
-                        {repo.name}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="h-7 px-2 text-[11px] gap-1"
-                    >
-                      <Github className="w-3.5 h-3.5" />
-                      <span>{repo.slug}</span>
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          {isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : isError ? (
+            <p className="text-sm text-destructive">Could not load profile activity.</p>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {metrics.map((metric) => (
+                    <Card key={metric.label} className="border-border/80 shadow-sm">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center">
+                          <metric.icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">{metric.label}</p>
+                          <p className="text-xl font-black text-foreground">{metric.value}</p>
+                          <p className="text-[11px] text-muted-foreground">{metric.helper}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
 
-            {/* Skills path */}
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">
-                  My Skills Path (In Progress)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-3">
-                {SKILL_PATH.map((skill) => (
-                  <div
-                    key={skill.name}
-                    className="space-y-1.5 rounded-xl bg-muted/40 px-3 py-2.5"
-                  >
-                    <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                      <span>{skill.name}</span>
-                      <span>{skill.progress}%</span>
-                    </div>
-                    <ProgressBar
-                      value={skill.progress}
-                      color={
-                        skill.name === "Data Structures"
-                          ? "from-sky-500 to-cyan-400"
-                          : skill.name === "Machine Learning"
-                          ? "from-emerald-500 to-lime-400"
-                          : "from-indigo-500 to-violet-400"
-                      }
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+                <Card className="border-border/80 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold">Achievements</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {achievements.map((achievement) => (
+                      <div
+                        key={achievement.title}
+                        className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-3 py-3"
+                      >
+                        <div className="h-9 w-9 rounded-full bg-linear-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-white">
+                          <achievement.icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground">{achievement.title}</p>
+                          <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                        </div>
+                        {achievement.earned ? (
+                          <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-emerald-500" />
+                        ) : null}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
 
-          {/* Right side: Digital badges + placeholders */}
-          <div className="space-y-4">
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">
-                  My Digital Skill Badges
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-3">
-                {DIGITAL_BADGES.map((badge) => (
-                  <div
-                    key={badge.title}
-                    className={cn(
-                      "relative rounded-xl border bg-gradient-to-br p-3 flex flex-col gap-1.5 shadow-sm",
-                      badge.accent,
-                      badge.color,
+                {role === "student" ? (
+                  <Card className="border-border/80 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold">Class Grades</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-3">
+                      {data?.gradeRows.length ? (
+                        data.gradeRows.map((grade) => (
+                          <div key={grade.classId} className="rounded-xl bg-muted/40 px-3 py-3">
+                            <div className="flex items-center justify-between text-sm font-semibold">
+                              <span>{grade.course}</span>
+                              <span>{grade.grade}</span>
+                            </div>
+                            <div className="mt-2">
+                              <ProgressBar value={grade.numericGrade ?? 0} />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No grades posted yet.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+
+              <div className="space-y-5">
+                <Card className="border-border/80 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold">Recent Notebook Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    {data?.notes.items.length ? (
+                      data.notes.items.slice(0, 5).map((note) => (
+                        <div key={note.id} className="rounded-xl border border-border/60 px-3 py-2">
+                          <p className="text-sm font-semibold text-foreground line-clamp-1">
+                            {note.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {note.preview || note.sourceLabel || "No preview"}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No notebook notes yet.</p>
                     )}
-                  >
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      {badge.issuer}
-                    </span>
-                    <span className="text-xs font-semibold text-foreground leading-snug">
-                      {badge.title}
-                    </span>
-                    <span className="mt-0.5 text-[10px] text-muted-foreground">
-                      Official digital credential issued for successful
-                      completion of the program.
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold">
-                  Micro-Credentials
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">
-                Coming soon: short-form, stackable credentials that recognise
-                your focused skills.
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/80 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold">
-                  Other Certifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">
-                Track and manage additional certificates from external
-                providers here.
-              </CardContent>
-            </Card>
-          </div>
+                {role === "student" ? (
+                  <Card className="border-border/80 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold">Learning Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Enrolled classes</span>
+                        <span className="font-bold">{data?.classes.length ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Assigned quizzes</span>
+                        <span className="font-bold">{data?.quizzes.length ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Submitted quizzes</span>
+                        <span className="font-bold">
+                          {data?.quizzes.filter((q) => q.submissionStatus === "SUBMITTED").length ??
+                            0}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
   );
 }
-

@@ -50,4 +50,29 @@ export const authService = {
     const response = await apiClient.get("/auth/me");
     return response.data;
   },
+
+  async updateProfile(payload: { userName: string }) {
+    const response = await apiClient.patch("/auth/me", payload);
+    return response.data;
+  },
+
+  async changePassword(payload: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    await apiClient.post("/auth/me/password", payload);
+  },
+
+  async requestPasswordReset(email: string) {
+    await apiClient.post("/auth/password-reset/request", { email });
+  },
+
+  async confirmPasswordReset(payload: {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    await apiClient.post("/auth/password-reset/confirm", payload);
+  },
 };
