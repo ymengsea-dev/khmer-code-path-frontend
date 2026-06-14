@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "17rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "4rem";
 
@@ -54,12 +54,11 @@ const Sidebar = React.forwardRef<
       data-sidebar="root"
       data-state={open ? "expanded" : "collapsed"}
       className={cn(
-        "flex h-full flex-col text-sidebar-foreground backdrop-blur-2xl backdrop-saturate-200 overflow-hidden transition-all duration-300 ease-in-out",
-        open ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-icon)]",
-        "bg-slate-100/95 dark:bg-sidebar/90 border-border shadow-[0_0_0_1px_rgba(0,0,0,0.06)_inset] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1)_inset]",
-        "shadow-lg shadow-black/5 dark:shadow-black/20",
-        side === "left" && "border-r",
-        side === "right" && "border-l",
+        "flex h-[calc(100%-1.5rem)] flex-col text-sidebar-foreground overflow-hidden transition-all duration-300 ease-in-out my-3 ml-3 rounded-[28px]",
+        open ? "w-(--sidebar-width)" : "w-(--sidebar-width-icon)",
+        "bg-white/56 border border-white/70 shadow-[inset_0_1px_0_rgb(255_255_255/0.75),inset_0_0_0_1px_rgb(255_255_255/0.18)]",
+        "shadow-2xl shadow-zinc-950/8 dark:bg-zinc-200/10 dark:border-white/12 dark:shadow-black/22",
+        side === "right" && "mr-3 ml-0",
         className
       )}
       {...props}
@@ -177,11 +176,11 @@ const SidebarMenuButton = React.forwardRef<
       size="sm"
       title={tooltip}
       className={cn(
-        "w-full justify-start gap-3 font-normal overflow-hidden transition-all duration-200",
+        "w-full justify-start gap-3.5 rounded-xl font-medium overflow-hidden transition-all duration-150",
         !open && "justify-center px-0",
         isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+          ? "bg-zinc-200/70 text-zinc-950 shadow-none hover:bg-zinc-200/80 hover:text-zinc-950 dark:bg-white/14 dark:text-white"
+          : "text-zinc-800 hover:bg-zinc-200/45 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-white/8 dark:hover:text-white",
         className
       )}
       {...props}

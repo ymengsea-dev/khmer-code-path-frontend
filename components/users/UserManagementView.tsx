@@ -334,17 +334,17 @@ export function UserManagementView() {
         )}
 
         {isAdmin && (
-          <div className="flex flex-wrap gap-1 border-b border-slate-200/60 dark:border-zinc-800 pb-1">
+          <div className="flex flex-wrap gap-1.5 border-b border-border/40 pb-3">
             {ADMIN_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-t-lg transition-colors",
+                  "px-4 py-2.5 text-sm font-medium rounded-2xl transition-colors",
                   activeTab === tab.id
-                    ? "text-foreground border-b-2 border-violet-500 -mb-px"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
+                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground"
                 )}
               >
                 {tab.label}

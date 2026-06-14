@@ -97,7 +97,7 @@ function SummaryContent({ text }: { text: string }) {
     .filter(Boolean);
 
   return (
-    <div className="rounded-xl border border-violet-500/15 bg-white/70 dark:bg-zinc-950/40 p-4 space-y-3">
+    <div className="rounded-xl border border-white/30 bg-white/45 dark:bg-white/6 p-4 space-y-3">
       {blocks.map((line, index) => {
         const bullet = line.match(/^[-*•]\s+(.+)$/);
         const numbered = line.match(/^\d+[.)]\s+(.+)$/);
@@ -116,7 +116,7 @@ function SummaryContent({ text }: { text: string }) {
         if (bullet || numbered) {
           return (
             <div key={`${line}-${index}`} className="flex gap-2 text-sm leading-relaxed">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-500" />
               <p className="text-foreground/90">{cleanSummaryLine(bullet?.[1] ?? numbered?.[1] ?? line)}</p>
             </div>
           );
@@ -541,22 +541,22 @@ export function LessonsView({
       />
 
       {error ? (
-        <p className="px-6 py-2 text-sm text-red-600 dark:text-red-400 shrink-0">{error}</p>
+        <p className="px-6 py-2 text-sm text-zinc-600 dark:text-zinc-300 shrink-0">{error}</p>
       ) : null}
 
       {!loading && !error && visibleTabs.length > 0 ? (
         <>
-          <div className="shrink-0 px-4 sm:px-6 flex gap-1 border-b border-black/6 dark:border-white/8 overflow-x-auto">
+          <div className="shrink-0 px-4 sm:px-6 py-3 flex gap-1.5 border-b border-border/40 overflow-x-auto">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={tab.id === "comments" ? handleCommentsTabOpen : () => setActiveTab(tab.id)}
                 className={cn(
-                  "relative px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors",
+                  "relative rounded-2xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
                   activeTab === tab.id
-                    ? "border-violet-500 text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
+                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground"
                 )}
               >
                 {lessonTabLabel(
@@ -568,7 +568,7 @@ export function LessonsView({
                       : undefined
                 )}
                 {tab.id === "comments" && commentBadge > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-100">
                     {commentBadge > 9 ? "9+" : commentBadge}
                   </span>
                 )}
@@ -680,11 +680,11 @@ export function LessonsView({
             {activeTab === "ai" && lesson && (
               <div className="space-y-10">
                 {!isTeacher ? (
-                  <section className="rounded-xl border border-violet-500/20 bg-linear-to-br from-violet-500/5 to-transparent p-6">
+                  <section className="rounded-3xl border border-white/25 bg-white/30 p-6 dark:bg-white/6">
                     <div className="flex flex-wrap items-center gap-3 mb-4">
-                      <Sparkles className="w-5 h-5 text-violet-500" />
+                      <Sparkles className="w-5 h-5 text-zinc-500" />
                       <h2 className="text-sm font-extrabold text-foreground">Lesson summary</h2>
-                      <Badge className="text-[10px] font-bold bg-violet-600 text-white border-0">
+                      <Badge className="text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700">
                         {lesson.aiReady ? "Ready" : "Needs files"}
                       </Badge>
                     </div>
@@ -728,7 +728,7 @@ export function LessonsView({
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4 rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4 rounded-2xl border border-white/25 bg-white/28 px-4 py-3 dark:bg-white/6">
                         <p className="text-sm text-muted-foreground">
                           Generate a summary from the lesson notes you are currently reading.
                         </p>
@@ -754,7 +754,7 @@ export function LessonsView({
                     )}
 
                     {summaryError ? (
-                      <p className="text-xs text-red-600 dark:text-red-400 mb-3">{summaryError}</p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mb-3">{summaryError}</p>
                     ) : null}
 
                     {displaySummary ? (
@@ -787,13 +787,13 @@ export function LessonsView({
                 ) : null}
 
                 {isTeacher ? (
-                  <section className="rounded-xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
+                  <section className="rounded-3xl border border-white/25 bg-white/30 p-6 space-y-4 dark:bg-white/6">
                     <div className="flex flex-wrap items-center gap-3">
-                      <Sparkles className="w-5 h-5 text-amber-500" />
+                      <Sparkles className="w-5 h-5 text-zinc-500" />
                       <h2 className="text-sm font-extrabold text-foreground">
                         Improve lesson content
                       </h2>
-                      <Badge className="text-[10px] font-bold bg-amber-600 text-white border-0">
+                      <Badge className="text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700">
                         Teacher AI
                       </Badge>
                     </div>

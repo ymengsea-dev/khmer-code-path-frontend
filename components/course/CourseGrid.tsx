@@ -427,7 +427,7 @@ export function CourseGrid({
                         >
                           {klass.statusLabel}
                         </Badge>
-                        <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                        <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
                           {klass.code}
                         </span>
                       </div>
@@ -451,7 +451,6 @@ export function CourseGrid({
                       <div className="flex items-center gap-2 mt-1">
                         <Button
                           size="sm"
-                          variant="outline"
                           className="flex-1"
                           onClick={() =>
                             onEnterClass?.({

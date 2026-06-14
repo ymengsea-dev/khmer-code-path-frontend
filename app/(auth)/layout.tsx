@@ -88,8 +88,6 @@ export default function AuthLayout({
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute right-0 top-1/4 h-64 w-64 translate-x-1/2 rounded-full bg-blue-500/10 blur-[100px]" />
-        <div className="absolute bottom-0 left-0 h-96 w-96 -translate-x-1/2 translate-y-1/2 rounded-full bg-violet-600/10 blur-[120px]" />
       </div>
 
       {/* Right side - Auth Forms */}

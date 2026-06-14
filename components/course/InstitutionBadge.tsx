@@ -10,7 +10,7 @@ export function InstitutionBadge({ name, color }: InstitutionBadgeProps) {
   return (
     <Badge
       variant="secondary"
-      className="gap-1.5 bg-primary-foreground/10 backdrop-blur-sm text-[10px] font-bold border-0"
+      className="gap-1.5 bg-primary-foreground/10 text-[10px] font-bold border-0"
     >
       {isMeta ? (
         <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#0082FB] shrink-0">

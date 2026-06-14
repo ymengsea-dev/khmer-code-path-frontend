@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to login
       </Link>
-      <Card className="border-none bg-card/60 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
+      <Card className="border-none bg-card/60 shadow-2xl shadow-indigo-500/10">
         <CardHeader>
           <CardTitle>Reset your password</CardTitle>
           <CardDescription>Enter your account email to receive a reset link.</CardDescription>

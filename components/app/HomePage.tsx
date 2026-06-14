@@ -137,14 +137,17 @@ export function HomePage() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTyping =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable;
-      if (event.key === "/" && !isTyping) {
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement | null;
+        const isTypingOutsideSearch =
+          !commandOpen &&
+          (target?.tagName === "INPUT" ||
+            target?.tagName === "TEXTAREA" ||
+            target?.isContentEditable);
+        if (isTypingOutsideSearch) return;
+
         event.preventDefault();
-        setCommandOpen(true);
+        setCommandOpen((open) => !open);
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -153,7 +156,7 @@ export function HomePage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [commandOpen]);
 
   const handleNavChange = useCallback(
     (id: string, courseId?: string) => {
@@ -212,7 +215,7 @@ export function HomePage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
+      <div className="flex h-screen w-full bg-transparent text-foreground overflow-hidden font-sans">
         <Sidebar
           activeNav={activeNav}
           activeCourseId={activeCourseId}
@@ -224,7 +227,7 @@ export function HomePage() {
 
         <SidebarInset>
           {/* Shared top header — persists across all views */}
-          <header className="shrink-0 px-6 py-4 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-md flex items-center justify-between gap-4">
+          <header className="shrink-0 m-3 mb-0 rounded-2xl px-6 py-4 liquid-glass flex items-center justify-between gap-4">
             <h1 className="text-xl font-extrabold tracking-tight text-foreground">
               {VIEW_LABELS[activeNav] ?? "Dashboard"}
             </h1>
@@ -234,7 +237,7 @@ export function HomePage() {
               {/* Profile dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="cursor-pointer outline-none rounded-full flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-[11px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 hover:ring-violet-400 transition-all shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-white to-zinc-200 flex items-center justify-center text-[11px] font-bold text-zinc-800 shadow-sm ring-1 ring-zinc-200/70 dark:from-zinc-100 dark:to-zinc-300 dark:ring-white/15 transition-all shrink-0">
                     {initials}
                   </div>
                   {displayName && (
@@ -271,7 +274,7 @@ export function HomePage() {
           </header>
 
           {/* View area fills remaining height */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col p-3">
             {activeNav === "code" && <EmbeddedIDE />}
             {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}
             {activeNav === "tasks" && <MyTasksView />}

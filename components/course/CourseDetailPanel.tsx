@@ -22,7 +22,7 @@ interface CourseDetailPanelProps {
 
 function InstitutionHeader({ course }: { course: Course }) {
   return (
-    <Card className="mb-4 bg-white/50 dark:bg-card/50 backdrop-blur-sm border-0">
+    <Card className="mb-4 bg-white/50 dark:bg-card/50 border-0">
       <CardContent className="flex items-center gap-2 p-3">
         <div
           className="w-8 h-8 rounded flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0"
@@ -40,7 +40,7 @@ function InstitutionHeader({ course }: { course: Course }) {
 
 function PrerequisiteNotice({ prerequisite }: { prerequisite: string }) {
   return (
-    <Card className="mb-4 border-0 bg-amber-500/15 dark:bg-amber-500/10 backdrop-blur-sm">
+    <Card className="mb-4 border-0 bg-amber-500/15 dark:bg-amber-500/10">
       <CardContent className="flex items-start gap-2 p-3">
         <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <p className="text-xs text-foreground">
@@ -55,7 +55,7 @@ function PrerequisiteNotice({ prerequisite }: { prerequisite: string }) {
 function AchievementSection({ course }: { course: Course }) {
   return (
     <div className="grid grid-cols-2 gap-4 mb-6">
-      <Card className="bg-white/50 dark:bg-card/50 backdrop-blur-sm border-0">
+      <Card className="bg-white/50 dark:bg-card/50 border-0">
         <CardHeader className="p-3 pb-0">
           <CardDescription className="text-xs font-bold uppercase tracking-wider">
             Achievement Gained
@@ -70,7 +70,7 @@ function AchievementSection({ course }: { course: Course }) {
           </div>
         </CardContent>
       </Card>
-      <Card className="bg-white/50 dark:bg-card/50 backdrop-blur-sm border-0">
+      <Card className="bg-white/50 dark:bg-card/50 border-0">
         <CardHeader className="p-3 pb-0">
           <CardDescription className="text-xs font-bold uppercase tracking-wider">
             Certificate Preview
@@ -137,7 +137,7 @@ export function CourseDetailPanel({
   const displayCourse = liveCourse ?? course;
 
   return (
-    <div className="flex flex-col h-full bg-white/75 dark:bg-card/80 backdrop-blur-2xl backdrop-saturate-200 text-card-foreground rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-full bg-white/75 dark:bg-card/80 text-card-foreground rounded-2xl overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-3 border-b border-transparent">
         <div className="max-w-[80%]">
           <CardTitle className="text-lg leading-snug">{displayCourse.title}</CardTitle>

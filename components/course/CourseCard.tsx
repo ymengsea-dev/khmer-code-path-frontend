@@ -57,7 +57,7 @@ function CardThumbnail({ course }: { course: Course }) {
       </div>
 
       {course.locked && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
           <Lock className="w-6 h-6 text-white/80" />
         </div>
       )}

@@ -507,7 +507,7 @@ export function AiChatView() {
       <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row">
 
         {/* Sidebar */}
-        <aside className="w-full lg:w-[280px] xl:w-[300px] shrink-0 flex flex-col min-h-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border-r border-black/6 dark:border-white/6">
+        <aside className="w-full lg:w-[280px] xl:w-[300px] shrink-0 flex flex-col min-h-0 bg-white/80 dark:bg-zinc-900/80 border-r border-black/6 dark:border-white/6">
           <div className="shrink-0 px-4 pt-5 pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -568,7 +568,7 @@ export function AiChatView() {
         <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
 
           {/* Top bar */}
-          <div className="shrink-0 h-[52px] px-5 flex items-center justify-center border-b border-black/6 dark:border-white/6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
+          <div className="shrink-0 h-[52px] px-5 flex items-center justify-center border-b border-black/6 dark:border-white/6 bg-white/80 dark:bg-zinc-900/80">
             <p className="text-[14px] font-semibold text-foreground truncate max-w-[60%] text-center tracking-tight">
               {activeConversation?.title ?? "New Chat"}
             </p>
@@ -585,7 +585,6 @@ export function AiChatView() {
                 {messages.length === 0 && !isLoading ? (
                   <div className="flex flex-col items-center justify-center text-center mt-24 mb-10 select-none">
                     <div className="relative mb-5">
-                      <div className="absolute inset-0 rounded-full bg-linear-to-br from-indigo-400 to-violet-500 blur-xl opacity-30 scale-150" />
                       <div className="relative h-14 w-14 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                         <Sparkles className="h-6 w-6 text-white" strokeWidth={2} />
                       </div>

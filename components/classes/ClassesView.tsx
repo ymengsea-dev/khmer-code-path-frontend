@@ -315,7 +315,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
             {isStudent ? "My Classes" : isTeacher ? "My Classes" : "All Classes"}
@@ -418,7 +418,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                     >
                       {statusLabel}
                     </Badge>
-                    <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                    <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
                       {cls.code}
                     </span>
                   </div>
@@ -453,7 +453,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                   <div className="flex items-center gap-2 mt-1">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="default"
                       className="flex-1 text-xs"
                       onClick={() => setPreviewClass(displayClass)}
                     >

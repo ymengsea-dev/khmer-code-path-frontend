@@ -44,7 +44,7 @@ function ResetPasswordContent() {
         <ArrowLeft className="h-4 w-4" />
         Back to login
       </Link>
-      <Card className="border-none bg-card/60 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
+      <Card className="border-none bg-card/60 shadow-2xl shadow-indigo-500/10">
         <CardHeader>
           <CardTitle>Choose a new password</CardTitle>
           <CardDescription>Your reset link is valid for one hour.</CardDescription>

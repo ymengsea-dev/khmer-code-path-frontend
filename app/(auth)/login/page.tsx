@@ -79,7 +79,7 @@ function LoginContent() {
         </p>
       </div>
 
-      <Card className="border-none shadow-2xl shadow-indigo-500/10 backdrop-blur-xl bg-card/60">
+      <Card className="border-none shadow-2xl shadow-indigo-500/10 bg-card/60">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">Sign in</CardTitle>
           <CardDescription>
@@ -161,7 +161,7 @@ function LoginContent() {
               <span className="w-full border-t border-border/50" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-transparent px-2 text-muted-foreground backdrop-blur-sm">
+              <span className="bg-transparent px-2 text-muted-foreground">
                 Or continue with
               </span>
             </div>

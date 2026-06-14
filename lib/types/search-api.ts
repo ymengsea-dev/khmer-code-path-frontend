@@ -6,3 +6,10 @@ export interface GlobalSearchResultDto {
   targetView: string;
   targetParams: Record<string, string>;
 }
+
+export interface GlobalSearchScopeDto {
+  id: string;
+  label: string;
+  placeholder: string;
+  icon: string;
+}

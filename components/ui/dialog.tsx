@@ -28,7 +28,7 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/40 backdrop-blur-xs transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0",
+        "fixed inset-0 z-50 bg-slate-950/35 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
       )}
       {...props}
@@ -50,7 +50,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 flex w-full max-w-[90vw] sm:max-w-md translate-x-[-50%] translate-y-[-50%] flex-col gap-4 border bg-background p-6 shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95 rounded-2xl outline-none",
+          "liquid-glass-strong fixed left-[50%] top-[50%] z-50 flex w-full max-w-[90vw] sm:max-w-md translate-x-[-50%] translate-y-[-50%] flex-col gap-4 p-6 transition duration-200 ease-in-out data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95 rounded-2xl outline-none",
           className
         )}
         {...props}
@@ -62,7 +62,7 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4 h-7 w-7 p-0 rounded-lg"
+                className="absolute top-4 right-4 h-7 w-7 p-0 rounded-full"
                 size="icon-sm"
               />
             }
