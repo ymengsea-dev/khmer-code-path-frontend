@@ -7,9 +7,7 @@ import {
   Search,
   Users,
   User,
-  Sparkles,
   Plus,
-  CheckCircle,
   Loader2,
   MoreVertical,
   Pencil,
@@ -33,14 +31,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { attendanceService } from "@/lib/services/attendance-service";
 import { classService } from "@/lib/services/class-service";
-import { gradeService } from "@/lib/services/grade-service";
-import { progressService } from "@/lib/services/progress-service";
-import type { AttendanceRecordDto } from "@/lib/types/attendance-api";
 import type { ClassConfigDto, ClassStatus, ClassSummary } from "@/lib/types/class-api";
 import {
   parseSemesterFilter,
@@ -108,23 +101,8 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
   } | null>(null);
   const [previewClass, setPreviewClass] = useState<DisplayClass | null>(null);
 
-  const [activeModal, setActiveModal] = useState<{
-    type: "attendance" | "grades";
-    classId: number;
-    className: string;
-  } | null>(null);
-  const studentId = currentUser?.userId ?? null;
   const teacherUserId =
     role === "teacher" && currentUser?.userId ? currentUser.userId : null;
-  const [modalLoading, setModalLoading] = useState(false);
-  const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
-  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecordDto[]>(
-    []
-  );
-  const [classGrade, setClassGrade] = useState<{
-    numeric: number;
-    letter: string;
-  } | null>(null);
 
   const isTeacher = role === "teacher";
   const isAdmin = role === "admin";
@@ -222,73 +200,6 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
     return () => window.removeEventListener(CLASSES_UPDATED_EVENT, onClassesUpdated);
   }, [loadClasses]);
 
-  useEffect(() => {
-    if (!activeModal || !studentId) {
-      setAttendanceRate(null);
-      setRecentAttendance([]);
-      setClassGrade(null);
-      return;
-    }
-    let cancelled = false;
-    const modal = activeModal;
-    const sid = studentId;
-    async function loadModalData() {
-      setModalLoading(true);
-      try {
-        if (modal.type === "attendance") {
-          const [stats, records] = await Promise.all([
-            attendanceService.getStatistics({
-              classId: modal.classId,
-              studentId: sid,
-            }),
-            attendanceService.getStudentAttendance(sid, modal.classId),
-          ]);
-          if (!cancelled) {
-            setAttendanceRate(stats.attendanceRate);
-            setRecentAttendance(records.slice(0, 5));
-          }
-        } else {
-          try {
-            const finalGrade = await gradeService.calculateFinalGrade(
-              modal.classId,
-              sid
-            );
-            if (!cancelled) {
-              setClassGrade({
-                numeric: Number(finalGrade.numericGrade),
-                letter: finalGrade.letterGrade,
-              });
-            }
-          } catch {
-            const progress = await progressService.getClassProgress(
-              sid,
-              modal.classId
-            );
-            if (!cancelled && progress.numericGrade != null && progress.letterGrade) {
-              setClassGrade({
-                numeric: Number(progress.numericGrade),
-                letter: progress.letterGrade,
-              });
-            } else if (!cancelled) {
-              setClassGrade(null);
-            }
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setAttendanceRate(null);
-          setRecentAttendance([]);
-          setClassGrade(null);
-        }
-      } finally {
-        if (!cancelled) setModalLoading(false);
-      }
-    }
-    void loadModalData();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeModal, studentId]);
 
   const handleDeleteClass = async (cls: ClassSummary) => {
     const ok = await confirm(
@@ -315,60 +226,57 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            {isStudent ? "My Classes" : isTeacher ? "My Classes" : "All Classes"}
-            <Badge className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border-0 text-[10px] font-bold">
-              {headerBadge}
-            </Badge>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isStudent
-              ? "Classes you join after accepting a teacher's invitation."
-              : isTeacher
-                ? "Classes you teach — open the roster to invite students."
-                : "Create a class, then open the roster to invite students."}
-          </p>
-        </div>
-
-        {canCreateClass && (
+      {canCreateClass && (
+        <div className="pt-3 shrink-0 flex justify-end">
           <Button
             size="sm"
-            variant="inverse"
             className="gap-1.5 font-bold h-8.5 text-xs"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="w-3.5 h-3.5" />
             Create Class
           </Button>
-        )}
-      </header>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs flex flex-col sm:flex-row gap-4 items-center">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by class name, code, or instructor..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9.5 text-xs bg-slate-50/50 dark:bg-zinc-950/40 border-slate-200 dark:border-zinc-800"
-              />
-            </div>
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              disabled={!classConfig}
-              className="h-9.5 px-3 py-1 bg-slate-50/50 dark:bg-zinc-950/40 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-auto disabled:opacity-50"
-            >
-              {(classConfig?.semesterFilters ?? []).map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
+      <div className="flex-1 overflow-y-auto pt-3 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-3.5 h-4 w-4 text-zinc-400 z-10 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search classes…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 h-12 text-sm rounded-2xl placeholder:text-zinc-400 text-zinc-700 focus:outline-none"
+              style={{
+                background: "var(--glass-bg)",
+                backdropFilter: "var(--glass-blur)",
+                WebkitBackdropFilter: "var(--glass-blur)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              }}
+            />
+          </div>
+          <select
+            value={selectedSemester}
+            onChange={(e) => setSelectedSemester(e.target.value)}
+            disabled={!classConfig}
+            className="h-12 px-4 rounded-2xl text-sm font-semibold text-zinc-700 focus:outline-none w-full sm:w-auto disabled:opacity-50"
+            style={{
+              background: "var(--glass-bg)",
+              backdropFilter: "var(--glass-blur)",
+              WebkitBackdropFilter: "var(--glass-blur)",
+              border: "1px solid var(--glass-border-color)",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+            }}
+          >
+            {(classConfig?.semesterFilters ?? []).map((filter) => (
+              <option key={filter.value} value={filter.value}>
+                {filter.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {configError && (
@@ -502,8 +410,17 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
 
         {!loading && !loadError && classes.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-              <div className="p-4 bg-slate-100 dark:bg-zinc-800/50 rounded-full">
-                <Search className="w-8 h-8 text-muted-foreground" />
+              <div
+                className="p-4 rounded-2xl"
+                style={{
+                  background: "var(--glass-bg-subtle)",
+                  backdropFilter: "blur(16px) saturate(1.5)",
+                  WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+                }}
+              >
+                <Search className="w-8 h-8 text-zinc-400" />
               </div>
               <h3 className="font-extrabold text-sm text-foreground">No Classes Found</h3>
               <p className="text-xs text-muted-foreground max-w-sm">
@@ -554,6 +471,13 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
         statusLabel={previewClass?.statusLabel ?? "Active"}
         canViewRoster={canViewRoster}
         isStudent={isStudent}
+        gradingWeights={classConfig?.gradingWeights ?? {
+          attendance: 10,
+          assignment: 10,
+          quiz: 5,
+          midterm: 25,
+          finalExam: 50,
+        }}
         onEnterClass={() => {
           if (!previewClass) return;
           onEnterClass?.({
@@ -571,115 +495,8 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
           });
           setPreviewClass(null);
         }}
-        onAttendance={
-          isStudent && previewClass
-            ? () => {
-                setActiveModal({
-                  type: "attendance",
-                  classId: previewClass.summary.id,
-                  className: previewClass.summary.name,
-                });
-                setPreviewClass(null);
-              }
-            : undefined
-        }
-        onGrades={
-          isStudent && previewClass
-            ? () => {
-                setActiveModal({
-                  type: "grades",
-                  classId: previewClass.summary.id,
-                  className: previewClass.summary.name,
-                });
-                setPreviewClass(null);
-              }
-            : undefined
-        }
       />
 
-      <Dialog open={activeModal !== null} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl p-6">
-          <DialogHeader className="space-y-1">
-            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
-              <Sparkles className="size-4 text-indigo-500" />
-              {activeModal?.type === "attendance" && "Attendance Registry"}
-              {activeModal?.type === "grades" && "Academic Performance"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Real-time student registry data for {activeModal?.className}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {modalLoading && (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {!modalLoading && activeModal?.type === "attendance" && (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center bg-slate-50 dark:bg-zinc-900 p-3 rounded-lg border border-slate-100 dark:border-zinc-800/80">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Overall Attendance Rate
-                  </span>
-                  <Badge className="bg-emerald-500/10 text-emerald-500 border-0 font-bold text-xs">
-                    {attendanceRate != null ? `${attendanceRate}%` : "—"}
-                  </Badge>
-                </div>
-                {recentAttendance.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-2">
-                    No attendance records for this class yet.
-                  </p>
-                ) : (
-                  recentAttendance.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex justify-between items-center text-xs px-1"
-                    >
-                      <span className="text-muted-foreground font-medium">
-                        {record.sessionDate}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-bold flex items-center gap-1",
-                          record.status === "PRESENT"
-                            ? "text-emerald-500"
-                            : record.status === "LATE"
-                              ? "text-amber-500"
-                              : "text-red-500"
-                        )}
-                      >
-                        {record.status === "PRESENT" && (
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        )}
-                        {record.status === "PRESENT"
-                          ? "Present"
-                          : record.status === "LATE"
-                            ? "Late"
-                            : "Absent"}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-            {!modalLoading && activeModal?.type === "grades" &&
-              (classGrade ? (
-                <div className="flex justify-between items-center bg-slate-50 dark:bg-zinc-900 p-3 rounded-lg">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Current Grade
-                  </span>
-                  <Badge className="bg-indigo-500/10 text-indigo-500 border-0 font-bold text-xs">
-                    {classGrade.letter} ({classGrade.numeric.toFixed(1)}%)
-                  </Badge>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  No grade recorded for this class yet.
-                </p>
-              ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

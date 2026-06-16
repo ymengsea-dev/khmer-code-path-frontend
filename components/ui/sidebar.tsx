@@ -54,11 +54,11 @@ const Sidebar = React.forwardRef<
       data-sidebar="root"
       data-state={open ? "expanded" : "collapsed"}
       style={{
-        background: "rgba(255,255,255,0.62)",
+        background: "var(--glass-bg)",
         backdropFilter: "blur(32px) saturate(1.8)",
         WebkitBackdropFilter: "blur(32px) saturate(1.8)",
-        border: "1px solid rgba(255,255,255,0.55)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.88), 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+        border: "1px solid var(--glass-border-color)",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
       }}
       className={cn(
         "flex h-[calc(100%-1.5rem)] flex-col text-sidebar-foreground overflow-hidden transition-all duration-300 ease-in-out my-3 ml-3 rounded-[28px]",

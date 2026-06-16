@@ -51,7 +51,7 @@ export const authService = {
     return response.data;
   },
 
-  async updateProfile(payload: { userName: string }) {
+  async updateProfile(payload: { userName: string; bio?: string }) {
     const response = await apiClient.patch("/auth/me", payload);
     return response.data;
   },

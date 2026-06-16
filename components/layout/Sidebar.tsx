@@ -4,10 +4,9 @@ import React from "react";
 import {
   LayoutGrid,
   BookOpen,
-  Code2,
   PanelLeft,
   Search,
-  Bot,
+  Sparkles,
   ClipboardList,
   Notebook,
   Plus,
@@ -111,9 +110,9 @@ export function Sidebar({
               onClick={onOpenSearch}
               className="h-10 w-full rounded-2xl px-3 flex items-center justify-between text-sm text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
               style={{
-                background: "rgba(255,255,255,0.55)",
-                border: "1px solid rgba(255,255,255,0.70)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 4px rgba(0,0,0,0.05)",
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
                 backdropFilter: "blur(8px)",
               }}
             >
@@ -122,7 +121,7 @@ export function Sidebar({
                 <span className="font-medium text-sm">Search</span>
               </span>
               <span className="text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0"
-                style={{ background: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.85)" }}>
+                style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border-color)" }}>
                 <span>⌘</span><span>/</span>
               </span>
             </button>
@@ -132,9 +131,9 @@ export function Sidebar({
               onClick={onOpenSearch}
               className="h-10 w-full rounded-2xl flex items-center justify-center text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
               style={{
-                background: "rgba(255,255,255,0.55)",
-                border: "1px solid rgba(255,255,255,0.70)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 4px rgba(0,0,0,0.05)",
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
               }}
             >
               <Search className="w-4 h-4" />
@@ -274,27 +273,6 @@ export function Sidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {/* AI Chat Nav */}
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={activeNav === "ai-chat"}
-                onClick={() => onNavChange("ai-chat")}
-                className={cn(
-                  "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                  activeNav === "ai-chat"
-                    ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
-                    : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
-                )}
-              >
-                <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4" />
-                </span>
-                {open && (
-                  <span className="flex-1 text-left">AI Chat</span>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
             {showLearnerNav && (
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -370,26 +348,23 @@ export function Sidebar({
               </SidebarMenuItem>
             )}
 
-            {/* Code Sandbox */}
+            {/* AI Chat Nav */}
             <SidebarMenuItem>
               <SidebarMenuButton
-                isActive={activeNav === "code"}
-                onClick={() => onNavChange("code")}
+                isActive={activeNav === "ai-chat"}
+                onClick={() => onNavChange("ai-chat")}
                 className={cn(
                   "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                  activeNav === "code"
+                  activeNav === "ai-chat"
                     ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
                     : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
                 )}
               >
                 <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                  <Code2 className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" />
                 </span>
                 {open && (
-                  <>
-                    <span className="flex-1 text-left">Code Sandbox</span>
-                    <Plus className="w-3.5 h-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground shrink-0" />
-                  </>
+                  <span className="flex-1 text-left">AI Chat</span>
                 )}
               </SidebarMenuButton>
             </SidebarMenuItem>

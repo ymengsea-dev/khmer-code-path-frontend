@@ -49,19 +49,20 @@ export function NoteTagPicker({ tag, onChange, disabled }: NoteTagPickerProps) {
     <DropdownMenu open={open} onOpenChange={openChange}>
       <DropdownMenuTrigger
         disabled={disabled}
-        className={cn(
-          "h-8 w-8 shrink-0 rounded-md flex items-center justify-center outline-none",
-          "text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
-          tag && "text-foreground"
-        )}
-        aria-label="Note tag"
+        className="inline-flex items-center justify-center h-7 w-7 rounded-xl outline-none transition-all disabled:opacity-40"
+        style={{
+          background: "var(--glass-bg)",
+          border: "1px solid var(--glass-border-color)",
+          boxShadow: "none",
+        }}
+        aria-label={tag ? `Tag: ${tag.label}` : "Note tag"}
         onClick={(e) => e.stopPropagation()}
       >
         <span className="relative flex items-center justify-center">
-          <Tag className="h-4 w-4" style={tag ? { color: tag.color } : undefined} />
+          <Tag className="h-3.5 w-3.5" style={tag ? { color: tag.color } : undefined} />
           {tag && (
             <span
-              className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white dark:border-zinc-900"
+              className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: tag.color }}
               aria-hidden
             />

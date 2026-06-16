@@ -41,20 +41,14 @@ export function LessonRichContent({
   }
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-slate-200/70 dark:border-zinc-800",
-        "bg-white dark:bg-zinc-900/50 shadow-2xs overflow-clip",
-        className
-      )}
-    >
+    <div className={cn("w-full overflow-clip", className)}>
       <RichTextEditor
         html={toEditorHtml(html)}
         onChange={() => {}}
         readOnly
         variant="apple"
         editorId={`lesson-reader-${editorId}`}
-        className="border-0 rounded-none"
+        className="border-0 rounded-none bg-transparent"
       />
     </div>
   );

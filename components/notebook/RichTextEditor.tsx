@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlignCenter,
   AlignLeft,
@@ -19,12 +20,14 @@ import {
   Strikethrough,
   Underline,
   Undo,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -164,11 +167,60 @@ function unwrapListItemToParagraph(li: HTMLLIElement) {
 
   const list = li.parentElement;
   li.replaceWith(p);
-  if (list && (list.tagName === "UL" || list.tagName === "OL") && list.children.length === 0) {
+  if (
+    list &&
+    (list.tagName === "UL" || list.tagName === "OL") &&
+    list.children.length === 0
+  ) {
     list.remove();
   }
 
   placeCaretInElement(p);
+}
+
+function ToolbarDivider({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "w-px h-5 bg-black/8 dark:bg-white/10 mx-0.5 shrink-0",
+        className,
+      )}
+      aria-hidden
+    />
+  );
+}
+
+function GlassToolbarButton({
+  icon,
+  title,
+  onClick,
+  disabled,
+  className,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={cn(
+        "h-7 w-7 shrink-0 inline-flex items-center justify-center rounded-lg",
+        "text-muted-foreground hover:text-foreground transition-colors",
+        "hover:bg-black/5 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none",
+        className,
+      )}
+    >
+      {icon}
+    </button>
+  );
 }
 
 export interface RichTextEditorProps {
@@ -184,6 +236,10 @@ export interface RichTextEditorProps {
   editorId?: string;
   /** Extra controls at the end of the formatting toolbar (e.g. attach files) */
   toolbarEnd?: React.ReactNode;
+  /** When provided the formatting toolbar is portalled into this element instead of rendered inline */
+  toolbarPortalEl?: HTMLElement | null;
+  /** Row element used to measure available toolbar width (avoids stretch-to-fill whitespace) */
+  toolbarMeasureEl?: HTMLElement | null;
 }
 
 export function RichTextEditor({
@@ -196,6 +252,8 @@ export function RichTextEditor({
   variant = "default",
   editorId = "rich-text-body-editor",
   toolbarEnd,
+  toolbarPortalEl,
+  toolbarMeasureEl,
 }: RichTextEditorProps) {
   const isApple = variant === "apple";
   const editorRef = useRef<HTMLDivElement>(null);
@@ -206,6 +264,35 @@ export function RichTextEditor({
   const [linkUrl, setLinkUrl] = useState("https://");
   const [embedUrl, setEmbedUrl] = useState("https://");
   const savedRangeRef = useRef<Range | null>(null);
+  const inlineToolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarLayout, setToolbarLayout] = useState<"compact" | "standard" | "full">("compact");
+
+  /** ~28px per btn + gaps — measured against actual container width, not viewport */
+  const TOOLBAR_FULL_WIDTH = 560;
+  const TOOLBAR_STANDARD_WIDTH = 300;
+
+  useEffect(() => {
+    const measureEl = toolbarMeasureEl ?? inlineToolbarRef.current;
+    if (!measureEl) return;
+
+    const update = () => {
+      const rowWidth = measureEl.getBoundingClientRect().width;
+      const firstChild = measureEl.firstElementChild as HTMLElement | null;
+      const leftWidth = firstChild?.getBoundingClientRect().width ?? 0;
+      const gap = leftWidth > 0 ? 8 : 0;
+      const available = Math.max(0, rowWidth - leftWidth - gap);
+
+      if (available >= TOOLBAR_FULL_WIDTH) setToolbarLayout("full");
+      else if (available >= TOOLBAR_STANDARD_WIDTH) setToolbarLayout("standard");
+      else setToolbarLayout("compact");
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(measureEl);
+    if (measureEl.firstElementChild) observer.observe(measureEl.firstElementChild);
+    return () => observer.disconnect();
+  }, [toolbarMeasureEl, toolbarPortalEl]);
 
   const syncFromProp = useCallback(() => {
     const el = editorRef.current;
@@ -356,14 +443,17 @@ export function RichTextEditor({
     restoreSelection();
     const sel = window.getSelection();
     const hasSelection =
-      sel?.rangeCount && sel.anchorNode && editor.contains(sel.anchorNode) && !sel.isCollapsed;
+      sel?.rangeCount &&
+      sel.anchorNode &&
+      editor.contains(sel.anchorNode) &&
+      !sel.isCollapsed;
 
     if (hasSelection) {
       document.execCommand("createLink", false, url);
     } else {
       const label = hostnameFromUrl(url);
       insertHtmlAtSelection(
-        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="note-inline-link">${escapeHtml(label)}</a>`
+        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="note-inline-link">${escapeHtml(label)}</a>`,
       );
       setLinkOpen(false);
       return;
@@ -415,29 +505,334 @@ export function RichTextEditor({
     setEmbedOpen(false);
   };
 
-  const toolbarBtn = (
-    icon: React.ReactNode,
-    command: string,
-    title: string,
-    value?: string
-  ) => (
-    <Button
-      key={title}
-      type="button"
-      variant={isApple ? "ghost" : "outline"}
-      size="sm"
-      className={cn(
-        "h-8 w-8 p-0 shrink-0",
-        isApple && "text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-      )}
-      title={title}
-      disabled={disabled || readOnly}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={() => exec(command, value)}
+  const iconClass = "w-3.5 h-3.5";
+  const btnDisabled = disabled || readOnly;
+
+  const highlightDropdown = (
+    <DropdownMenu
+      open={highlightOpen}
+      onOpenChange={(open) => {
+        if (open) saveSelection();
+        setHighlightOpen(open);
+      }}
     >
-      {icon}
-    </Button>
+      <DropdownMenuTrigger
+        disabled={btnDisabled}
+        className={cn(
+          "h-7 w-7 p-0 shrink-0 inline-flex items-center justify-center rounded-lg",
+          "text-muted-foreground hover:text-foreground transition-colors",
+          "hover:bg-black/5 dark:hover:bg-white/8 disabled:opacity-40",
+        )}
+        title="Highlight"
+        aria-label="Highlight"
+        onMouseDown={(e) => e.preventDefault()}
+      >
+        <Highlighter className={iconClass} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        className="w-44 p-3 rounded-xl"
+      >
+        <p className="text-[11px] font-semibold text-muted-foreground mb-2">
+          Highlight
+        </p>
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          {HIGHLIGHT_COLORS.map((preset) => (
+            <button
+              key={preset.hex}
+              type="button"
+              title={preset.label}
+              aria-label={preset.label}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyHighlight(preset.hex)}
+              className="h-7 w-7 rounded-md border border-black/10 hover:scale-105 transition-transform"
+              style={{ backgroundColor: preset.hex }}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full h-7 text-xs"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => applyHighlight(null)}
+        >
+          Clear highlight
+        </Button>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+
+  const overflowItems: {
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+  }[] = [
+    {
+      label: "Strikethrough",
+      icon: <Strikethrough className={iconClass} />,
+      onClick: () => exec("strikeThrough"),
+    },
+    {
+      label: "Heading 2",
+      icon: <Heading2 className={iconClass} />,
+      onClick: () => exec("formatBlock", "h2"),
+    },
+    {
+      label: "Heading 3",
+      icon: <Heading3 className={iconClass} />,
+      onClick: () => exec("formatBlock", "h3"),
+    },
+    {
+      label: "Numbered list",
+      icon: <ListOrdered className={iconClass} />,
+      onClick: () => exec("insertOrderedList"),
+    },
+    {
+      label: "Quote",
+      icon: <Quote className={iconClass} />,
+      onClick: () => exec("formatBlock", "blockquote"),
+    },
+    {
+      label: "Code block",
+      icon: <Code className={iconClass} />,
+      onClick: () => exec("formatBlock", "pre"),
+    },
+    {
+      label: "Align left",
+      icon: <AlignLeft className={iconClass} />,
+      onClick: () => exec("justifyLeft"),
+    },
+    {
+      label: "Align center",
+      icon: <AlignCenter className={iconClass} />,
+      onClick: () => exec("justifyCenter"),
+    },
+    {
+      label: "Insert hyperlink",
+      icon: <Link className={iconClass} />,
+      onClick: openLinkDialog,
+    },
+    {
+      label: "Embed link",
+      icon: <ExternalLink className={iconClass} />,
+      onClick: openEmbedDialog,
+    },
+    {
+      label: "Undo",
+      icon: <Undo className={iconClass} />,
+      onClick: () => exec("undo"),
+    },
+    {
+      label: "Redo",
+      icon: <Redo className={iconClass} />,
+      onClick: () => exec("redo"),
+    },
+  ];
+
+  const showExtended = toolbarLayout === "standard" || toolbarLayout === "full";
+  const showFull = toolbarLayout === "full";
+  const showOverflow = toolbarLayout !== "full";
+
+  const toolbarButtons = !readOnly ? (
+    <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-0.5 shrink-0">
+        {/* Core formatting — always visible */}
+        <GlassToolbarButton
+          icon={<Bold className={iconClass} />}
+          title="Bold"
+          disabled={btnDisabled}
+          onClick={() => exec("bold")}
+        />
+        <GlassToolbarButton
+          icon={<Italic className={iconClass} />}
+          title="Italic"
+          disabled={btnDisabled}
+          onClick={() => exec("italic")}
+        />
+        <GlassToolbarButton
+          icon={<Underline className={iconClass} />}
+          title="Underline"
+          disabled={btnDisabled}
+          onClick={() => exec("underline")}
+        />
+        <GlassToolbarButton
+          icon={<List className={iconClass} />}
+          title="Bullet list"
+          disabled={btnDisabled}
+          onClick={() => exec("insertUnorderedList")}
+        />
+
+        {showExtended ? (
+          <>
+            <GlassToolbarButton
+              icon={<Strikethrough className={iconClass} />}
+              title="Strikethrough"
+              disabled={btnDisabled}
+              onClick={() => exec("strikeThrough")}
+            />
+            {highlightDropdown}
+            <ToolbarDivider />
+            <GlassToolbarButton
+              icon={<Heading2 className={iconClass} />}
+              title="Heading 2"
+              disabled={btnDisabled}
+              onClick={() => exec("formatBlock", "h2")}
+            />
+            <GlassToolbarButton
+              icon={<Heading3 className={iconClass} />}
+              title="Heading 3"
+              disabled={btnDisabled}
+              onClick={() => exec("formatBlock", "h3")}
+            />
+            <GlassToolbarButton
+              icon={<ListOrdered className={iconClass} />}
+              title="Numbered list"
+              disabled={btnDisabled}
+              onClick={() => exec("insertOrderedList")}
+            />
+          </>
+        ) : null}
+
+        {showFull ? (
+          <>
+            <ToolbarDivider />
+            <GlassToolbarButton
+              icon={<Quote className={iconClass} />}
+              title="Quote"
+              disabled={btnDisabled}
+              onClick={() => exec("formatBlock", "blockquote")}
+            />
+            <GlassToolbarButton
+              icon={<Code className={iconClass} />}
+              title="Code block"
+              disabled={btnDisabled}
+              onClick={() => exec("formatBlock", "pre")}
+            />
+            <ToolbarDivider />
+            <GlassToolbarButton
+              icon={<AlignLeft className={iconClass} />}
+              title="Align left"
+              disabled={btnDisabled}
+              onClick={() => exec("justifyLeft")}
+            />
+            <GlassToolbarButton
+              icon={<AlignCenter className={iconClass} />}
+              title="Align center"
+              disabled={btnDisabled}
+              onClick={() => exec("justifyCenter")}
+            />
+            <GlassToolbarButton
+              icon={<Link className={iconClass} />}
+              title="Insert hyperlink"
+              disabled={btnDisabled}
+              onClick={openLinkDialog}
+            />
+            <GlassToolbarButton
+              icon={<ExternalLink className={iconClass} />}
+              title="Embed link"
+              disabled={btnDisabled}
+              onClick={openEmbedDialog}
+            />
+            <ToolbarDivider />
+            <GlassToolbarButton
+              icon={<Undo className={iconClass} />}
+              title="Undo"
+              disabled={btnDisabled}
+              onClick={() => exec("undo")}
+            />
+            <GlassToolbarButton
+              icon={<Redo className={iconClass} />}
+              title="Redo"
+              disabled={btnDisabled}
+              onClick={() => exec("redo")}
+            />
+          </>
+        ) : null}
+
+        {toolbarEnd ? (
+          <>
+            <ToolbarDivider className="hidden sm:block" />
+            <div className="shrink-0 flex items-center">{toolbarEnd}</div>
+          </>
+        ) : null}
+      </div>
+
+      {showOverflow ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            disabled={btnDisabled}
+            className={cn(
+              "shrink-0 ml-0.5 h-7 w-7 inline-flex items-center justify-center rounded-lg",
+              "text-muted-foreground hover:text-foreground transition-colors",
+              "hover:bg-black/5 dark:hover:bg-white/8 disabled:opacity-40",
+            )}
+            title="More formatting"
+            aria-label="More formatting"
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <MoreHorizontal className={iconClass} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            side="bottom"
+            sideOffset={6}
+            className="w-52 p-1.5 rounded-xl"
+          >
+            {toolbarLayout === "compact" ? (
+              <>
+                {overflowItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.label}
+                    className="gap-2.5 rounded-lg text-sm"
+                    onClick={item.onClick}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+                <div className="px-2 py-2 border-t border-border/60 mt-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Highlight
+                  </p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {HIGHLIGHT_COLORS.map((preset) => (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        title={preset.label}
+                        aria-label={preset.label}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          saveSelection();
+                          applyHighlight(preset.hex);
+                        }}
+                        className="h-6 w-6 rounded-md border border-black/10 hover:scale-105 transition-transform"
+                        style={{ backgroundColor: preset.hex }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              overflowItems.slice(4).map((item) => (
+                <DropdownMenuItem
+                  key={item.label}
+                  className="gap-2.5 rounded-lg text-sm"
+                  onClick={item.onClick}
+                >
+                  {item.icon}
+                  {item.label}
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <>
@@ -446,145 +841,25 @@ export function RichTextEditor({
           "flex flex-col",
           readOnly ? "overflow-clip" : "min-h-0 overflow-hidden",
           isApple
-            ? readOnly ? "bg-transparent" : "flex-1 h-full bg-transparent"
+            ? readOnly
+              ? "bg-transparent"
+              : "flex-1 h-full bg-transparent"
             : "rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950",
-          className
+          className,
         )}
       >
-        {!readOnly && (
+        {/* Inline toolbar — only when no portal target is given */}
+        {!toolbarPortalEl && toolbarButtons && (
           <div
+            ref={inlineToolbarRef}
             className={cn(
-              "flex flex-wrap items-center gap-0.5 shrink-0",
+              "flex items-center gap-0.5 shrink-0",
               isApple
-                ? "px-4 py-1.5 border-b border-black/[0.06] dark:border-white/[0.08]"
-                : "px-3 py-2 border-b border-slate-200/80 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-900/80"
+                ? "mx-4 mt-2 glass-panel rounded-xl px-1 py-0.5"
+                : "px-3 py-2 border-b border-slate-200/80 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-900/80",
             )}
           >
-            {toolbarBtn(<Bold className="w-3.5 h-3.5" />, "bold", "Bold")}
-            {toolbarBtn(<Italic className="w-3.5 h-3.5" />, "italic", "Italic")}
-            {toolbarBtn(<Underline className="w-3.5 h-3.5" />, "underline", "Underline")}
-            {toolbarBtn(<Strikethrough className="w-3.5 h-3.5" />, "strikeThrough", "Strikethrough")}
-            <DropdownMenu
-              open={highlightOpen}
-              onOpenChange={(open) => {
-                if (open) saveSelection();
-                setHighlightOpen(open);
-              }}
-            >
-              <DropdownMenuTrigger
-                disabled={disabled || readOnly}
-                className={cn(
-                  "h-8 w-8 p-0 shrink-0 inline-flex items-center justify-center rounded-md",
-                  isApple
-                    ? "text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-                    : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                )}
-                title="Highlight"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <Highlighter className="w-3.5 h-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="bottom" className="w-44 p-3 rounded-xl">
-                <p className="text-[11px] font-semibold text-muted-foreground mb-2">Highlight</p>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  {HIGHLIGHT_COLORS.map((preset) => (
-                    <button
-                      key={preset.hex}
-                      type="button"
-                      title={preset.label}
-                      aria-label={preset.label}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyHighlight(preset.hex)}
-                      className="h-7 w-7 rounded-md border border-black/10 hover:scale-105 transition-transform"
-                      style={{ backgroundColor: preset.hex }}
-                    />
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-7 text-xs"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyHighlight(null)}
-                >
-                  Clear highlight
-                </Button>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
-            {toolbarBtn(<Heading2 className="w-3.5 h-3.5" />, "formatBlock", "Heading 2", "h2")}
-            {toolbarBtn(<Heading3 className="w-3.5 h-3.5" />, "formatBlock", "Heading 3", "h3")}
-            <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
-            {toolbarBtn(<List className="w-3.5 h-3.5" />, "insertUnorderedList", "Bullet list")}
-            {toolbarBtn(<ListOrdered className="w-3.5 h-3.5" />, "insertOrderedList", "Numbered list")}
-            {toolbarBtn(<Quote className="w-3.5 h-3.5" />, "formatBlock", "Quote", "blockquote")}
-            {toolbarBtn(<Code className="w-3.5 h-3.5" />, "formatBlock", "Code block", "pre")}
-            <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
-            {toolbarBtn(<AlignLeft className="w-3.5 h-3.5" />, "justifyLeft", "Align left")}
-            {toolbarBtn(<AlignCenter className="w-3.5 h-3.5" />, "justifyCenter", "Align center")}
-            <Button
-              type="button"
-              variant={isApple ? "ghost" : "outline"}
-              size="sm"
-              className={cn(
-                "h-8 w-8 p-0 shrink-0",
-                isApple && "text-muted-foreground hover:text-foreground hover:bg-black/[0.04]"
-              )}
-              title="Insert hyperlink"
-              disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={openLinkDialog}
-            >
-              <Link className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              type="button"
-              variant={isApple ? "ghost" : "outline"}
-              size="sm"
-              className={cn(
-                "h-8 w-8 p-0 shrink-0",
-                isApple && "text-muted-foreground hover:text-foreground hover:bg-black/[0.04]"
-              )}
-              title="Embed link"
-              disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={openEmbedDialog}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Button>
-            <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 shrink-0"
-              title="Undo"
-              disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => exec("undo")}
-            >
-              <Undo className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 shrink-0"
-              title="Redo"
-              disabled={disabled}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => exec("redo")}
-            >
-              <Redo className="w-3.5 h-3.5" />
-            </Button>
-            {toolbarEnd ? (
-              <>
-                <div className="flex-1 min-w-2 basis-2" aria-hidden />
-                <div className="w-px h-5 bg-slate-200 dark:bg-zinc-700 mx-0.5" />
-                {toolbarEnd}
-              </>
-            ) : null}
+            {toolbarButtons}
           </div>
         )}
 
@@ -593,7 +868,7 @@ export function RichTextEditor({
             readOnly
               ? ""
               : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain",
-            isApple && "bg-[#fffef8] dark:bg-[#1c1c1e]"
+            isApple && "bg-transparent dark:bg-transparent",
           )}
         >
           <div
@@ -618,43 +893,49 @@ export function RichTextEditor({
             className={cn(
               "outline-none focus-visible:ring-0 block w-full min-h-full",
               isApple
-                ? "min-h-[280px] px-10 sm:px-14 py-4 pb-24 text-[17px] leading-[1.6] text-foreground/90"
+                ? "min-h-[280px] px-6 py-4 pb-24 text-[17px] leading-[1.6] text-foreground/90"
                 : "min-h-[280px] px-6 py-6 pb-12 text-[15px] leading-[1.75] text-foreground",
-            "[&_p]:mb-3 [&_p:last-child]:mb-0",
-            "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3",
-            "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3",
-            "[&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2",
-            "[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2",
-            "[&_blockquote]:border-l-4 [&_blockquote]:border-violet-500/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-3",
-            "[&_pre]:rounded-md [&_pre]:bg-slate-100 [&_pre]:dark:bg-zinc-900 [&_pre]:p-3 [&_pre]:text-sm [&_pre]:font-mono [&_pre]:overflow-x-auto [&_pre]:my-3",
-            "[&_a.note-inline-link]:text-[#007AFF] [&_a.note-inline-link]:underline [&_a.note-inline-link]:cursor-pointer",
-            "[&_.note-embed]:my-4 [&_.note-embed]:block [&_.note-embed]:cursor-pointer",
-            "[&_.note-embed-inner]:rounded-lg [&_.note-embed-inner]:border [&_.note-embed-inner]:border-violet-500/30",
-            "[&_.note-embed-inner]:bg-violet-500/5 [&_.note-embed-inner]:px-4 [&_.note-embed-inner]:py-3",
-            "[&_.note-embed-inner]:hover:bg-violet-500/10 [&_.note-embed-inner]:transition-colors",
-            "[&_.note-embed-label]:text-[10px] [&_.note-embed-label]:font-bold [&_.note-embed-label]:uppercase",
-            "[&_.note-embed-label]:tracking-wider [&_.note-embed-label]:text-violet-600 dark:[&_.note-embed-label]:text-violet-400",
-            "[&_.note-embed-link]:text-sm [&_.note-embed-link]:font-semibold [&_.note-embed-link]:text-foreground",
-            "[&_.note-embed-link]:block [&_.note-embed-link]:mt-1 [&_.note-embed-link]:no-underline",
-            "[&_.note-embed-url]:text-xs [&_.note-embed-url]:text-muted-foreground [&_.note-embed-url]:mt-1",
-            "[&_.note-embed-url]:truncate [&_.note-embed-url]:mb-0",
-            "[&_strong]:font-bold [&_em]:italic",
-            "[&_mark]:rounded-sm [&_mark]:px-0.5",
-            "[&_span]:rounded-sm",
-            "empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none",
-            (disabled || readOnly) && "opacity-90 cursor-default"
-          )}
-        />
+              "[&_p]:mb-3 [&_p:last-child]:mb-0",
+              "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3",
+              "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3",
+              "[&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2",
+              "[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2",
+              "[&_blockquote]:border-l-4 [&_blockquote]:border-violet-500/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-3",
+              "[&_pre]:rounded-md [&_pre]:bg-slate-100 [&_pre]:dark:bg-zinc-900 [&_pre]:p-3 [&_pre]:text-sm [&_pre]:font-mono [&_pre]:overflow-x-auto [&_pre]:my-3",
+              "[&_a.note-inline-link]:text-[#007AFF] [&_a.note-inline-link]:underline [&_a.note-inline-link]:cursor-pointer",
+              "[&_.note-embed]:my-4 [&_.note-embed]:block [&_.note-embed]:cursor-pointer",
+              "[&_.note-embed-inner]:rounded-lg [&_.note-embed-inner]:border [&_.note-embed-inner]:border-violet-500/30",
+              "[&_.note-embed-inner]:bg-violet-500/5 [&_.note-embed-inner]:px-4 [&_.note-embed-inner]:py-3",
+              "[&_.note-embed-inner]:hover:bg-violet-500/10 [&_.note-embed-inner]:transition-colors",
+              "[&_.note-embed-label]:text-[10px] [&_.note-embed-label]:font-bold [&_.note-embed-label]:uppercase",
+              "[&_.note-embed-label]:tracking-wider [&_.note-embed-label]:text-violet-600 dark:[&_.note-embed-label]:text-violet-400",
+              "[&_.note-embed-link]:text-sm [&_.note-embed-link]:font-semibold [&_.note-embed-link]:text-foreground",
+              "[&_.note-embed-link]:block [&_.note-embed-link]:mt-1 [&_.note-embed-link]:no-underline",
+              "[&_.note-embed-url]:text-xs [&_.note-embed-url]:text-muted-foreground [&_.note-embed-url]:mt-1",
+              "[&_.note-embed-url]:truncate [&_.note-embed-url]:mb-0",
+              "[&_strong]:font-bold [&_em]:italic",
+              "[&_mark]:rounded-sm [&_mark]:px-0.5",
+              "[&_span]:rounded-sm",
+              "empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none",
+              (disabled || readOnly) && "opacity-90 cursor-default",
+            )}
+          />
         </div>
       </div>
+
+      {/* Portal toolbar into external container when provided */}
+      {toolbarPortalEl && toolbarButtons
+        ? createPortal(toolbarButtons, toolbarPortalEl)
+        : null}
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Insert hyperlink</DialogTitle>
             <DialogDescription>
-              Select text first to turn it into a link, or leave nothing selected to insert the URL as
-              link text. Click any link in the note to open it.
+              Select text first to turn it into a link, or leave nothing
+              selected to insert the URL as link text. Click any link in the
+              note to open it.
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -684,7 +965,8 @@ export function RichTextEditor({
           <DialogHeader>
             <DialogTitle>Embed link</DialogTitle>
             <DialogDescription>
-              Adds a preview card in your note. Click the card to open the URL in a new tab.
+              Adds a preview card in your note. Click the card to open the URL
+              in a new tab.
             </DialogDescription>
           </DialogHeader>
           <Input

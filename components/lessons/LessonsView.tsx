@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Loader2, Save, Sparkles, Trash2, Upload, Users } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowLeft, Loader2, MessageSquare, Save, Sparkles, Trash2, Upload, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,9 @@ import type { LessonTabDto } from "@/lib/types/class-api";
 import type { LessonDetailDto, LessonSummaryDto } from "@/lib/types/lesson-api";
 import { getValidAccessToken } from "@/lib/auth/client-session";
 import { ClassCourseContent } from "@/components/lessons/ClassCourseContent";
+import { SelectionNotePopup } from "@/components/lessons/SelectionNotePopup";
 import { LessonAskPanel } from "@/components/lessons/LessonAskPanel";
+import { LessonRichContent } from "@/components/lessons/LessonRichContent";
 import { ClassCommentsPanel } from "@/components/classes/ClassCommentsPanel";
 import { ClassStudentsDialog } from "@/components/classes/ClassStudentsDialog";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
@@ -143,6 +145,10 @@ interface LessonsViewProps {
   lessonIdParam?: string | null;
   classTitle?: string | null;
   classModule?: string | null;
+  onLessonOpen?: (title: string) => void;
+  onLessonClose?: () => void;
+  /** Stable callback ref assigned by parent so parent can trigger clearLesson */
+  clearLessonRef?: React.MutableRefObject<(() => void) | null>;
   onBackToClasses?: () => void;
 }
 
@@ -151,6 +157,9 @@ export function LessonsView({
   lessonIdParam,
   classTitle,
   classModule,
+  onLessonOpen,
+  onLessonClose,
+  clearLessonRef,
   onBackToClasses,
 }: LessonsViewProps) {
   const { get, setParams } = useQueryParams();
@@ -213,21 +222,34 @@ export function LessonsView({
     [setParams]
   );
 
+  // Keep callback props in refs so they never appear in effect dep arrays
+  const onLessonOpenRef = useRef(onLessonOpen);
+  const onLessonCloseRef = useRef(onLessonClose);
+  useEffect(() => { onLessonOpenRef.current = onLessonOpen; }, [onLessonOpen]);
+  useEffect(() => { onLessonCloseRef.current = onLessonClose; }, [onLessonClose]);
+
   const clearLesson = useCallback(() => {
     setLesson(null);
     setParams({ [QueryKey.lessonId]: null });
+    onLessonCloseRef.current?.();
   }, [setParams]);
+
+  // Expose clearLesson to parent via ref
+  useEffect(() => {
+    if (clearLessonRef) clearLessonRef.current = clearLesson;
+  }, [clearLesson, clearLessonRef]);
 
   const loadLessonDetail = useCallback(async (lessonId: number) => {
     try {
       const detail = await lessonService.getLesson(lessonId);
       setLesson(detail);
       setError(null);
+      onLessonOpenRef.current?.(detail.title);
     } catch {
       setLesson(null);
       setError("Could not load this lesson.");
     }
-  }, []);
+  }, []); // stable — uses refs for callbacks
 
   const openLesson = useCallback(
     (id: number) => {
@@ -457,18 +479,75 @@ export function LessonsView({
   };
 
   const displayTitle = classTitle ?? lesson?.className ?? lessons[0]?.className ?? "Class";
-  const displayModule = classModule ?? "";
-
-  const visibleTabs = isTeacher
-    ? lessonTabs.filter((t) => t.id !== "ai")
-    : lessonTabs;
-
+  const [bottomPanel, setBottomPanel] = useState<"comments" | "materials">("comments");
+  const [showBottom, setShowBottom] = useState(true);
+  const [showAI, setShowAI] = useState(true);
+  const [aiWidth, setAiWidth] = useState(360);
+  const [bottomHeight, setBottomHeight] = useState(240);
+  const [dragging, setDragging] = useState(false);
+  const aiPanelRef = useRef<HTMLDivElement>(null);
+  const bottomPanelRef = useRef<HTMLDivElement>(null);
   const materialCount = lesson?.materials?.length ?? 0;
-  const lessonCount = lessons.length;
-  const lessonsTabLabel =
-    lessonTabs.find((t) => t.id === "content")?.label ?? "Lessons";
-  const needsLesson =
-    activeTab !== "content" && activeTab !== "comments" && !lesson;
+
+  const AI_COLLAPSE_THRESHOLD = 160;
+  const BOTTOM_COLLAPSE_THRESHOLD = 60;
+
+  // Drag-to-resize AI panel — works for both collapse and expand-from-zero
+  const startAiDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const startX = e.clientX;
+    // When collapsed panel has width=0; use saved aiWidth so dragging left opens to last width
+    const startW = aiPanelRef.current ? aiPanelRef.current.offsetWidth : 0;
+    const onMove = (ev: MouseEvent) => {
+      const raw = startW - (ev.clientX - startX);
+      const w = raw < AI_COLLAPSE_THRESHOLD ? 0 : Math.min(600, raw);
+      if (aiPanelRef.current) aiPanelRef.current.style.width = `${w}px`;
+    };
+    const onUp = (ev: MouseEvent) => {
+      const raw = startW - (ev.clientX - startX);
+      if (aiPanelRef.current) aiPanelRef.current.style.width = "";
+      if (raw < AI_COLLAPSE_THRESHOLD) {
+        setShowAI(false);
+      } else {
+        setAiWidth(Math.min(600, Math.max(AI_COLLAPSE_THRESHOLD, raw)));
+        setShowAI(true);
+      }
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
+  // Drag-to-resize bottom panel — works for both collapse and expand-from-zero
+  const startBottomDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const startY = e.clientY;
+    const startH = bottomPanelRef.current ? bottomPanelRef.current.offsetHeight : 0;
+    const onMove = (ev: MouseEvent) => {
+      const raw = startH - (ev.clientY - startY);
+      const h = raw < BOTTOM_COLLAPSE_THRESHOLD ? 0 : Math.min(480, raw);
+      if (bottomPanelRef.current) bottomPanelRef.current.style.height = `${h}px`;
+    };
+    const onUp = (ev: MouseEvent) => {
+      const raw = startH - (ev.clientY - startY);
+      if (bottomPanelRef.current) bottomPanelRef.current.style.height = "";
+      if (raw < BOTTOM_COLLAPSE_THRESHOLD) {
+        setShowBottom(false);
+      } else {
+        setBottomHeight(Math.min(480, Math.max(BOTTOM_COLLAPSE_THRESHOLD, raw)));
+        setShowBottom(true);
+      }
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
 
   if (loading) {
     return (
@@ -479,403 +558,325 @@ export function LessonsView({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-clip bg-[#fffef8] dark:bg-[#1c1c1e]">
-      <header className="shrink-0 px-4 sm:px-6 py-4 border-b border-black/6 dark:border-white/8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0">
-          {onBackToClasses ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 mt-0.5"
-              onClick={onBackToClasses}
-              aria-label="Back to classes"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          ) : null}
-          <div className="min-w-0">
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground truncate">
-              {displayTitle}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{displayModule}</p>
-          </div>
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-clip">
+      {/* Teacher action bar */}
+      {canManage && Number.isFinite(parsedClassId) && (
+        <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-black/6 flex items-center gap-2 justify-end">
+          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={() => setRosterOpen(true)}>
+            <Users className="h-3.5 w-3.5" />Manage Students
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" disabled={deletingClass} onClick={() => void handleDeleteClass()}>
+            {deletingClass ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Delete Class
+          </Button>
         </div>
-        {canManage && Number.isFinite(parsedClassId) && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-semibold"
-              onClick={() => setRosterOpen(true)}
-            >
-              <Users className="h-3.5 w-3.5" />
-              Manage Students
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-              disabled={deletingClass}
-              onClick={() => void handleDeleteClass()}
-            >
-              {deletingClass ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5" />
-              )}
-              Delete Class
-            </Button>
-          </div>
-        )}
-      </header>
+      )}
 
-      <ClassStudentsDialog
-        open={rosterOpen}
-        onOpenChange={setRosterOpen}
-        classId={Number.isFinite(parsedClassId) ? parsedClassId : null}
-        className={displayTitle}
-        canManage={canManage}
-      />
+      <ClassStudentsDialog open={rosterOpen} onOpenChange={setRosterOpen} classId={Number.isFinite(parsedClassId) ? parsedClassId : null} className={displayTitle} canManage={canManage} />
 
-      {error ? (
-        <p className="px-6 py-2 text-sm text-zinc-600 dark:text-zinc-300 shrink-0">{error}</p>
-      ) : null}
+      {error && <p className="px-6 py-2 text-sm text-zinc-600 shrink-0">{error}</p>}
 
-      {!loading && !error && visibleTabs.length > 0 ? (
-        <>
-          <div className="shrink-0 px-4 sm:px-6 py-3 flex gap-1.5 border-b border-border/40 overflow-x-auto">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={tab.id === "comments" ? handleCommentsTabOpen : () => setActiveTab(tab.id)}
-                className={cn(
-                  "relative rounded-2xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
-                  activeTab === tab.id
-                    ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
-                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground"
-                )}
-              >
-                {lessonTabLabel(
-                  tab,
-                  tab.id === "materials"
-                    ? materialCount
-                    : tab.id === "content"
-                      ? lessonCount
-                      : undefined
-                )}
-                {tab.id === "comments" && commentBadge > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-100">
-                    {commentBadge > 9 ? "9+" : commentBadge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+      {!loading && !error && (
+        lesson ? (
+          /* ── 3-panel lesson reader ── */
+          <div
+            className="flex-1 flex min-h-0 overflow-hidden p-1 gap-0"
+            style={{ userSelect: dragging ? "none" : undefined }}
+          >
+            <SelectionNotePopup
+              containerIds={["lesson-content-area", "ai-panel-messages"]}
+              lessonTitle={lesson.title}
+              lessonId={lesson.id}
+            />
+            {/* LEFT column */}
+            <div className="relative flex-1 flex flex-col min-h-0 min-w-0 gap-1.5 overflow-hidden pr-1.5">
 
-          <div className="flex-1 min-h-0 overflow-y-auto w-full">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-            {activeTab === "content" && (
-              <ClassCourseContent
-                lessons={lessons}
-                lesson={lesson}
-                canManage={canManage}
-                onSelectLesson={openLesson}
-                onBackToList={clearLesson}
-                onDeleteLesson={canManage ? handleDeleteLesson : undefined}
-                deletingLessonId={deletingLessonId}
-              />
-            )}
-
-            {needsLesson ? (
-              <div className="text-center py-16 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {canManage
-                    ? `Open the ${lessonsTabLabel} tab and choose a lesson first.`
-                    : `Choose a lesson on the ${lessonsTabLabel} tab to continue.`}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-semibold"
-                  onClick={() => setActiveTab("content")}
-                >
-                  Go to {lessonsTabLabel}
-                </Button>
-              </div>
-            ) : null}
-
-            {activeTab === "materials" && lesson && (
-              <Card className="border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-2xs overflow-hidden">
-                {canManage && (
-                  <div className="p-4 border-b border-slate-200/60 dark:border-zinc-800">
-                    <label className="inline-flex cursor-pointer items-center gap-1.5 h-8 px-3 rounded-md border border-input bg-background text-xs font-semibold hover:bg-accent">
-                      <input
-                        type="file"
-                        className="hidden"
-                        multiple
-                        accept=".pdf,.pptx,.docx,.ppt,.doc"
-                        onChange={(e) => void handleUpload(e)}
-                        disabled={uploading}
-                      />
-                      {uploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4" />
-                      )}
-                      Upload files
-                    </label>
+              {/* ── Floating toolbar — absolutely positioned over the lesson content ── */}
+              <div className="absolute top-2 left-2 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
+                {/* Left: back + lesson title pill */}
+                <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={clearLesson}
+                    aria-label="Back to lessons"
+                    className="shrink-0 h-8 w-8 rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                    }}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 text-zinc-600" />
+                  </button>
+                  <div
+                    className="h-8 px-3 rounded-2xl flex items-center min-w-0 max-w-[260px]"
+                    style={{
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                    }}
+                  >
+                    <span className="text-xs font-semibold text-zinc-700 truncate">{lesson.title}</span>
                   </div>
+                </div>
+
+                {/* Right: toggle comments + toggle AI */}
+                <div className="flex items-center gap-1.5 shrink-0 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!showBottom) { unreadCommentNotifs.forEach((n) => void markRead(n.id)); }
+                      setShowBottom((v) => !v);
+                    }}
+                    className="h-8 px-3 rounded-2xl flex items-center gap-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                    style={showBottom ? {
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                      color: "#18181b",
+                    } : {
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                      color: "#a1a1aa",
+                    }}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Comments
+                    {commentBadge > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-zinc-500/80 text-[9px] font-bold text-white">
+                        {commentBadge > 9 ? "9+" : commentBadge}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAI((v) => !v)}
+                    className="h-8 px-3 rounded-2xl flex items-center gap-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                    style={showAI ? {
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                      color: "#18181b",
+                    } : {
+                      background: "var(--glass-bg)",
+                      backdropFilter: "blur(16px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                      color: "#a1a1aa",
+                    }}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    AI
+                  </button>
+                </div>
+              </div>
+
+              {/* Lesson content — liquid glass card, fills full height */}
+              <div
+                id="lesson-content-area"
+                className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-2xl pt-12"
+                style={{
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                }}
+              >
+                <LessonRichContent
+                  html={lesson.description}
+                  emptyMessage={canManage ? "No notes yet. Write content in Course Content, then assign it to this class." : "Your teacher has not published notes for this lesson yet."}
+                />
+              </div>
+
+              {/* Vertical drag strip */}
+              <div
+                onMouseDown={startBottomDrag}
+                className="shrink-0 h-2 flex items-center justify-center cursor-row-resize group"
+              >
+                <div className="w-10 h-1 rounded-full bg-white/40 group-hover:bg-white/70 transition-colors" />
+              </div>
+
+              {/* Bottom panel — always in DOM, height 0 when collapsed */}
+              <div
+                ref={bottomPanelRef}
+                className={cn(
+                  "shrink-0 flex flex-col rounded-2xl overflow-hidden",
+                  !dragging && "transition-[height] duration-200",
                 )}
-                <ul className="divide-y divide-slate-100 dark:divide-zinc-800">
-                  {lesson.materials.length === 0 ? (
-                    <li className="px-5 py-10 text-center text-sm text-muted-foreground">
-                      {canManage
-                        ? "No files on this lesson yet. Attach files when assigning from Course Content (sidebar), or upload here."
-                        : "No files for this lesson yet. Your teacher will share materials when they are ready."}
-                    </li>
-                  ) : (
-                    lesson.materials.map((file) => (
-                      <li
-                        key={file.id}
-                        className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/30"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-foreground truncate">
-                            {file.fileName}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {formatBytes(file.fileSizeBytes)}
-                            {file.ragStatus ? ` · AI: ${file.ragStatus}` : ""}
-                          </p>
-                        </div>
-                        {isTeacher ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs font-semibold shrink-0"
-                            onClick={() => void handleQueueMaterialIndex(file.id)}
-                          >
-                            Index AI
-                          </Button>
-                        ) : null}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs font-semibold shrink-0"
-                          onClick={() => void handleDownload(file.id, file.fileName)}
+                style={{
+                  height: showBottom ? bottomHeight : 0,
+                  ...(showBottom ? {
+                    background: "var(--glass-bg)",
+                    backdropFilter: "var(--glass-blur)",
+                    WebkitBackdropFilter: "var(--glass-blur)",
+                    border: "1px solid var(--glass-border-color)",
+                    boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                  } : {}),
+                }}
+              >
+                {showBottom && (
+                  <>
+                    {/* Tab row */}
+                    <div className="shrink-0 flex items-center gap-1.5 px-3 h-10">
+                      {(["comments", "materials"] as const).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => { setBottomPanel(tab); if (tab === "comments") unreadCommentNotifs.forEach((n) => void markRead(n.id)); }}
+                          className={cn(
+                            "px-3 py-1 text-xs font-semibold rounded-full transition-colors",
+                            bottomPanel === tab
+                              ? "bg-zinc-900 text-white"
+                              : "text-muted-foreground hover:text-foreground hover:bg-black/6"
+                          )}
                         >
-                          Download
-                        </Button>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </Card>
-            )}
+                          {tab === "comments" ? "Comments" : `Materials (${materialCount})`}
+                        </button>
+                      ))}
+                      {bottomPanel === "materials" && canManage && (
+                        <label className="inline-flex cursor-pointer items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-black/6 transition-colors">
+                          <input type="file" className="hidden" multiple accept=".pdf,.pptx,.docx,.ppt,.doc" onChange={(e) => void handleUpload(e)} disabled={uploading} />
+                          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}Upload
+                        </label>
+                      )}
+                    </div>
+                    {/* Tab content */}
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pb-3">
+                      {bottomPanel === "comments" && Number.isFinite(parsedClassId) && (
+                        <ClassCommentsPanel classId={parsedClassId} canPost={canPostComments} />
+                      )}
+                      {bottomPanel === "materials" && (
+                        <ul className="space-y-1">
+                          {lesson.materials.length === 0 ? (
+                            <li className="py-6 text-center text-xs text-muted-foreground">
+                              {canManage ? "No files yet. Upload above." : "No files for this lesson yet."}
+                            </li>
+                          ) : lesson.materials.map((file) => (
+                            <li key={file.id} className="flex items-center justify-between gap-3 py-2 rounded-xl px-2 hover:bg-black/4 transition-colors">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-foreground truncate">{file.fileName}</p>
+                                <p className="text-[10px] text-muted-foreground">{formatBytes(file.fileSizeBytes)}{file.ragStatus ? ` · AI: ${file.ragStatus}` : ""}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isTeacher && <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 font-semibold" onClick={() => void handleQueueMaterialIndex(file.id)}>Index AI</Button>}
+                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 font-semibold" onClick={() => void handleDownload(file.id, file.fileName)}>Download</Button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
 
-            {activeTab === "ai" && lesson && (
-              <div className="space-y-10">
-                {!isTeacher ? (
-                  <section className="rounded-3xl border border-white/25 bg-white/30 p-6 dark:bg-white/6">
-                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                      <Sparkles className="w-5 h-5 text-zinc-500" />
-                      <h2 className="text-sm font-extrabold text-foreground">Lesson summary</h2>
-                      <Badge className="text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700">
-                        {lesson.aiReady ? "Ready" : "Needs files"}
-                      </Badge>
+            {/* Horizontal drag strip */}
+            <div
+              onMouseDown={startAiDrag}
+              className="shrink-0 w-2 flex items-center justify-center cursor-col-resize self-stretch group"
+            >
+              <div className="w-1 h-10 rounded-full bg-white/40 group-hover:bg-white/70 transition-colors" />
+            </div>
+
+            {/* RIGHT: AI panel — always in DOM, width 0 when collapsed */}
+            <div
+              ref={aiPanelRef}
+              className={cn(
+                "shrink-0 flex flex-col min-h-0 overflow-hidden",
+                showAI && "rounded-2xl",
+                !dragging && "transition-[width] duration-200",
+              )}
+              style={{
+                width: showAI ? aiWidth : 0,
+                ...(showAI ? {
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                } : {}),
+              }}
+            >
+              {showAI && (
+                !isTeacher ? (
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+                    {/* Compact header */}
+                    <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                      <span className="text-xs font-bold text-foreground">AI Assistant</span>
                     </div>
 
-                    {isTeacher && lesson.materials.length > 0 ? (
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-end mb-4">
-                        <div className="flex-1 space-y-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">
-                            Summarize from file
-                          </label>
-                          <select
-                            value={summaryMaterialId}
-                            onChange={(e) => setSummaryMaterialId(e.target.value)}
-                            disabled={summaryGenerating}
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                          >
-                            {lesson.materials.map((mat) => (
-                              <option key={mat.id} value={String(mat.id)}>
-                                {mat.fileName}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <Button
-                          variant="inverse"
-                          size="sm"
-                          className="h-9 gap-1.5 font-bold shrink-0"
-                          disabled={summaryGenerating || !summaryMaterialId}
-                          onClick={() => void handleGenerateSummary()}
-                        >
-                          {summaryGenerating ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                          {summaryGenerating
-                            ? "Working…"
-                            : displaySummary
-                              ? "Regenerate"
-                              : "Generate"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4 rounded-2xl border border-white/25 bg-white/28 px-4 py-3 dark:bg-white/6">
-                        <p className="text-sm text-muted-foreground">
-                          Generate a summary from the lesson notes you are currently reading.
-                        </p>
-                        <Button
-                          variant="inverse"
-                          size="sm"
-                          className="h-9 gap-1.5 font-bold shrink-0"
-                          disabled={summaryGenerating}
-                          onClick={() => void handleGenerateSummary()}
-                        >
-                          {summaryGenerating ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                          {summaryGenerating
-                            ? "Working..."
-                            : displaySummary
-                              ? "Regenerate Summary"
-                              : "Summarize Lesson"}
-                        </Button>
-                      </div>
-                    )}
-
-                    {summaryError ? (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mb-3">{summaryError}</p>
-                    ) : null}
-
-                    {displaySummary ? (
-                      <SummaryContent text={displaySummary} />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Generate an AI summary of this lesson to review the key ideas.
-                      </p>
-                    )}
-
-                    {displaySummary ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5 text-xs"
-                          disabled={savingToNotebook}
-                          onClick={() => void handleSaveSummaryToNotebook()}
-                        >
-                          {savingToNotebook ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Save className="w-3.5 h-3.5" />
-                          )}
-                          Save to Notebook
-                        </Button>
-                      </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                {isTeacher ? (
-                  <section className="rounded-3xl border border-white/25 bg-white/30 p-6 space-y-4 dark:bg-white/6">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Sparkles className="w-5 h-5 text-zinc-500" />
-                      <h2 className="text-sm font-extrabold text-foreground">
-                        Improve lesson content
-                      </h2>
-                      <Badge className="text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700">
-                        Teacher AI
-                      </Badge>
+                    {/* Chat — fills remaining space, summary injected as chat message */}
+                    <div className="flex-1 min-h-0">
+                      <LessonAskPanel
+                        lessonId={lesson.id}
+                        lessonTitle={lesson.title}
+                        aiReady={lesson.aiReady}
+                        hasLessonContent={Boolean(lesson.description?.trim())}
+                        materialId={lesson.materials.length > 0 ? Number(summaryMaterialId || lesson.materials[0].id) : null}
+                        onSummarize={async () => {
+                          const result = await lessonAiService.generateSummaryFromLessonContent(lesson.id);
+                          return result.summary;
+                        }}
+                      />
                     </div>
-                    <textarea
-                      value={improveGoal}
-                      onChange={(event) => setImproveGoal(event.target.value)}
-                      rows={3}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      placeholder="Tell AI how to improve this lesson..."
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs"
-                        disabled={improvingLesson}
-                        onClick={() => void handleImproveLesson(false)}
-                      >
-                        {improvingLesson ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        Preview Improvement
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pt-3 pb-4 space-y-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                      <span className="text-xs font-bold text-foreground">AI Tools</span>
+                    </div>
+                    <textarea value={improveGoal} onChange={(e) => setImproveGoal(e.target.value)} rows={3} className="w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="Tell AI how to improve this lesson…" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5 text-xs rounded-xl" disabled={improvingLesson} onClick={() => void handleImproveLesson(false)}>
+                        {improvingLesson ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}Preview
                       </Button>
-                      <Button
-                        variant="inverse"
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs"
-                        disabled={improvingLesson}
-                        onClick={() => void handleImproveLesson(true)}
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        Generate and Save
+                      <Button size="sm" className="flex-1 h-8 gap-1.5 text-xs rounded-xl" disabled={improvingLesson} onClick={() => void handleImproveLesson(true)}>
+                        <Save className="w-3.5 h-3.5" />Save
                       </Button>
                     </div>
-                    {improvedContent ? (
-                      <div className="rounded-lg border border-border/70 bg-background/70 p-4">
-                        <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">
-                          Preview
-                        </p>
-                        <div
-                          className="prose prose-sm max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: improvedContent }}
-                        />
+                    {improvedContent && (
+                      <div className="rounded-xl p-3" style={{ background: "var(--glass-bg-subtle)", border: "1px solid var(--glass-border-color-subtle)" }}>
+                        <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Preview</p>
+                        <div className="prose prose-sm max-w-none dark:prose-invert text-xs" dangerouslySetInnerHTML={{ __html: improvedContent }} />
                       </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                <section>
-                  <LessonAskPanel
-                    lessonId={lesson.id}
-                    lessonTitle={lesson.title}
-                    aiReady={lesson.aiReady}
-                    hasLessonContent={Boolean(lesson.description?.trim())}
-                    materialId={
-                      lesson.materials.length > 0
-                        ? Number(summaryMaterialId || lesson.materials[0].id)
-                        : null
-                    }
-                  />
-                </section>
-              </div>
-            )}
-
-            {activeTab === "comments" && Number.isFinite(parsedClassId) ? (
-              <div>
-                <h2 className="text-sm font-extrabold text-foreground mb-4">Class discussion</h2>
-                <ClassCommentsPanel classId={parsedClassId} canPost={canPostComments} />
-              </div>
-            ) : null}
+                    )}
+                    <LessonAskPanel lessonId={lesson.id} lessonTitle={lesson.title} aiReady={lesson.aiReady} hasLessonContent={Boolean(lesson.description?.trim())} materialId={lesson.materials.length > 0 ? Number(summaryMaterialId || lesson.materials[0].id) : null} />
+                  </div>
+                )
+              )}
             </div>
           </div>
-        </>
-      ) : null}
-
-      {!loading && !error && visibleTabs.length === 0 ? (
-        <p className="px-6 py-12 text-sm text-muted-foreground text-center">
-          Could not load class tabs. Refresh the page or contact your administrator.
-        </p>
-      ) : null}
+        ) : (
+          /* ── Lesson cards list ── */
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-6 py-6">
+            <ClassCourseContent
+              lessons={lessons}
+              lesson={null}
+              canManage={canManage}
+              onSelectLesson={openLesson}
+              onBackToList={clearLesson}
+              onDeleteLesson={canManage ? handleDeleteLesson : undefined}
+              deletingLessonId={deletingLessonId}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 }

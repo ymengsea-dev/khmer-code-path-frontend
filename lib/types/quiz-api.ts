@@ -76,6 +76,23 @@ export interface QuizResults {
   submissions: QuizSubmissionReview[];
 }
 
+export interface QuizSummary {
+  /** Total quizzes (assigned for student / published for teacher). */
+  total: number;
+  /** Student: quizzes not yet started. */
+  pending: number;
+  /** Student: quizzes submitted successfully. */
+  completed: number;
+  /** Student: quizzes marked as failed. */
+  missed: number;
+  /** Teacher: total student submissions across all quizzes. */
+  totalSubmissions: number;
+  /** Teacher: total failed student attempts across all quizzes. */
+  totalFailed: number;
+  /** Teacher: total number of questions across all quizzes. */
+  totalQuestions: number;
+}
+
 export interface CreateQuizPayload {
   title: string;
   description?: string;

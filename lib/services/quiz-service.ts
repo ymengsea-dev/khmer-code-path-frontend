@@ -4,6 +4,7 @@ import type {
   QuizAttemptResult,
   QuizDto,
   QuizResults,
+  QuizSummary,
   UpdateQuizPayload,
 } from "../types/quiz-api";
 
@@ -65,5 +66,11 @@ export const quizService = {
   /** Teacher: soft-delete a quiz */
   async delete(quizId: number): Promise<void> {
     await apiClient.delete(`/quizzes/${quizId}`);
+  },
+
+  /** Aggregated quiz stats for the current user (role-aware: student vs teacher). */
+  async getSummary(): Promise<QuizSummary> {
+    const response = await apiClient.get<{ data: QuizSummary }>("/quizzes/summary");
+    return response.data.data;
   },
 };

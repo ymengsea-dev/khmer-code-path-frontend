@@ -116,11 +116,16 @@ function NoteRow({
         type="button"
         onClick={onSelect}
         className={cn(
-          "w-full text-left rounded-lg py-2.5 pr-8 transition-colors border border-transparent overflow-hidden flex",
+          "w-full text-left rounded-xl py-2.5 pr-8 transition-all overflow-hidden flex",
           selected
-            ? "bg-white dark:bg-zinc-800 shadow-sm border-black/[0.04] dark:border-white/[0.06]"
-            : "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+            ? ""
+            : "hover:bg-black/4"
         )}
+        style={selected ? {
+          background: "var(--glass-bg)",
+          border: "1px solid rgba(255,255,255,0.85)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        } : undefined}
       >
         {accent ? (
           <span
@@ -163,7 +168,7 @@ function NoteRow({
           className={cn(
             "absolute right-4 top-2.5 p-1 rounded-md text-muted-foreground",
             "opacity-0 group-hover:opacity-100 focus:opacity-100",
-            "hover:bg-black/[0.06] dark:hover:bg-white/[0.08] outline-none",
+            "hover:bg-black/6 dark:hover:bg-white/8 outline-none",
             selected && "opacity-100"
           )}
           aria-label="Note options"
@@ -428,43 +433,66 @@ export function NotebookView() {
   const noteCountLabel = `${notes.length} ${notes.length === 1 ? "Note" : "Notes"}`;
   const isSearchActive = Boolean(searchQuery.trim());
 
+  const taggedNotes = filteredNotes.filter((n) => parseNoteTags(n.tags).length > 0);
+  const untaggedNotes = filteredNotes.filter((n) => parseNoteTags(n.tags).length === 0);
+
   const listPane = (
-    <aside className="w-full lg:w-[300px] xl:w-[320px] shrink-0 flex flex-col min-h-0 bg-[#f2f2f7] dark:bg-zinc-900/80 border-r border-black/[0.06] dark:border-white/[0.08]">
-      <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between gap-2">
+    <aside
+      className="w-full lg:w-[280px] xl:w-[300px] shrink-0 flex flex-col min-h-0 rounded-2xl overflow-hidden"
+      style={{
+        background: "var(--glass-bg)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
+        border: "1px solid var(--glass-border-color)",
+        boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+      }}
+    >
+      <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Notes</h1>
-          <p className="text-[12px] text-muted-foreground">{noteCountLabel}</p>
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Notes</h1>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{noteCountLabel}</p>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            aria-label="New note"
-            disabled={creating || saving}
-            onClick={() => void createNewNote()}
-          >
-            {creating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <SquarePen className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <button
+          type="button"
+          aria-label="New note"
+          disabled={creating || saving}
+          onClick={() => void createNewNote()}
+          className="h-8 w-8 rounded-xl inline-flex items-center justify-center transition-colors disabled:opacity-40"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "none",
+            color: "#305FC9",
+          }}
+        >
+          {creating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <SquarePen className="h-[15px] w-[15px]" />
+          )}
+        </button>
       </div>
+
       <div className="shrink-0 px-3 pb-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
+        <div
+          className="relative flex items-center rounded-xl h-9"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "none",
+          }}
+        >
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground z-10" />
+          <input
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 pl-8 text-[13px] bg-black/[0.04] dark:bg-white/[0.06] border-0 shadow-none rounded-lg"
+            className="w-full h-full pl-8 pr-3 text-[13px] bg-transparent focus:outline-none placeholder:text-muted-foreground/60"
           />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0">
+
+      <div className="flex-1 overflow-y-auto scrollbar-hide min-h-0">
         {listLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -472,25 +500,56 @@ export function NotebookView() {
         ) : notes.length === 0 ? (
           <div className="px-4 py-12 text-center space-y-3">
             <p className="text-sm text-muted-foreground">No notes yet.</p>
-            <Button size="sm" variant="outline" disabled={saving || creating} onClick={() => void createNewNote()}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
+            <button
+              type="button"
+              disabled={saving || creating}
+              onClick={() => void createNewNote()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium disabled:opacity-40"
+              style={{ background: "#305FC9", color: "white" }}
+            >
+              <Plus className="h-3.5 w-3.5" />
               New note
-            </Button>
+            </button>
           </div>
         ) : filteredNotes.length === 0 ? (
           <p className="px-4 py-8 text-sm text-muted-foreground text-center">
             {isSearchActive ? "Not found." : "No notes yet."}
           </p>
         ) : (
-          filteredNotes.map((note) => (
-            <NoteRow
-              key={note.id}
-              note={note}
-              selected={selectedId === note.id}
-              onSelect={() => handleSelectNote(note)}
-              onDelete={(n) => void handleDeleteNote(n)}
-            />
-          ))
+          <>
+            {taggedNotes.length > 0 && (
+              <>
+                <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  Tagged
+                </p>
+                {taggedNotes.map((note) => (
+                  <NoteRow
+                    key={note.id}
+                    note={note}
+                    selected={selectedId === note.id}
+                    onSelect={() => handleSelectNote(note)}
+                    onDelete={(n) => void handleDeleteNote(n)}
+                  />
+                ))}
+              </>
+            )}
+            {untaggedNotes.length > 0 && (
+              <>
+                <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  {taggedNotes.length > 0 ? "Untagged" : "Notes"}
+                </p>
+                {untaggedNotes.map((note) => (
+                  <NoteRow
+                    key={note.id}
+                    note={note}
+                    selected={selectedId === note.id}
+                    onSelect={() => handleSelectNote(note)}
+                    onDelete={(n) => void handleDeleteNote(n)}
+                  />
+                ))}
+              </>
+            )}
+          </>
         )}
       </div>
     </aside>
@@ -498,9 +557,18 @@ export function NotebookView() {
 
   if (isSharedView) {
     return (
-      <div className="flex flex-1 min-h-0 overflow-hidden bg-[#fffef8] dark:bg-zinc-950">
-        <main className="flex-1 flex flex-col min-w-0 min-h-0">
-          <div className="shrink-0 h-11 px-4 flex items-center justify-end border-b border-black/[0.06] dark:border-white/[0.08] bg-[#fffef8]/90 dark:bg-zinc-950/90">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <main
+          className="flex-1 flex flex-col min-w-0 min-h-0 rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+          }}
+        >
+          <div className="shrink-0 h-11 px-4 flex items-center" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
             <span className="text-[12px] text-muted-foreground mr-auto">
               {sharedNote ? `Shared · ${sharedNote.ownerDisplayName}` : "Shared note"}
             </span>
@@ -511,10 +579,10 @@ export function NotebookView() {
             </div>
           ) : sharedNote ? (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <h2 className="shrink-0 px-10 sm:px-14 pt-5 text-[28px] font-bold text-foreground tracking-tight">
+              <h2 className="shrink-0 px-6 pt-5 text-[28px] font-bold text-foreground tracking-tight">
                 {sharedNote.title}
               </h2>
-              <p className="shrink-0 px-10 sm:px-14 pb-2 text-[12px] text-muted-foreground">
+              <p className="shrink-0 px-6 pb-2 text-[12px] text-muted-foreground">
                 {formatDocumentTimestamp(sharedNote.updatedAt)}
               </p>
               <RichTextEditor
@@ -537,17 +605,26 @@ export function NotebookView() {
   }
 
   return (
-    <div className="flex flex-1 min-h-0 h-full overflow-hidden bg-[#f2f2f7] dark:bg-zinc-950">
-      <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row">
+    <div className="flex flex-1 min-h-0 h-full overflow-hidden">
+      <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row gap-3">
         {listPane}
 
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-[#fffef8] dark:bg-[#1c1c1e]">
+        <main
+          className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden rounded-2xl"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+          }}
+        >
           {detailLoading ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : selectedId != null || activeNote != null ? (
-            <>
+            <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
               <RichTextDocumentEditor
                 title={title}
                 onTitleChange={(v) => {
@@ -572,55 +649,81 @@ export function NotebookView() {
                         markDirty();
                       }}
                     />
-                    <div className="flex items-center gap-1 shrink-0 ml-auto">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-[13px] text-muted-foreground gap-1.5"
-                        disabled={!activeNote?.id}
-                        onClick={() => void handleShare()}
-                      >
-                        <Share2 className="h-4 w-4" />
-                        <span className="hidden sm:inline">Share</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-[13px] font-medium"
-                        disabled={saving}
-                        onClick={() => void persistNote(false)}
-                      >
-                        {saving ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : saveStatus === "saved" ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                        ) : (
-                          <PenSquare className="h-3.5 w-3.5" />
-                        )}
-                        <span className="hidden sm:inline ml-1">
-                          {saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}
-                        </span>
-                      </Button>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={!activeNote?.id}
+                      onClick={() => void handleShare()}
+                      className="inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium text-muted-foreground transition-all disabled:opacity-40 ml-auto"
+                      style={{
+                        background: "var(--glass-bg-subtle)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "none",
+                      }}
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
                   </>
                 }
                 className="flex-1 min-h-0"
               />
 
-              {(saveError || (saveStatus === "dirty" && !saving)) && (
-                <p className="shrink-0 px-6 py-2 text-[11px] text-center text-muted-foreground border-t border-black/[0.04]">
-                  {saveError ?? "Unsaved · auto-saves every 30s or tap Save"}
+              {/* Floating save button — bottom right */}
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void persistNote(false)}
+                className="absolute bottom-4 right-4 z-10 inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40"
+                style={saveStatus === "saved" ? {
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  color: "#16a34a",
+                } : {
+                  background: "#305FC9",
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+                }}
+              >
+                {saving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : saveStatus === "saved" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <PenSquare className="h-3.5 w-3.5" />
+                )}
+                <span>{saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}</span>
+              </button>
+
+              {saveError && (
+                <p className="absolute bottom-12 right-4 z-10 text-[11px] text-red-500">
+                  {saveError}
                 </p>
               )}
-            </>
+            </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground p-8">
-              <SquarePen className="h-12 w-12 opacity-30" />
+              <div
+                className="h-14 w-14 rounded-2xl flex items-center justify-center mb-1"
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                }}
+              >
+                <SquarePen className="h-6 w-6 text-muted-foreground" />
+              </div>
               <p className="text-sm">Select a note or create a new one</p>
-              <Button variant="outline" size="sm" disabled={creating} onClick={() => void createNewNote()}>
-                <Plus className="h-4 w-4 mr-1.5" />
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => void createNewNote()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium disabled:opacity-40"
+                style={{ background: "#305FC9", color: "white" }}
+              >
+                <Plus className="h-4 w-4" />
                 New note
-              </Button>
+              </button>
             </div>
           )}
         </main>

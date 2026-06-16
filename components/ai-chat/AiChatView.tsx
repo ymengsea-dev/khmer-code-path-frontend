@@ -73,13 +73,15 @@ function ConversationRow({
   };
 
   return (
-    <div className="px-2 py-0.5 group relative">
+    <div className="px-1.5 py-0.5 group relative">
       {editing ? (
         <div
-          className={cn(
-            "flex items-center gap-1 rounded-xl px-3 py-2 ring-1 ring-indigo-400/60",
-            "bg-white dark:bg-zinc-800"
-          )}
+          className="flex items-center gap-1 rounded-xl px-3 py-2"
+          style={{
+            background: "var(--glass-bg)",
+            border: "1px solid rgba(48,95,201,0.35)",
+            boxShadow: "none",
+          }}
         >
           <input
             ref={inputRef}
@@ -95,7 +97,8 @@ function ConversationRow({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); commitEdit(); }}
-            className="shrink-0 h-5 w-5 rounded flex items-center justify-center text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+            className="shrink-0 h-5 w-5 rounded flex items-center justify-center hover:bg-black/8 transition-colors"
+            style={{ color: "#305FC9" }}
             aria-label="Save"
           >
             <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -103,7 +106,7 @@ function ConversationRow({
           <button
             type="button"
             onClick={cancelEdit}
-            className="shrink-0 h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
+            className="shrink-0 h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:bg-black/8 transition-colors"
             aria-label="Cancel"
           >
             <X className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -114,21 +117,31 @@ function ConversationRow({
           <button
             type="button"
             onClick={onSelect}
-            className={cn(
-              "w-full text-left rounded-xl px-3 py-2.5 transition-all duration-150 pr-16",
+            className="w-full text-left rounded-xl px-3 py-2.5 transition-all duration-150 pr-16"
+            style={
               selected
-                ? "bg-white dark:bg-zinc-800/80 shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                : "hover:bg-black/4 dark:hover:bg-white/4"
-            )}
+                ? {
+                    background: "var(--glass-bg)",
+                    border: "1px solid var(--glass-border-color)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  }
+                : undefined
+            }
+            onMouseEnter={(e) => {
+              if (!selected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.04)";
+            }}
+            onMouseLeave={(e) => {
+              if (!selected) (e.currentTarget as HTMLButtonElement).style.background = "";
+            }}
           >
             <p className="text-[13px] font-medium text-foreground truncate">{thread.title}</p>
           </button>
 
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
             <button
               type="button"
               onClick={startEdit}
-              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/8 transition-colors"
               aria-label={`Rename ${thread.title}`}
             >
               <Pencil className="h-3 w-3" />
@@ -137,7 +150,7 @@ function ConversationRow({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               disabled={deleting}
-              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-40"
+              className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/8 transition-colors disabled:opacity-40"
               aria-label={`Delete ${thread.title}`}
             >
               {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -156,18 +169,37 @@ function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming
     <div className={cn("flex w-full gap-2.5 items-end", isUser ? "justify-end" : "justify-start")}>
       {/* AI avatar — left side */}
       {!isUser && (
-        <div className="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm mb-0.5">
-          <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+        <div
+          className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center mb-0.5"
+          style={{
+            background: "var(--glass-bg)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          }}
+        >
+          <Sparkles className="h-3.5 w-3.5" style={{ color: "#305FC9" }} strokeWidth={2} />
         </div>
       )}
 
       <div
         className={cn(
           "min-w-0 max-w-[90%] rounded-2xl text-[14px] leading-relaxed px-4 py-2.5 overflow-hidden",
-          isUser
-            ? "rounded-br-md bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/20"
-            : "rounded-bl-md bg-white dark:bg-zinc-800 ring-1 ring-black/5 dark:ring-white/10 text-foreground shadow-sm"
+          isUser ? "rounded-br-md" : "rounded-bl-md"
         )}
+        style={
+          isUser
+            ? {
+                background: "#305FC9",
+                color: "white",
+                boxShadow: "0 2px 12px rgba(48,95,201,0.25)",
+              }
+            : {
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+                color: "inherit",
+              }
+        }
       >
         {isUser ? (
           <p className="whitespace-pre-wrap wrap-break-word">{msg.content}</p>
@@ -187,27 +219,27 @@ function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming
                 li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                 code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
                   inline ? (
-                    <code className="text-[13px] font-mono bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-1 py-0.5 rounded">{children}</code>
+                    <code className="text-[13px] font-mono bg-black/6 px-1 py-0.5 rounded">{children}</code>
                   ) : (
                     <code>{children}</code>
                   ),
                 pre: ({ children }) => (
-                  <pre className="my-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-zinc-200 dark:border-zinc-700">{children}</pre>
+                  <pre className="my-2 bg-black/5 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-black/8">{children}</pre>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="my-2 border-l-2 border-indigo-400 pl-3 italic text-muted-foreground">{children}</blockquote>
+                  <blockquote className="my-2 border-l-2 pl-3 italic text-muted-foreground" style={{ borderColor: "#305FC9" }}>{children}</blockquote>
                 ),
-                hr: () => <hr className="my-3 border-black/10 dark:border-white/10" />,
+                hr: () => <hr className="my-3 border-black/10" />,
                 a: ({ href, children }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-500 underline underline-offset-2 hover:text-indigo-600">{children}</a>
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80" style={{ color: "#305FC9" }}>{children}</a>
                 ),
                 table: ({ children }) => (
                   <div className="my-2 overflow-x-auto">
                     <table className="w-full text-[13px] border-collapse">{children}</table>
                   </div>
                 ),
-                th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">{children}</th>,
-                td: ({ children }) => <td className="px-3 py-1.5 border border-zinc-200 dark:border-zinc-700">{children}</td>,
+                th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold border border-black/8 bg-black/4">{children}</th>,
+                td: ({ children }) => <td className="px-3 py-1.5 border border-black/8">{children}</td>,
               }}
             >
               {msg.content}
@@ -224,8 +256,15 @@ function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming
 
       {/* User avatar — right side */}
       {isUser && (
-        <div className="shrink-0 h-7 w-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shadow-sm mb-0.5">
-          <User className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" strokeWidth={2} />
+        <div
+          className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center mb-0.5"
+          style={{
+            background: "var(--glass-bg)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          }}
+        >
+          <User className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
         </div>
       )}
     </div>
@@ -503,34 +542,47 @@ export function AiChatView() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
   return (
-    <div className="flex flex-1 min-h-0 h-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
-      <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row">
+    <div className="flex flex-1 min-h-0 h-full overflow-hidden">
+      <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row gap-3">
 
         {/* Sidebar */}
-        <aside className="w-full lg:w-[280px] xl:w-[300px] shrink-0 flex flex-col min-h-0 bg-white/80 dark:bg-zinc-900/80 border-r border-black/6 dark:border-white/6">
-          <div className="shrink-0 px-4 pt-5 pb-4">
+        <aside
+          className="w-full lg:w-[260px] xl:w-[280px] shrink-0 flex flex-col min-h-0 rounded-2xl overflow-hidden scrollbar-hide"
+          style={{
+            background: "var(--glass-bg)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+          }}
+        >
+          <div className="shrink-0 px-4 pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[17px] font-semibold tracking-tight text-foreground">AI Chat</h1>
-                <p className="text-[12px] text-muted-foreground mt-0.5">Your private workspace</p>
+                <h1 className="text-[15px] font-semibold tracking-tight text-foreground">AI Chat</h1>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Your private workspace</p>
               </div>
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
                 disabled={isBootstrapping}
                 onClick={() => void handleNewConversation()}
                 aria-label="New chat"
+                className="h-8 w-8 rounded-xl inline-flex items-center justify-center transition-colors disabled:opacity-40"
+                style={{
+                  background: "var(--glass-bg-subtle)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                  color: "#305FC9",
+                }}
               >
-                <SquarePen className="h-[17px] w-[17px]" strokeWidth={2} />
-              </Button>
+                <SquarePen className="h-[15px] w-[15px]" strokeWidth={2} />
+              </button>
             </div>
           </div>
 
-          <div className="mx-4 h-px bg-black/6 dark:bg-white/6 mb-2" />
+          <div className="mx-4 h-px bg-black/6 mb-1.5" />
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-1.5 pb-3">
+          <div className="flex-1 overflow-y-auto scrollbar-hide min-h-0 px-1.5 pb-3">
             {isBootstrapping && conversations.length === 0 ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -538,15 +590,19 @@ export function AiChatView() {
             ) : conversations.length === 0 ? (
               <div className="px-4 py-10 flex flex-col items-center gap-3 text-center">
                 <p className="text-[12px] text-muted-foreground">No conversation history</p>
-                <Button
-                  size="sm"
-                  className="rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 border-0 shadow-none"
+                <button
+                  type="button"
                   disabled={isBootstrapping}
                   onClick={() => void handleNewConversation()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all disabled:opacity-40"
+                  style={{
+                    background: "#305FC9",
+                    color: "white",
+                  }}
                 >
-                  <Plus className="h-4 w-4 mr-1.5" />
+                  <Plus className="h-3.5 w-3.5" />
                   New Chat
-                </Button>
+                </button>
               </div>
             ) : (
               conversations.map((thread) => (
@@ -565,17 +621,28 @@ export function AiChatView() {
         </aside>
 
         {/* Main area */}
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden bg-neutral-50 dark:bg-zinc-950">
-
+        <main
+          className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden rounded-2xl"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            border: "1px solid var(--glass-border-color)",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+          }}
+        >
           {/* Top bar */}
-          <div className="shrink-0 h-[52px] px-5 flex items-center justify-center border-b border-black/6 dark:border-white/6 bg-white/80 dark:bg-zinc-900/80">
-            <p className="text-[14px] font-semibold text-foreground truncate max-w-[60%] text-center tracking-tight">
+          <div
+            className="shrink-0 h-[48px] px-5 flex items-center justify-center"
+            style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
+          >
+            <p className="text-[13px] font-semibold text-foreground truncate max-w-[60%] text-center tracking-tight">
               {activeConversation?.title ?? "New Chat"}
             </p>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-6">
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide overscroll-y-contain px-4 sm:px-6 py-5">
             {isBootstrapping ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -583,34 +650,42 @@ export function AiChatView() {
             ) : (
               <div className="mx-auto max-w-3xl flex flex-col gap-3">
                 {messages.length === 0 && !isLoading ? (
-                  <div className="flex flex-col items-center justify-center text-center mt-24 mb-10 select-none">
-                    <div className="relative mb-5">
-                      <div className="relative h-14 w-14 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                        <Sparkles className="h-6 w-6 text-white" strokeWidth={2} />
-                      </div>
+                  <div className="flex flex-col items-center justify-center text-center mt-20 mb-10 select-none">
+                    <div
+                      className="relative mb-5 h-14 w-14 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: "var(--glass-bg)",
+                        backdropFilter: "blur(16px) saturate(1.4)",
+                        WebkitBackdropFilter: "blur(16px) saturate(1.4)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      <Sparkles className="h-6 w-6" style={{ color: "#305FC9" }} strokeWidth={2} />
                     </div>
                     {activeConversationId ? (
                       <>
-                        <h2 className="text-[20px] font-semibold text-foreground mb-1.5 tracking-tight">AI Assistant</h2>
-                        <p className="text-muted-foreground text-[14px] max-w-xs leading-relaxed">
+                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">AI Assistant</h2>
+                        <p className="text-muted-foreground text-[13px] max-w-xs leading-relaxed">
                           Ask anything about your class content, get explanations, or explore ideas.
                         </p>
                       </>
                     ) : (
                       <>
-                        <h2 className="text-[20px] font-semibold text-foreground mb-1.5 tracking-tight">No conversation selected</h2>
-                        <p className="text-muted-foreground text-[14px] max-w-xs leading-relaxed mb-4">
+                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">No conversation selected</h2>
+                        <p className="text-muted-foreground text-[13px] max-w-xs leading-relaxed mb-4">
                           Start a new chat to begin talking with your AI assistant.
                         </p>
-                        <Button
-                          size="sm"
-                          className="rounded-full bg-linear-to-br from-indigo-500 to-violet-600 text-white hover:from-indigo-600 hover:to-violet-700 shadow-sm shadow-indigo-500/30 border-0"
+                        <button
+                          type="button"
                           disabled={isBootstrapping}
                           onClick={() => void handleNewConversation()}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all disabled:opacity-40"
+                          style={{ background: "#305FC9", color: "white" }}
                         >
-                          <Plus className="h-4 w-4 mr-1.5" />
+                          <Plus className="h-4 w-4" />
                           New Chat
-                        </Button>
+                        </button>
                       </>
                     )}
                   </div>
@@ -624,16 +699,30 @@ export function AiChatView() {
                   />
                 ))}
 
-                {/* Show typing dots only before the streaming placeholder is added */}
+                {/* Typing dots before streaming placeholder is added */}
                 {isLoading && !messages.some((m) => m.id === STREAM_MSG_ID) ? (
                   <div className="flex justify-start items-end gap-2.5 mt-1">
-                    <div className="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
-                      <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                    <div
+                      className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center"
+                      style={{
+                        background: "var(--glass-bg)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "none",
+                      }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" style={{ color: "#305FC9" }} strokeWidth={2} />
                     </div>
-                    <div className="rounded-2xl rounded-bl-md bg-white dark:bg-zinc-800 ring-1 ring-black/5 dark:ring-white/10 px-4 py-3 inline-flex items-center gap-1.5 shadow-sm">
-                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.3s]" />
-                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.15s]" />
-                      <span className="size-1.5 rounded-full bg-indigo-400 animate-bounce" />
+                    <div
+                      className="rounded-2xl rounded-bl-md px-4 py-3 inline-flex items-center gap-1.5"
+                      style={{
+                        background: "var(--glass-bg)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce [animation-delay:-0.3s]" />
+                      <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce [animation-delay:-0.15s]" />
+                      <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce" />
                     </div>
                   </div>
                 ) : null}
@@ -646,53 +735,52 @@ export function AiChatView() {
           ) : null}
 
           {/* Composer */}
-          <div className="shrink-0 px-4 sm:px-6 pb-4 pt-2 bg-neutral-50 dark:bg-zinc-950">
+          <div className="shrink-0 px-4 sm:px-6 pb-4 pt-2">
             <form
               onSubmit={handleSubmit}
-              className="mx-auto max-w-3xl flex items-end gap-2 rounded-2xl ring-1 ring-black/8 dark:ring-white/8 bg-white dark:bg-zinc-900 px-4 py-2.5 shadow-md shadow-black/4 focus-within:ring-indigo-400/60 dark:focus-within:ring-indigo-500/40 focus-within:shadow-lg transition-all duration-200"
+              className="mx-auto max-w-3xl flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all duration-200"
+              style={{
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              }}
             >
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex items-center">
                 <textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask anything…"
+                  placeholder="Ask anything… (Enter to send, Shift+Enter for new line)"
                   rows={1}
                   aria-label="Message"
                   disabled={isLoading || isBootstrapping || !activeConversationId}
                   className={cn(
-                    "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent py-0.5",
-                    "text-[14px] leading-6 text-foreground placeholder:text-muted-foreground",
+                    "ai-composer-textarea",
+                    "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent pt-2 pb-3 px-0 m-0 border-0",
+                    "text-[14px] leading-normal text-foreground placeholder:text-muted-foreground/60",
                     "focus-visible:outline-none disabled:opacity-50"
                   )}
                 />
               </div>
 
-              <Button
+              <button
                 type="submit"
-                size="icon"
-                disabled={!input.trim() || isLoading || isBootstrapping || !activeConversationId}
-                className={cn(
-                  "h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5 inline-flex items-center justify-center",
-                  "bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-500/30",
-                  "hover:from-indigo-600 hover:to-violet-700",
-                  "disabled:bg-none disabled:bg-zinc-200 disabled:text-zinc-400 disabled:shadow-none",
-                  "dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500",
-                  "transition-all duration-150"
-                )}
                 aria-label="Send message"
+                className="h-8 w-8 shrink-0 rounded-xl inline-flex items-center justify-center transition-all duration-150"
+                style={{
+                  background: "#305FC9",
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+                }}
               >
                 {isLoading ? (
                   <Loader2 className="w-[15px] h-[15px] animate-spin" />
                 ) : (
                   <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
                 )}
-              </Button>
+              </button>
             </form>
-            <p className="mt-1.5 text-center text-[11px] text-muted-foreground/60">
-              Enter to send · Shift+Enter for new line
-            </p>
           </div>
 
         </main>

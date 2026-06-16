@@ -52,7 +52,7 @@ import {
   type QuizMaterialSource,
 } from "@/lib/quiz-material-sources";
 import type { QuizGenerateDto } from "@/lib/types/lesson-ai-api";
-import type { QuizDto, QuizResults } from "@/lib/types/quiz-api";
+import type { QuizDto, QuizResults, QuizSummary } from "@/lib/types/quiz-api";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useQueryState } from "@/lib/hooks/use-query-params";
@@ -553,6 +553,9 @@ export function MyTasksView() {
   const [quizzesLoading, setQuizzesLoading] = useState(true);
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
 
+  /* ── Summary stats state ── */
+  const [summary, setSummary] = useState<QuizSummary | null>(null);
+
   /* ── Active quiz taking ── */
   const [activeQuiz, setActiveQuiz] = useState<QuizDto | null>(null);
 
@@ -614,10 +617,14 @@ export function MyTasksView() {
     setQuizzesLoading(true);
     setQuizzesError(null);
     try {
-      const list = isTeacher
-        ? await quizService.listForClass().catch(() => [] as QuizDto[])
-        : await quizService.listAssigned().catch(() => [] as QuizDto[]);
+      const [list, stats] = await Promise.all([
+        isTeacher
+          ? quizService.listForClass().catch(() => [] as QuizDto[])
+          : quizService.listAssigned().catch(() => [] as QuizDto[]),
+        quizService.getSummary().catch(() => null),
+      ]);
       setQuizzes(list);
+      setSummary(stats);
     } catch {
       setQuizzes([]);
     } finally {
@@ -838,30 +845,82 @@ export function MyTasksView() {
     );
   }
 
+  /* ── Summary stats (from backend) ── */
+  const summaryStats = summary
+    ? isTeacher
+      ? [
+          { label: "Quizzes",     value: String(summary.total),             sub: "published",           color: "#305FC9", bg: "rgba(48,95,201,0.08)"   },
+          { label: "Submissions", value: String(summary.totalSubmissions),   sub: "across all quizzes",  color: "#16a34a", bg: "rgba(22,163,74,0.08)"   },
+          { label: "Failed",      value: String(summary.totalFailed),        sub: "student attempts",    color: "#dc2626", bg: "rgba(220,38,38,0.08)"   },
+          { label: "Questions",   value: String(summary.totalQuestions),     sub: "total",               color: "#7c3aed", bg: "rgba(124,58,237,0.08)"  },
+        ]
+      : [
+          { label: "Total",     value: String(summary.total),     sub: "assigned quizzes", color: "#305FC9", bg: "rgba(48,95,201,0.08)"  },
+          { label: "Pending",   value: String(summary.pending),   sub: "not yet started",  color: "#d97706", bg: "rgba(217,119,6,0.08)"  },
+          { label: "Completed", value: String(summary.completed), sub: "submitted",        color: "#16a34a", bg: "rgba(22,163,74,0.08)"  },
+          { label: "Missed",    value: String(summary.missed),    sub: "failed or closed", color: "#dc2626", bg: "rgba(220,38,38,0.08)"  },
+        ]
+    : [];
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <header className="px-6 py-5 border-b border-border/60 bg-white/40 dark:bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Quizzes
-            <FlaskConical className="w-5 h-5 text-violet-500" />
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isTeacher
-              ? "Generate AI quizzes and assign them to your classes."
-              : "Complete your assigned quizzes."}
-          </p>
-        </div>
-      </header>
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col gap-5">
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+        {/* ── Summary stat cards ── */}
+        {!quizzesLoading && summary !== null && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+            {summaryStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-2xl p-4 flex flex-col gap-2"
+                style={{
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div
+                  className="h-8 w-8 rounded-xl flex items-center justify-center text-xs font-black"
+                  style={{ background: stat.bg, color: stat.color }}
+                >
+                  {stat.value}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{stat.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{stat.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── AI Generator (teacher only) ── */}
         {isTeacher && (
-          <section className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-transparent to-blue-500/10 p-6 shadow-2xs">
+          <section
+            className="rounded-2xl p-5"
+            style={{
+              background: "var(--glass-bg)",
+              backdropFilter: "var(--glass-blur)",
+              WebkitBackdropFilter: "var(--glass-blur)",
+              border: "1px solid var(--glass-border-color)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            }}
+          >
             <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="w-5 h-5 text-violet-500 shrink-0" />
+              <div
+                className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                }}
+              >
+                <Sparkles className="w-4 h-4" style={{ color: "#305FC9" }} />
+              </div>
               <div>
-                <h3 className="text-sm font-extrabold text-foreground tracking-tight">
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">
                   AI Quiz Generator
                 </h3>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -916,11 +975,12 @@ export function MyTasksView() {
                   disabled={generating}
                 />
               </div>
-              <Button
-                variant="inverse"
-                className="gap-1.5 font-bold h-9 shrink-0"
+              <button
+                type="button"
                 disabled={generating || sourcesLoading || sources.length === 0}
                 onClick={() => void handleGenerate()}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 shrink-0"
+                style={{ background: "#305FC9", color: "white", boxShadow: "0 2px 8px rgba(48,95,201,0.25)" }}
               >
                 {generating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -928,7 +988,7 @@ export function MyTasksView() {
                   <Zap className="w-4 h-4" />
                 )}
                 {generating ? "Generating…" : "Generate Quiz"}
-              </Button>
+              </button>
             </div>
             {generateError && (
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">{generateError}</p>
@@ -947,31 +1007,43 @@ export function MyTasksView() {
               </div>
             )}
             {generatedQuiz && (
-              <div className="mt-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 flex items-center gap-3 flex-wrap">
+              <div
+                className="mt-4 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap"
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                }}
+              >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
+                  <p className="text-xs font-semibold text-foreground truncate">
                     {generatedQuiz.questionCount} questions ready — review and publish to a class
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs font-semibold border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                  <button
+                    type="button"
                     onClick={() => setPreviewOpen(true)}
+                    className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold transition-all"
+                    style={{
+                      background: "var(--glass-bg)",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      boxShadow: "none",
+                    }}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     Edit Quiz
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="gap-1.5 text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white"
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setAssignOpen(true)}
+                    className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold text-white transition-all"
+                    style={{ background: "#305FC9", boxShadow: "0 1px 6px rgba(48,95,201,0.25)" }}
                   >
                     <Users className="w-3.5 h-3.5" />
                     Assign to Class
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
@@ -980,9 +1052,7 @@ export function MyTasksView() {
 
         {/* ── Quiz list ── */}
         <div>
-          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-tight text-zinc-700 dark:text-zinc-300 mb-3">
-            {isTeacher ? "Published Quizzes" : "My Quizzes"}
-          </h2>
+
 
           {quizzesLoading ? (
             <div className="flex justify-center py-16">
@@ -991,9 +1061,25 @@ export function MyTasksView() {
           ) : quizzesError ? (
             <p className="text-sm text-destructive">{quizzesError}</p>
           ) : quizzes.length === 0 ? (
-            <div className="text-center py-16 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
-              <FlaskConical className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">
+            <div
+              className="text-center py-16 rounded-2xl flex flex-col items-center gap-3"
+              style={{
+                background: "var(--glass-bg-subtle)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "none",
+              }}
+            >
+              <div
+                className="h-12 w-12 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                }}
+              >
+                <FlaskConical className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">
                 {isTeacher
                   ? "No published quizzes yet. Generate one above and assign it to a class."
                   : "No quizzes assigned yet. Check back when your teacher publishes one."}
@@ -1419,25 +1505,29 @@ function QuizCard({
   const isClosed = quiz.status === "CLOSED";
 
   return (
-    <Card
+    <div
       className={cn(
-        "border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-2xs transition-colors",
-        isTeacher
-          ? "hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md cursor-pointer"
-          : "hover:border-slate-300 dark:hover:border-zinc-700"
+        "rounded-2xl p-5 flex flex-col transition-all duration-200",
+        isTeacher ? "cursor-pointer hover:scale-[1.01]" : ""
       )}
+      style={{
+        background: "var(--glass-bg)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
+        border: "1px solid var(--glass-border-color)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+      }}
       onClick={onCardClick}
     >
-      <CardContent className="p-5">
         <div className="flex justify-between items-start gap-3 mb-3">
-          <Badge
+          <span
             className={cn(
-              "text-[10px] font-bold border-0",
+              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold",
               isPending
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                ? "bg-amber-500/10 text-amber-600"
                 : isClosed
-                  ? "bg-slate-500/10 text-muted-foreground"
-                  : "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                  ? "bg-black/6 text-muted-foreground"
+                  : "bg-emerald-500/10 text-emerald-600"
             )}
           >
             {quiz.status === "PUBLISHED"
@@ -1445,7 +1535,7 @@ function QuizCard({
               : quiz.status === "DRAFT"
                 ? "Draft"
                 : "Closed"}
-          </Badge>
+          </span>
           <div className="flex items-center gap-1 shrink-0">
             {quiz.durationMinutes && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1508,28 +1598,24 @@ function QuizCard({
         {isTeacher && (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
-                <p className="text-muted-foreground">Submitted</p>
-                <p className="font-black text-foreground">
-                  {quiz.submittedCount ?? 0}
-                  {quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
-                <p className="text-muted-foreground">Failed</p>
-                <p className="font-black text-foreground">{quiz.failedCount ?? 0}</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 px-2.5 py-2">
-                <p className="text-muted-foreground">Pending</p>
-                <p className="font-black text-foreground">
-                  {quiz.enrolledStudents != null
-                    ? Math.max(
-                        0,
-                        quiz.enrolledStudents - (quiz.submittedCount ?? 0) - (quiz.failedCount ?? 0)
-                      )
-                    : "—"}
-                </p>
-              </div>
+              {[
+                { label: "Submitted", value: `${quiz.submittedCount ?? 0}${quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}` },
+                { label: "Failed", value: String(quiz.failedCount ?? 0) },
+                { label: "Pending", value: quiz.enrolledStudents != null ? String(Math.max(0, quiz.enrolledStudents - (quiz.submittedCount ?? 0) - (quiz.failedCount ?? 0))) : "—" },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-xl px-2.5 py-2"
+                  style={{
+                    background: "var(--glass-bg-subtle)",
+                    border: "1px solid var(--glass-border-color)",
+                    boxShadow: "none",
+                  }}
+                >
+                  <p className="text-muted-foreground">{label}</p>
+                  <p className="font-black text-foreground">{value}</p>
+                </div>
+              ))}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Eye className="w-3.5 h-3.5" />
@@ -1538,21 +1624,21 @@ function QuizCard({
           </div>
         )}
         {!isTeacher && isPending && (
-          <Button
-            className="w-full font-bold h-9"
+          <button
+            type="button"
+            className="w-full h-9 rounded-xl text-sm font-semibold text-white transition-all"
+            style={{ background: "#305FC9", boxShadow: "0 2px 8px rgba(48,95,201,0.25)" }}
             onClick={(e) => { e.stopPropagation(); onStart(); }}
           >
-            <AlertTriangle className="w-4 h-4 mr-1.5" />
             Start Quiz
-          </Button>
+          </button>
         )}
         {!isTeacher && !isPending && (
-          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+          <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold">
             <CheckCircle2 className="w-4 h-4" />
             {isClosed ? "Quiz closed" : "Completed"}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

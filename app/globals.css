@@ -65,6 +65,16 @@
 }
 
 :root {
+  /* ── Liquid-glass design tokens (light mode) ─────────────────────────── */
+  --glass-bg:           rgba(255, 255, 255, 0.62);
+  --glass-border-color: rgba(255, 255, 255, 0.70);
+  --glass-shadow:       0 2px 12px rgba(0, 0, 0, 0.06);
+  --glass-blur:         blur(20px) saturate(1.6);
+  /* subtle variant */
+  --glass-bg-subtle:           rgba(255, 255, 255, 0.45);
+  --glass-border-color-subtle: rgba(255, 255, 255, 0.55);
+  --glass-shadow-subtle:       0 2px 8px rgba(0, 0, 0, 0.04);
+
   --background: transparent;
   --foreground: oklch(0.18 0 0);
   --card: oklch(1 0 0);
@@ -100,6 +110,15 @@
 }
 
 .dark {
+  /* ── Liquid-glass design tokens (dark mode) ──────────────────────────── */
+  --glass-bg:           rgba(28, 28, 36, 0.72);
+  --glass-border-color: rgba(255, 255, 255, 0.08);
+  --glass-shadow:       0 2px 16px rgba(0, 0, 0, 0.40);
+  --glass-blur:         blur(20px) saturate(1.3);
+  --glass-bg-subtle:           rgba(28, 28, 36, 0.55);
+  --glass-border-color-subtle: rgba(255, 255, 255, 0.05);
+  --glass-shadow-subtle:       0 2px 10px rgba(0, 0, 0, 0.30);
+
   --background: oklch(0.16 0 0);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.24 0 0 / 34%);
@@ -140,11 +159,12 @@
   body {
     @apply bg-background text-foreground;
     min-height: 100vh;
-    background: #ffffff;
+    background: linear-gradient(135deg, #dde6f0 0%, #e8e4f0 40%, #dde8e4 100%);
     background-attachment: fixed;
   }
   .dark body {
-    background: oklch(0.14 0 0);
+    background: linear-gradient(135deg, #16161e 0%, #1c1820 40%, #161c18 100%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
@@ -166,6 +186,22 @@
 }
 
 @layer components {
+  /* ── CSS-var-based glass panels — work in both light and dark mode ──── */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-panel-subtle {
+    background: var(--glass-bg-subtle);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color-subtle);
+    box-shadow: var(--glass-shadow-subtle);
+  }
+
   .liquid-glass {
     @apply border border-zinc-200/70 bg-white shadow-sm shadow-zinc-200/80 dark:border-white/10 dark:bg-zinc-900 dark:shadow-black/20;
   }
@@ -191,7 +227,6 @@
     background: rgb(255 255 255 / 0.28);
     border: 1px solid rgb(255 255 255 / 0.42);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.55),
       0 4px 24px rgb(0 0 0 / 0.08),
       0 1px 4px rgb(0 0 0 / 0.06);
     backdrop-filter: blur(28px) saturate(1.8);
@@ -203,7 +238,6 @@
     background: rgb(255 255 255 / 0.10);
     border-color: rgb(255 255 255 / 0.16);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.12),
       0 4px 24px rgb(0 0 0 / 0.30),
       0 1px 4px rgb(0 0 0 / 0.20);
   }
@@ -211,7 +245,6 @@
   .topbar-pill:is(button):hover {
     background: rgb(255 255 255 / 0.40);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.70),
       0 4px 28px rgb(0 0 0 / 0.10),
       0 1px 4px rgb(0 0 0 / 0.07);
   }
@@ -253,8 +286,6 @@
       linear-gradient(160deg, rgb(255 255 255 / 0.98), rgb(242 242 245 / 0.97));
     border: 1px solid rgb(210 210 214 / 0.92);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.98),
-      inset 0 -1px 2px rgb(0 0 0 / 0.03),
       0 4px 32px rgb(24 24 27 / 0.12);
     backdrop-filter: blur(24px) saturate(1.5);
   }
@@ -300,7 +331,6 @@
       linear-gradient(145deg, rgb(255 255 255 / 0.98), rgb(239 239 241 / 0.96)) !important;
     border-color: rgb(210 210 214 / 0.96) !important;
     box-shadow:
-      inset 0 1px 1px rgb(255 255 255 / 0.98),
       inset 0 -1px 2px rgb(0 0 0 / 0.04) !important;
   }
 
@@ -313,7 +343,6 @@
   .search-results-surface {
     @apply border border-zinc-300/85 bg-zinc-50/90 backdrop-blur-2xl backdrop-saturate-150 dark:border-white/16 dark:bg-zinc-900/82;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.82),
       inset 0 0 0 1px rgb(255 255 255 / 0.2);
   }
 
@@ -328,7 +357,6 @@
   .search-dent-button {
     @apply border-zinc-300/85 bg-zinc-50/90 transition-all dark:border-white/16 dark:bg-zinc-900/82;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.78),
       inset 0 0 0 1px rgb(255 255 255 / 0.18);
   }
 
@@ -356,7 +384,6 @@
       linear-gradient(145deg, rgb(255 255 255 / 0.98), rgb(239 239 241 / 0.96)) !important;
     border-color: rgb(210 210 214 / 0.96) !important;
     box-shadow:
-      inset 0 1px 1px rgb(255 255 255 / 0.98),
       inset 0 -1px 2px rgb(0 0 0 / 0.04) !important;
   }
 
@@ -580,4 +607,20 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ── Invisible scrollbar utility ── */
+/* Strip browser-default internal padding only on the AI-chat composer textarea.
+   The global reset is intentionally scoped so bio / note textareas keep their padding. */
+textarea.ai-composer-textarea {
+  padding: 0;
+  margin: 0;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

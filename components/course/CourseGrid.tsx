@@ -301,7 +301,7 @@ export function CourseGrid({
 
   return (
     <div className="h-full w-full flex flex-col min-w-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 gap-6 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto gap-6 flex flex-col">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           {statsLoading ? (
             <div className="col-span-full flex justify-center py-8">
@@ -311,7 +311,14 @@ export function CourseGrid({
             statCards.map((stat, i) => (
               <div
                 key={i}
-                className="p-4 rounded-xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-2xs flex flex-col justify-between h-28 relative overflow-hidden group hover:border-slate-300 dark:hover:border-zinc-700 transition-all"
+                className="p-4 rounded-2xl flex flex-col justify-between h-28 relative overflow-hidden transition-all"
+                style={{
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                }}
               >
                 <div className="flex justify-between items-start">
                   <span className="text-xs text-muted-foreground font-semibold">
@@ -350,20 +357,28 @@ export function CourseGrid({
 
         {role === "teacher" && teacherDash && (
           <div className="flex flex-col gap-4">
-            <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase text-zinc-700 dark:text-zinc-300">
+            <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase dark:text-zinc-300">
               Recent Student Questions
             </h2>
             {teacherDash.recentQuestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
+              <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-white/60 rounded-xl"
+                style={{ background: "var(--glass-bg-subtle)" }}>
                 No student questions yet. Students can post comments from the
                 Classes page.
               </p>
             ) : (
-              <div className="border border-zinc-200/70 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/40 shadow-2xs overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/80">
+              <div className="rounded-2xl overflow-hidden divide-y divide-black/5"
+                style={{
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                }}>
                 {teacherDash.recentQuestions.map((q) => (
                   <div
                     key={q.id}
-                    className="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors"
+                    className="px-5 py-4 hover:bg-black/2 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -389,7 +404,7 @@ export function CourseGrid({
 
         {canSeeClassSection && (
           <div className="flex flex-col gap-4">
-            <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase text-zinc-700 dark:text-zinc-300">
+            <h2 className="text-md font-extrabold text-foreground tracking-tight uppercase dark:text-zinc-300">
               Classes
             </h2>
             {classesLoading ? (
@@ -410,7 +425,14 @@ export function CourseGrid({
                 {classItems.map((klass: ClassSummary) => (
                   <Card
                     key={klass.id}
-                    className="border border-slate-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden"
+                    className="flex flex-col overflow-hidden transition-all duration-200 hover:scale-[1.01]"
+                    style={{
+                      background: "var(--glass-bg)",
+                      backdropFilter: "var(--glass-blur)",
+                      WebkitBackdropFilter: "var(--glass-blur)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                    }}
                   >
                     <div
                       className={`h-24 bg-linear-to-br ${klass.cardGradient} relative overflow-hidden flex items-center justify-center`}

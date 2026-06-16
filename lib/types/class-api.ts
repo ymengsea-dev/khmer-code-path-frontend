@@ -56,6 +56,14 @@ export interface LessonTabDto {
   label: string;
 }
 
+export interface GradingWeightsDto {
+  attendance: number;
+  assignment: number;
+  quiz: number;
+  midterm: number;
+  finalExam: number;
+}
+
 export interface ClassConfigDto {
   allSemestersLabel: string;
   semesterFilters: SemesterFilterDto[];
@@ -65,6 +73,7 @@ export interface ClassConfigDto {
     semester: string;
     academicYear: number;
   };
+  gradingWeights?: GradingWeightsDto;
 }
 
 export interface CreateClassPayload {

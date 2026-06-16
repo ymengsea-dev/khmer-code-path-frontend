@@ -43,7 +43,7 @@ const ADMIN_BLOCKED_VIEWS: AppView[] = ["tasks", "code", "notebook", "learning"]
 const VIEW_LABELS: Record<AppView, string> = {
   courses:        "Dashboard",
   classes:        "Classes",
-  lessons:        "Class Detail",
+  lessons:        "Class",
   tasks:          "Quizzes",
   notebook:       "Notebook",
   "ai-chat":      "AI Assistant",
@@ -91,6 +91,7 @@ export function HomePage() {
     if (!lessonParam) return null;
     return { title: lessonParam, module: moduleParam ?? "" };
   }, [lessonParam, moduleParam]);
+
   const {
     data: courses = [],
     isLoading: coursesLoading,
@@ -204,6 +205,18 @@ export function HomePage() {
     [setParams]
   );
 
+  const handleBackToClasses = useCallback(() => {
+    setOpenedLesson(null);
+    setParams({
+      [QueryKey.view]: "classes",
+      [QueryKey.course]: null,
+      [QueryKey.lesson]: null,
+      [QueryKey.module]: null,
+      [QueryKey.lessonId]: null,
+      [QueryKey.tab]: null,
+    });
+  }, [setParams]);
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-transparent text-foreground overflow-hidden font-sans">
@@ -218,12 +231,37 @@ export function HomePage() {
 
         <SidebarInset>
           {/* Shared top header — Apple liquid glass floating pills */}
-          <header className="shrink-0 flex items-center justify-between gap-3 px-4 pt-4 pb-1">
+          <header className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-1">
 
             {/* Left — page title */}
-            <h1 className="text-xl font-bold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap px-1">
-              {VIEW_LABELS[activeNav] ?? "Dashboard"}
-            </h1>
+            {activeNav === "lessons" ? (
+              /* Lessons view: class title as glass pill, no back btn (back is in lesson toolbar) */
+              <div
+                className="h-10 px-4 rounded-full flex items-center gap-2 min-w-0"
+                style={{
+                  background: "var(--glass-bg)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
+                  border: "1px solid rgba(255,255,255,0.82)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                }}
+              >
+                <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
+                  {lessonContext?.title ?? "Class"}
+                </h1>
+                {lessonContext?.module && (
+                  <span className="text-xs text-zinc-500 shrink-0 hidden sm:block">
+                    {lessonContext.module}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="topbar-pill h-10 px-4 flex items-center">
+                <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap">
+                  {VIEW_LABELS[activeNav] ?? "Dashboard"}
+                </h1>
+              </div>
+            )}
 
             {/* Right — action pills */}
             <div className="flex items-center gap-2.5">
@@ -270,7 +308,7 @@ export function HomePage() {
           </header>
 
           {/* View area fills remaining height */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col p-3">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-5 pt-3 pb-5">
             {activeNav === "code" && <EmbeddedIDE />}
             {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}
             {activeNav === "tasks" && <MyTasksView />}
@@ -284,16 +322,7 @@ export function HomePage() {
                 lessonIdParam={searchParams.get(QueryKey.lessonId)}
                 classTitle={lessonContext?.title}
                 classModule={lessonContext?.module}
-                onBackToClasses={() =>
-                  setParams({
-                    [QueryKey.view]: "classes",
-                    [QueryKey.course]: null,
-                    [QueryKey.lesson]: null,
-                    [QueryKey.module]: null,
-                    [QueryKey.lessonId]: null,
-                    [QueryKey.tab]: null,
-                  })
-                }
+                onBackToClasses={handleBackToClasses}
               />
             )}
             {activeNav === "classes" && (

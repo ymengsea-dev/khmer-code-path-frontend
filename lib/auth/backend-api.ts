@@ -21,6 +21,7 @@ export interface UserProfile {
   email: string;
   role: LmsRole;
   isActive: boolean;
+  bio?: string | null;
 }
 
 export interface AuthData extends AuthTokens {
