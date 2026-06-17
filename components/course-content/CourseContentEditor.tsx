@@ -150,7 +150,7 @@ export function CourseContentEditor({
         setSaving(false);
       }
     },
-    [templateId, title, moduleTag, bodyHtml, onSaved]
+    [templateId, title, moduleTag, bodyHtml, onSaved],
   );
 
   useEffect(() => {
@@ -237,8 +237,8 @@ export function CourseContentEditor({
               />
             </label>
             <p className="text-[11px] text-muted-foreground pb-1">
-              {assetCount} file{assetCount === 1 ? "" : "s"} stored · assign to a class to
-              publish lesson + files
+              {assetCount} file{assetCount === 1 ? "" : "s"} stored · assign to
+              a class to publish lesson + files
             </p>
           </div>
         }
@@ -305,7 +305,8 @@ export function CourseContentEditor({
 
       {(saveError || (dirty && !saving)) && (
         <p className="shrink-0 px-6 py-2 text-[11px] text-center text-muted-foreground border-t border-black/4">
-          {saveError ?? "Unsaved · auto-saves every 30s · press Ctrl+S to save now"}
+          {saveError ??
+            "Unsaved · auto-saves every 30s · press Ctrl+S to save now"}
         </p>
       )}
 
@@ -314,12 +315,16 @@ export function CourseContentEditor({
           <DialogHeader>
             <DialogTitle>Delete this template?</DialogTitle>
             <DialogDescription>
-              This removes the template and all uploaded files from your library. Lessons
-              already assigned to classes are not deleted.
+              This removes the template and all uploaded files from your
+              library. Lessons already assigned to classes are not deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" disabled={deleting} onClick={() => setDeleteOpen(false)}>
+            <Button
+              variant="outline"
+              disabled={deleting}
+              onClick={() => setDeleteOpen(false)}
+            >
               Cancel
             </Button>
             <Button

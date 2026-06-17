@@ -67,7 +67,7 @@ export function ClassStudentsDialog({
             ...invitations.map((i) => i.studentId),
           ]);
           setAvailableStudents(
-            (usersResult.value.items ?? []).filter((s) => !blocked.has(s.id))
+            (usersResult.value.items ?? []).filter((s) => !blocked.has(s.id)),
           );
         } else {
           setAvailableStudents([]);
@@ -77,7 +77,7 @@ export function ClassStudentsDialog({
           setInviteLoadError("Could not load pending invitations.");
         } else if (usersResult.status === "rejected") {
           setInviteLoadError(
-            "Student directory is unavailable for this account. You can still view roster."
+            "Student directory is unavailable for this account. You can still view roster.",
           );
         }
       } else {
@@ -137,10 +137,12 @@ export function ClassStudentsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-base font-extrabold">Class roster</DialogTitle>
+          <DialogTitle className="text-base font-extrabold">
+            Class roster
+          </DialogTitle>
           <DialogDescription className="text-xs">
-            {className} — students must accept an invitation before they can enter
-            the class and study.
+            {className} — students must accept an invitation before they can
+            enter the class and study.
           </DialogDescription>
         </DialogHeader>
 
@@ -166,8 +168,12 @@ export function ClassStudentsDialog({
                       className="flex items-center justify-between gap-2 text-xs rounded-lg border border-slate-200/80 dark:border-zinc-800 px-3 py-2"
                     >
                       <span>
-                        <span className="font-semibold text-foreground">{s.name}</span>
-                        <span className="text-muted-foreground block">{s.email}</span>
+                        <span className="font-semibold text-foreground">
+                          {s.name}
+                        </span>
+                        <span className="text-muted-foreground block">
+                          {s.email}
+                        </span>
                       </span>
                       {canManage && (
                         <Button
@@ -216,14 +222,16 @@ export function ClassStudentsDialog({
                   Invite students
                 </Label>
                 {inviteLoadError && (
-                  <p className="mt-2 text-xs text-amber-600">{inviteLoadError}</p>
+                  <p className="mt-2 text-xs text-amber-600">
+                    {inviteLoadError}
+                  </p>
                 )}
                 <select
                   multiple
                   value={selectedToAdd}
                   onChange={(e) =>
                     setSelectedToAdd(
-                      Array.from(e.target.selectedOptions, (o) => o.value)
+                      Array.from(e.target.selectedOptions, (o) => o.value),
                     )
                   }
                   className="mt-2 w-full min-h-[100px] rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 py-2 text-xs"
@@ -238,7 +246,9 @@ export function ClassStudentsDialog({
                   type="button"
                   className="mt-2 w-full h-9 text-xs font-bold gap-1.5"
                   disabled={
-                    saving || selectedToAdd.length === 0 || availableStudents.length === 0
+                    saving ||
+                    selectedToAdd.length === 0 ||
+                    availableStudents.length === 0
                   }
                   onClick={() => void handleInvite()}
                 >

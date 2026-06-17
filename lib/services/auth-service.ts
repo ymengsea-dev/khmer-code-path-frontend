@@ -56,6 +56,15 @@ export const authService = {
     return response.data;
   },
 
+  async uploadAvatar(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await apiClient.post("/profile/avatar", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
   async changePassword(payload: {
     currentPassword: string;
     newPassword: string;

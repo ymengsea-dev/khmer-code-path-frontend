@@ -74,6 +74,18 @@
   --glass-bg-subtle:           rgba(255, 255, 255, 0.45);
   --glass-border-color-subtle: rgba(255, 255, 255, 0.55);
   --glass-shadow-subtle:       0 2px 8px rgba(0, 0, 0, 0.04);
+  /* modals / popovers — frosted, mostly opaque */
+  --glass-modal-bg:            rgba(255, 255, 255, 0.92);
+  --glass-modal-border:        rgba(255, 255, 255, 0.88);
+
+  /* ── Bouncy / morph motion (Cmd+/ spotlight family) ── */
+  --bouncy-ease: cubic-bezier(0.17, 0.84, 0.32, 1.18);
+  --bouncy-ease-snappy: cubic-bezier(0.18, 0.89, 0.32, 1.16);
+  --bouncy-ease-results: cubic-bezier(0.18, 0.89, 0.32, 1.18);
+  --bouncy-duration-enter: 420ms;
+  --bouncy-duration-morph: 760ms;
+  --bouncy-duration-press: 380ms;
+  --bouncy-ease-press: cubic-bezier(0.22, 1, 0.36, 1);
 
   --background: transparent;
   --foreground: oklch(0.18 0 0);
@@ -118,6 +130,8 @@
   --glass-bg-subtle:           rgba(28, 28, 36, 0.55);
   --glass-border-color-subtle: rgba(255, 255, 255, 0.05);
   --glass-shadow-subtle:       0 2px 10px rgba(0, 0, 0, 0.30);
+  --glass-modal-bg:            rgba(28, 28, 36, 0.92);
+  --glass-modal-border:        rgba(255, 255, 255, 0.16);
 
   --background: oklch(0.16 0 0);
   --foreground: oklch(0.96 0 0);
@@ -203,11 +217,103 @@
   }
 
   .liquid-glass {
-    @apply border border-zinc-200/70 bg-white shadow-sm shadow-zinc-200/80 dark:border-white/10 dark:bg-zinc-900 dark:shadow-black/20;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
   }
 
   .liquid-glass-strong {
-    @apply border border-zinc-200/80 bg-white shadow-md shadow-zinc-200/80 dark:border-white/12 dark:bg-zinc-900 dark:shadow-black/25;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-page-title {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+    border-radius: 9999px;
+    height: 2.5rem;
+    padding-inline: 1rem;
+  }
+
+  .glass-search-input {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+    border-radius: 1rem;
+  }
+
+  .glass-search-input-sm {
+    border-radius: 0.75rem;
+    box-shadow: var(--glass-shadow-subtle);
+    background: var(--glass-bg-subtle);
+    border-color: var(--glass-border-color-subtle);
+  }
+
+  .glass-select {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+    border-radius: 1rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2.25rem;
+  }
+
+  .glass-input {
+    background: var(--glass-bg-subtle);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color-subtle);
+    box-shadow: var(--glass-shadow-subtle);
+    border-radius: 0.75rem;
+  }
+
+  .glass-btn-primary {
+    background: rgba(48, 95, 201, 0.92);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(48, 95, 201, 0.45);
+    box-shadow: 0 4px 16px rgba(48, 95, 201, 0.28);
+    color: #ffffff;
+    transform-origin: center center;
+  }
+
+  .glass-btn-primary:hover {
+    background: rgba(40, 84, 184, 0.96);
+    color: #ffffff;
+  }
+
+  .glass-modal {
+    background: var(--glass-modal-bg);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid var(--glass-modal-border);
+    box-shadow:
+      0 24px 48px rgb(0 0 0 / 0.14),
+      0 4px 16px rgb(0 0 0 / 0.08),
+      inset 0 1px 0 rgb(255 255 255 / 0.35);
+    border-radius: 1.25rem;
+  }
+
+  .dark .glass-modal {
+    box-shadow:
+      0 24px 48px rgb(0 0 0 / 0.45),
+      0 4px 16px rgb(0 0 0 / 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   .sidebar-nav-hover:hover {
@@ -224,33 +330,46 @@
 
   .topbar-pill {
     border-radius: 9999px;
-    background: rgb(255 255 255 / 0.28);
-    border: 1px solid rgb(255 255 255 / 0.42);
-    box-shadow:
-      0 4px 24px rgb(0 0 0 / 0.08),
-      0 1px 4px rgb(0 0 0 / 0.06);
-    backdrop-filter: blur(28px) saturate(1.8);
-    -webkit-backdrop-filter: blur(28px) saturate(1.8);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     transition: background 180ms ease, box-shadow 180ms ease;
   }
 
   .dark .topbar-pill {
-    background: rgb(255 255 255 / 0.10);
-    border-color: rgb(255 255 255 / 0.16);
-    box-shadow:
-      0 4px 24px rgb(0 0 0 / 0.30),
-      0 1px 4px rgb(0 0 0 / 0.20);
+    background: var(--glass-bg);
+    border-color: var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
   }
 
-  .topbar-pill:is(button):hover {
-    background: rgb(255 255 255 / 0.40);
-    box-shadow:
-      0 4px 28px rgb(0 0 0 / 0.10),
-      0 1px 4px rgb(0 0 0 / 0.07);
+  .topbar-pill:is(button):hover,
+  .topbar-pill:is([role="button"]):hover {
+    background: var(--glass-bg-subtle);
+    filter: brightness(1.03);
   }
 
-  .dark .topbar-pill:is(button):hover {
-    background: rgb(255 255 255 / 0.16);
+  /* Liquid-glass interactive controls — tactile press bounce (via LiquidGlassPressProvider) */
+  .liquid-glass-btn:not(.glass-btn-primary) {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-color);
+    box-shadow: var(--glass-shadow);
+    transform-origin: center center;
+    cursor: pointer;
+  }
+
+  .liquid-glass-btn-subtle:not(.glass-btn-primary) {
+    background: var(--glass-bg-subtle);
+    border-color: var(--glass-border-color-subtle);
+    box-shadow: var(--glass-shadow-subtle);
+  }
+
+  .topbar-pill:is(button, [role="button"]) {
+    transform-origin: center center;
+    cursor: pointer;
   }
 
   .liquid-highlight {
@@ -426,26 +545,26 @@
   .search-spotlight-compact {
     width: min(68rem, calc(100vw - 2rem));
     border-radius: 2.5rem;
-    animation: search-shell-morph 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18) both;
+    animation: bouncy-morph var(--bouncy-duration-morph) var(--bouncy-ease) both;
   }
 
   .search-spotlight-bar {
     transition:
-      gap 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18),
-      transform 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18);
+      gap var(--bouncy-duration-morph) var(--bouncy-ease),
+      transform var(--bouncy-duration-morph) var(--bouncy-ease);
   }
 
   .search-input-wrap {
     flex-basis: 0;
     transition:
-      flex-basis 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18),
-      transform 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18),
+      flex-basis var(--bouncy-duration-morph) var(--bouncy-ease),
+      transform var(--bouncy-duration-morph) var(--bouncy-ease),
       opacity 240ms ease;
   }
 
 
   .search-spotlight-shell[data-compact="true"] .search-input-wrap {
-    animation: search-input-settle 760ms cubic-bezier(0.17, 0.84, 0.32, 1.18) both;
+    animation: search-input-settle var(--bouncy-duration-morph) var(--bouncy-ease) both;
   }
 
   .search-scope-row {
@@ -455,9 +574,9 @@
     transform: translateX(-1.25rem) scale(0.82);
     transform-origin: left center;
     transition:
-      max-width 780ms cubic-bezier(0.17, 0.84, 0.32, 1.18),
+      max-width 780ms var(--bouncy-ease),
       opacity 360ms ease,
-      transform 780ms cubic-bezier(0.17, 0.84, 0.32, 1.18);
+      transform 780ms var(--bouncy-ease);
   }
 
   .search-scope-row-visible {
@@ -479,7 +598,7 @@
     transform: translateX(-0.75rem) scale(0.72);
     transition:
       opacity 360ms ease,
-      transform 680ms cubic-bezier(0.17, 0.84, 0.32, 1.22),
+      transform 680ms var(--bouncy-ease),
       background-color 160ms ease,
       border-color 160ms ease,
       color 160ms ease,
@@ -496,12 +615,12 @@
   }
 
   .search-results-morph {
-    animation: search-results-morph 360ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+    animation: bouncy-enter 360ms var(--bouncy-ease-results) both;
     transform-origin: top center;
   }
 
   .search-result-morph {
-    animation: search-result-morph 420ms cubic-bezier(0.18, 0.89, 0.32, 1.16) both;
+    animation: bouncy-enter var(--bouncy-duration-enter) var(--bouncy-ease-snappy) both;
   }
 }
 
@@ -623,4 +742,97 @@ textarea.ai-composer-textarea {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Reusable bouncy / morph motion (Cmd+/ spotlight family) ── */
+.bouncy-enter {
+  animation: bouncy-enter var(--bouncy-duration-enter) var(--bouncy-ease-results) both;
+  transform-origin: top center;
+}
+
+.bouncy-morph {
+  animation: bouncy-morph var(--bouncy-duration-morph) var(--bouncy-ease) both;
+  transform-origin: center center;
+}
+
+.bouncy-press {
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.bouncy-press:active,
+.bouncy-press-active,
+.liquid-glass-btn.bouncy-press-active,
+.topbar-pill.bouncy-press-active {
+  animation: bouncy-press var(--bouncy-duration-press) var(--bouncy-ease-press) forwards;
+}
+
+.bouncy-loading {
+  animation: bouncy-loading 1.2s var(--bouncy-ease) infinite;
+  transform-origin: left center;
+}
+
+.bouncy-stagger-item {
+  animation: bouncy-enter var(--bouncy-duration-enter) var(--bouncy-ease-results) both;
+  animation-delay: calc(var(--bouncy-stagger-index, 0) * 60ms);
+}
+
+@keyframes bouncy-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(1px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bouncy-morph {
+  0% {
+    transform: scaleX(0.86) scaleY(1);
+    filter: saturate(0.98);
+  }
+  64% {
+    transform: scaleX(1.025) scaleY(0.985);
+    filter: saturate(1.08);
+  }
+  100% {
+    transform: scaleX(1) scaleY(1);
+    filter: saturate(1);
+  }
+}
+
+@keyframes bouncy-press {
+  0% {
+    transform: scale(1);
+  }
+  22% {
+    transform: scale(0.985);
+  }
+  58% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bouncy-loading {
+  0% {
+    opacity: 0.45;
+    transform: scaleX(0.94) scaleY(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scaleX(1.02) scaleY(0.98);
+  }
+  100% {
+    opacity: 0.45;
+    transform: scaleX(0.94) scaleY(1);
+  }
 }

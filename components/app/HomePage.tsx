@@ -22,7 +22,7 @@ import { classService } from "@/lib/services/class-service";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey, parseView, type AppView } from "@/lib/navigation/app-query";
-import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useUserProfile } from "@/lib/hooks/use-user-profile";
 import { useCoursesQuery } from "@/lib/hooks/use-courses-query";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { GlobalCommandPalette } from "@/components/search/GlobalCommandPalette";
@@ -35,7 +35,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "next-auth/react";
 import { LogOut, Settings, User as UserIcon } from "lucide-react";
-import { getUserInitials } from "@/lib/auth/user-display";
+import { CurrentUserAvatar } from "@/components/profile/CurrentUserAvatar";
+import { BouncyPage } from "@/components/motion";
+import { GlassPageTitle } from "@/components/ui/glass-field";
 import { authService } from "@/lib/services/auth-service";
 
 const ADMIN_BLOCKED_VIEWS: AppView[] = ["tasks", "code", "notebook", "learning"];
@@ -99,13 +101,10 @@ export function HomePage() {
   } = useCoursesQuery();
   const coursesError = coursesIsError ? "Failed to load courses." : null;
   const { data: session } = useSession();
-  const { data: currentUser } = useCurrentUser();
+  const { displayName, role: appRole } = useUserProfile();
   const [lessonClasses, setLessonClasses] = useState<ClassSummary[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
-  const appRole = (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ?? "student";
-  const displayName =
-    currentUser?.userName?.trim() || session?.user?.name?.trim() || null;
-  const initials = getUserInitials(displayName || session?.user?.email || "?");
+  const headerName = displayName || session?.user?.name?.trim() || null;
 
   useEffect(() => {
     if (appRole !== "admin" || !viewParam) return;
@@ -235,17 +234,7 @@ export function HomePage() {
 
             {/* Left — page title */}
             {activeNav === "lessons" ? (
-              /* Lessons view: class title as glass pill, no back btn (back is in lesson toolbar) */
-              <div
-                className="h-10 px-4 rounded-full flex items-center gap-2 min-w-0"
-                style={{
-                  background: "var(--glass-bg)",
-                  backdropFilter: "var(--glass-blur)",
-                  WebkitBackdropFilter: "var(--glass-blur)",
-                  border: "1px solid rgba(255,255,255,0.82)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                }}
-              >
+              <GlassPageTitle className="gap-2">
                 <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
                   {lessonContext?.title ?? "Class"}
                 </h1>
@@ -254,13 +243,13 @@ export function HomePage() {
                     {lessonContext.module}
                   </span>
                 )}
-              </div>
+              </GlassPageTitle>
             ) : (
-              <div className="topbar-pill h-10 px-4 flex items-center">
+              <GlassPageTitle>
                 <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap">
                   {VIEW_LABELS[activeNav] ?? "Dashboard"}
                 </h1>
-              </div>
+              </GlassPageTitle>
             )}
 
             {/* Right — action pills */}
@@ -271,12 +260,13 @@ export function HomePage() {
               {/* Avatar + name pill */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="topbar-pill h-10 flex items-center gap-2.5 px-3 cursor-pointer outline-none">
-                  <div className="w-7 h-7 rounded-full bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-700 ring-1 ring-zinc-300/70 dark:bg-zinc-700 dark:text-zinc-200 dark:ring-white/15 shrink-0">
-                    {initials}
-                  </div>
-                  {displayName && (
+                  <CurrentUserAvatar
+                    className="w-7 h-7"
+                    textClassName="text-[10px]"
+                  />
+                  {headerName && (
                     <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 hidden sm:block pr-1">
-                      {displayName}
+                      {headerName}
                     </span>
                   )}
                 </DropdownMenuTrigger>
@@ -308,7 +298,7 @@ export function HomePage() {
           </header>
 
           {/* View area fills remaining height */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-5 pt-3 pb-5">
+          <BouncyPage key={activeNav} className="px-5 pt-3 pb-5">
             {activeNav === "code" && <EmbeddedIDE />}
             {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}
             {activeNav === "tasks" && <MyTasksView />}
@@ -343,7 +333,7 @@ export function HomePage() {
                 canManageCourses={false}
               />
             )}
-          </div>
+          </BouncyPage>
         </SidebarInset>
         <GlobalCommandPalette
           open={commandOpen}

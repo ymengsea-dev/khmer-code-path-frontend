@@ -53,7 +53,9 @@ function DepartmentCard({
         <div className="flex justify-between items-start gap-3 mb-4">
           <div>
             <h3 className="text-base font-bold text-foreground">{dept.name}</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">{dept.faculty}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {dept.faculty}
+            </p>
           </div>
           <Badge
             variant="outline"
@@ -61,7 +63,7 @@ function DepartmentCard({
               "text-[11px] font-semibold shrink-0",
               isActive
                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "border-slate-500/30 bg-slate-500/10 text-muted-foreground"
+                : "border-slate-500/30 bg-slate-500/10 text-muted-foreground",
             )}
           >
             {isActive ? "Active" : "Inactive"}
@@ -78,7 +80,7 @@ function DepartmentCard({
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                ACCENT_FILL[dept.accent]
+                ACCENT_FILL[dept.accent],
               )}
               style={{ width: `${dept.capacityPercent}%` }}
             />
@@ -126,7 +128,9 @@ function DeptStats({ dept }: { dept: Department }) {
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
           Head of Dept
         </p>
-        <p className="text-sm font-semibold text-foreground">{dept.headOfDept}</p>
+        <p className="text-sm font-semibold text-foreground">
+          {dept.headOfDept}
+        </p>
       </div>
       <div>
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
@@ -212,14 +216,14 @@ export function DepartmentsView() {
       if (formMode === "edit" && editing) {
         const updated = await departmentService.updateDepartment(
           editing.id,
-          departmentService.buildUpdatePayload(values)
+          departmentService.buildUpdatePayload(values),
         );
         setDepartments((prev) =>
-          prev.map((d) => (d.id === updated.id ? updated : d))
+          prev.map((d) => (d.id === updated.id ? updated : d)),
         );
       } else {
         const created = await departmentService.createDepartment(
-          departmentService.buildCreatePayload(values)
+          departmentService.buildCreatePayload(values),
         );
         setDepartments((prev) => [...prev, created]);
       }
@@ -281,7 +285,9 @@ export function DepartmentsView() {
         ) : (
           <>
             {error && (
-              <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                {error}
+              </p>
             )}
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {departments.map((dept) => (

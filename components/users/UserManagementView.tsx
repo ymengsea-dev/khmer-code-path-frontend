@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import {
-  Search,
-  UserPlus,
-  FileUp,
-  Pencil,
-  Loader2,
-  Users,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Search, UserPlus, FileUp, Pencil, Loader2, Users } from "lucide-react";
+import { GlassSearchInput, GlassSelect } from "@/components/ui/glass-field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -23,10 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSession } from "next-auth/react";
-import {
-  userService,
-  type UserSummary,
-} from "@/lib/services/user-service";
+import { userService, type UserSummary } from "@/lib/services/user-service";
 import { cn } from "@/lib/utils";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
@@ -119,7 +109,7 @@ function StatusBadge({ active }: { active?: boolean }) {
         "text-[11px] font-semibold",
         isActive
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          : "border-slate-500/30 bg-slate-500/10 text-muted-foreground"
+          : "border-slate-500/30 bg-slate-500/10 text-muted-foreground",
       )}
     >
       {isActive ? "Active" : "Inactive"}
@@ -137,9 +127,13 @@ export function UserManagementView() {
 
   const sessionRole = session?.user?.role?.toLowerCase() as AppRole | undefined;
   const resolvedRole =
-    (currentUser?.role?.toLowerCase() as AppRole | undefined) ?? sessionRole ?? "student";
+    (currentUser?.role?.toLowerCase() as AppRole | undefined) ??
+    sessionRole ??
+    "student";
   const [role, setRole] = useState<AppRole | null>(resolvedRole ?? null);
-  const [roleLoaded, setRoleLoaded] = useState(sessionStatus !== "loading" && !userLoading);
+  const [roleLoaded, setRoleLoaded] = useState(
+    sessionStatus !== "loading" && !userLoading,
+  );
   const [rows, setRows] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -163,7 +157,7 @@ export function UserManagementView() {
     (tab: UserManagementTab) => {
       setParams({ [QueryKey.userTab]: tab === "all" ? null : tab });
     },
-    [setParams]
+    [setParams],
   );
 
   const setStatusFilter = useCallback(
@@ -172,7 +166,7 @@ export function UserManagementView() {
         [QueryKey.userStatus]: status === "all" ? null : status,
       });
     },
-    [setParams]
+    [setParams],
   );
 
   const loadUsers = useCallback(async () => {
@@ -197,9 +191,7 @@ export function UserManagementView() {
           ...(apiRole ? { role: apiRole } : {}),
           name: searchQuery.trim() || undefined,
           isActive:
-            statusFilter === "all"
-              ? undefined
-              : statusFilter === "active",
+            statusFilter === "all" ? undefined : statusFilter === "active",
           size: 200,
         });
         setRows(page.items);
@@ -214,14 +206,7 @@ export function UserManagementView() {
     } finally {
       setLoading(false);
     }
-  }, [
-    roleLoaded,
-    role,
-    isTeacher,
-    activeTab,
-    searchQuery,
-    statusFilter,
-  ]);
+  }, [roleLoaded, role, isTeacher, activeTab, searchQuery, statusFilter]);
 
   useEffect(() => {
     void loadUsers();
@@ -229,7 +214,7 @@ export function UserManagementView() {
 
   const filteredRows = useMemo(() => {
     return rows.filter(
-      (u) => matchesSearch(u, searchQuery) && matchesStatus(u, statusFilter)
+      (u) => matchesSearch(u, searchQuery) && matchesStatus(u, statusFilter),
     );
   }, [rows, searchQuery, statusFilter]);
 
@@ -237,10 +222,7 @@ export function UserManagementView() {
     if (!editUser || !isAdmin) return;
     setStatusSaving(true);
     try {
-      await userService.updateStatus(
-        editUser.id,
-        editUser.isActive === false
-      );
+      await userService.updateStatus(editUser.id, editUser.isActive === false);
       setEditUser(null);
       await loadUsers();
     } catch {
@@ -255,7 +237,7 @@ export function UserManagementView() {
     try {
       const result = await userService.importUsers(file);
       setImportMessage(
-        `Import complete: ${result.created} created, ${result.failed} failed.`
+        `Import complete: ${result.created} created, ${result.failed} failed.`,
       );
       await loadUsers();
     } catch {
@@ -344,7 +326,7 @@ export function UserManagementView() {
                   "px-4 py-2.5 text-sm font-medium rounded-2xl transition-colors",
                   activeTab === tab.id
                     ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
-                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -356,17 +338,13 @@ export function UserManagementView() {
         {showTable && (
           <Card className="p-4 border-slate-200/80 dark:border-zinc-800 shadow-2xs">
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Search by name, email, or ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <select
-                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm min-w-[140px]"
+              <GlassSearchInput
+                placeholder="Search by name, email, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <GlassSelect
+                className="w-full sm:w-auto sm:min-w-[140px] h-11"
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(e.target.value as UserStatusFilter)
@@ -375,7 +353,7 @@ export function UserManagementView() {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-              </select>
+              </GlassSelect>
             </div>
           </Card>
         )}
@@ -417,7 +395,10 @@ export function UserManagementView() {
         />
       )}
 
-      <Dialog open={Boolean(editUser)} onOpenChange={(o) => !o && setEditUser(null)}>
+      <Dialog
+        open={Boolean(editUser)}
+        onOpenChange={(o) => !o && setEditUser(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Edit user</DialogTitle>
@@ -427,8 +408,7 @@ export function UserManagementView() {
           </DialogHeader>
           {editUser && (
             <p className="text-sm text-muted-foreground">
-              Current status:{" "}
-              <StatusBadge active={editUser.isActive} />
+              Current status: <StatusBadge active={editUser.isActive} />
             </p>
           )}
           <DialogFooter>
@@ -472,8 +452,7 @@ function UserTable({
   }
 
   const isAll = mode === "all";
-  const isStudents =
-    mode === "students" || mode === "teacher-students";
+  const isStudents = mode === "students" || mode === "teacher-students";
   const isTeachers = mode === "teachers";
   const isAdmins = mode === "admins";
 

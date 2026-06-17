@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  Bell,
   Eye,
   EyeOff,
   Loader2,
@@ -15,10 +16,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useUserProfile } from "@/lib/hooks/use-user-profile";
+import { EditableProfileAvatar } from "@/components/profile/EditableProfileAvatar";
 import { authService } from "@/lib/services/auth-service";
 import { getApiErrorMessage } from "@/lib/api-error";
-import { getRoleLabel } from "@/lib/auth/user-display";
+import {
+  getNotificationsEnabled,
+  setNotificationsEnabled,
+} from "@/lib/notification-preferences";
+import { BouncyEnter, BouncyPress, BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 type ThemeMode = "light" | "dark" | "system";
@@ -69,7 +75,7 @@ function PasswordField({
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? "••••••••"}
           className="pr-10"
           style={GLASS_SUBTLE}
         />
@@ -114,6 +120,41 @@ function GlassCard({
   );
 }
 
+/** Toggle switch styled for glass panels */
+function GlassToggle({
+  checked,
+  onChange,
+  disabled,
+  id,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  id?: string;
+}) {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50",
+        checked ? "bg-[#305FC9]" : "bg-muted-foreground/25"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200",
+          checked && "translate-x-5"
+        )}
+      />
+    </button>
+  );
+}
+
 /** Solid blue action button */
 function BlueBtn({
   loading,
@@ -127,8 +168,7 @@ function BlueBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <BouncyPress
       disabled={disabled || loading}
       onClick={onClick}
       className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-40"
@@ -139,15 +179,16 @@ function BlueBtn({
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
       {children}
-    </button>
+    </BouncyPress>
   );
 }
 
 export function SettingsView() {
   const queryClient = useQueryClient();
   const { alert } = useConfirm();
-  const { data: currentUser } = useCurrentUser();
+  const { user, roleLabel, displayName, email } = useUserProfile();
   const [theme, setTheme] = useState<ThemeMode>("system");
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [userName, setUserName] = useState("");
   const [bio, setBio] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
@@ -164,17 +205,28 @@ export function SettingsView() {
     const stored = (localStorage.getItem("lms-theme") as ThemeMode | null) ?? "system";
     setTheme(stored);
     applyTheme(stored);
+    setNotificationsEnabledState(getNotificationsEnabled());
   }, []);
 
   useEffect(() => {
-    setUserName(currentUser?.userName ?? "");
-    setBio((currentUser as { bio?: string | null } | null | undefined)?.bio ?? "");
-  }, [currentUser]);
+    setUserName(user?.userName ?? "");
+    setBio(user?.bio ?? "");
+  }, [user]);
 
   const handleThemeChange = (mode: ThemeMode) => {
     setTheme(mode);
     localStorage.setItem("lms-theme", mode);
     applyTheme(mode);
+  };
+
+  const handleNotificationsChange = (enabled: boolean) => {
+    setNotificationsEnabledState(enabled);
+    setNotificationsEnabled(enabled);
+    if (enabled && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        void Notification.requestPermission();
+      }
+    }
   };
 
   const handleProfileSave = async () => {
@@ -222,42 +274,39 @@ export function SettingsView() {
   ];
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-      <div className="flex flex-col gap-5 pb-6">
+    <div className="flex-1 min-h-0 flex flex-col gap-5 overflow-y-auto scrollbar-hide lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] lg:items-stretch">
 
-        {/* ── Theme ── */}
-        <GlassCard icon={<Sun className="h-4 w-4" />} iconColor="#d97706" title="Appearance">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {themeOptions.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleThemeChange(item.id)}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition-all duration-150",
-                  theme === item.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-                style={
-                  theme === item.id
-                    ? { ...GLASS_SUBTLE, border: "1px solid #305FC9", color: "#305FC9" }
-                    : GLASS_SUBTLE
-                }
+        {/* ── Left ~30%: Profile ── */}
+        <div className="shrink-0 lg:min-h-0 lg:overflow-y-auto lg:scrollbar-hide">
+        <BouncyEnter>
+        <GlassCard icon={<UserRound className="h-4 w-4" />} iconColor="#305FC9" title="Profile">
+          <div className="space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <EditableProfileAvatar />
+              <div
+                className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 mt-1"
+                style={{ background: "rgba(217,119,6,0.10)", color: "#d97706" }}
               >
-                <span style={{ color: theme === item.id ? "#305FC9" : undefined }}>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </GlassCard>
+                {roleLabel}
+              </div>
+            </div>
 
-        {/* ── Profile + Password side by side ── */}
-        <div className="grid gap-5 xl:grid-cols-2">
+            {(displayName || email) && (
+              <div className="space-y-0.5 min-w-0">
+                {displayName ? (
+                  <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+                ) : null}
+                {email ? (
+                  <p className="text-xs text-muted-foreground truncate">{email}</p>
+                ) : null}
+              </div>
+            )}
 
-          {/* Update profile */}
-          <GlassCard icon={<UserRound className="h-4 w-4" />} iconColor="#305FC9" title="Update Profile">
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="settings-name" className="text-xs font-semibold text-muted-foreground">Display name</Label>
+                <Label htmlFor="settings-name" className="text-xs font-semibold text-muted-foreground">
+                  Display name
+                </Label>
                 <Input
                   id="settings-name"
                   value={userName}
@@ -267,7 +316,9 @@ export function SettingsView() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="settings-bio" className="text-xs font-semibold text-muted-foreground">Bio</Label>
+                <Label htmlFor="settings-bio" className="text-xs font-semibold text-muted-foreground">
+                  Bio
+                </Label>
                 <textarea
                   id="settings-bio"
                   value={bio}
@@ -282,17 +333,8 @@ export function SettingsView() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">Email</Label>
-                <Input value={currentUser?.email ?? ""} disabled style={GLASS_SUBTLE} />
+                <Input value={user?.email ?? ""} disabled style={GLASS_SUBTLE} />
                 <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Role</Label>
-                <div
-                  className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: "rgba(217,119,6,0.10)", color: "#d97706" }}
-                >
-                  {getRoleLabel(currentUser?.role)}
-                </div>
               </div>
               {profileError ? <p className="text-sm text-destructive">{profileError}</p> : null}
               <BlueBtn
@@ -304,9 +346,62 @@ export function SettingsView() {
                 Save Profile
               </BlueBtn>
             </div>
-          </GlassCard>
+          </div>
+        </GlassCard>
+        </BouncyEnter>
+        </div>
 
-          {/* Change password */}
+        {/* ── Right ~70%: Preferences (scrollable) ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide lg:max-h-full">
+        <BouncyStagger className="flex flex-col gap-5 pb-6 min-w-0">
+          <BouncyStaggerItem>
+          <GlassCard icon={<Sun className="h-4 w-4" />} iconColor="#d97706" title="Appearance">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {themeOptions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleThemeChange(item.id)}
+                  className={cn(
+                    "liquid-glass-btn-subtle flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold",
+                    theme === item.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  style={
+                    theme === item.id
+                      ? { ...GLASS_SUBTLE, border: "1px solid #305FC9", color: "#305FC9" }
+                      : GLASS_SUBTLE
+                  }
+                >
+                  <span style={{ color: theme === item.id ? "#305FC9" : undefined }}>{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </GlassCard>
+          </BouncyStaggerItem>
+
+          <BouncyStaggerItem>
+          <GlassCard icon={<Bell className="h-4 w-4" />} iconColor="#305FC9" title="Notifications">
+            <div
+              className="flex items-center justify-between gap-4 rounded-xl px-4 py-3"
+              style={GLASS_SUBTLE}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Push notifications</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Show browser alerts when you receive new activity while the tab is in the background.
+                </p>
+              </div>
+              <GlassToggle
+                id="settings-notifications"
+                checked={notificationsEnabled}
+                onChange={handleNotificationsChange}
+              />
+            </div>
+          </GlassCard>
+          </BouncyStaggerItem>
+
+          <BouncyStaggerItem>
           <GlassCard icon={<Shield className="h-4 w-4" />} iconColor="#16a34a" title="Change Password">
             <div className="space-y-4">
               <PasswordField
@@ -343,8 +438,9 @@ export function SettingsView() {
               </BlueBtn>
             </div>
           </GlassCard>
+          </BouncyStaggerItem>
+        </BouncyStagger>
         </div>
-      </div>
     </div>
   );
 }

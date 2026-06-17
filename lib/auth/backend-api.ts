@@ -22,6 +22,7 @@ export interface UserProfile {
   role: LmsRole;
   isActive: boolean;
   bio?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface AuthData extends AuthTokens {

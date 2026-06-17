@@ -7,6 +7,7 @@ import { AppQueryProvider } from "@/components/providers/query-provider";
 import { ThemeBootstrap } from "@/components/providers/theme-bootstrap";
 import { NotificationProvider } from "@/components/notifications/notification-context";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { LiquidGlassPressProvider } from "@/components/motion/LiquidGlassPressProvider";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -39,7 +40,9 @@ export default function RootLayout({
           <AuthSessionProvider>
             <ThemeBootstrap>
               <NotificationProvider>
-                <ConfirmProvider>{children}</ConfirmProvider>
+                <LiquidGlassPressProvider>
+                  <ConfirmProvider>{children}</ConfirmProvider>
+                </LiquidGlassPressProvider>
               </NotificationProvider>
             </ThemeBootstrap>
           </AuthSessionProvider>

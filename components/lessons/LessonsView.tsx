@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Loader2, MessageSquare, Save, Sparkles, Trash2, Upload, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  MessageSquare,
+  Save,
+  Sparkles,
+  Trash2,
+  Upload,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,7 +21,10 @@ import { lessonService } from "@/lib/services/lesson-service";
 import { noteService } from "@/lib/services/note-service";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
-import { lessonTabLabel, resolveLessonTab } from "@/lib/course-content/lesson-tabs";
+import {
+  lessonTabLabel,
+  resolveLessonTab,
+} from "@/lib/course-content/lesson-tabs";
 import type { LessonTabDto } from "@/lib/types/class-api";
 import type { LessonDetailDto, LessonSummaryDto } from "@/lib/types/lesson-api";
 import { getValidAccessToken } from "@/lib/auth/client-session";
@@ -69,7 +81,9 @@ function summaryToNotebookHtml(text: string): string {
 
     if (looksLikeHeading) {
       closeList();
-      html.push(`<h3>${escapeHtml(cleanSummaryLine(line).replace(/:$/, ""))}</h3>`);
+      html.push(
+        `<h3>${escapeHtml(cleanSummaryLine(line).replace(/:$/, ""))}</h3>`,
+      );
       continue;
     }
 
@@ -80,7 +94,9 @@ function summaryToNotebookHtml(text: string): string {
         html.push(`<${nextListType}>`);
         listType = nextListType;
       }
-      html.push(`<li>${escapeHtml(cleanSummaryLine(bullet?.[1] ?? numbered?.[1] ?? line))}</li>`);
+      html.push(
+        `<li>${escapeHtml(cleanSummaryLine(bullet?.[1] ?? numbered?.[1] ?? line))}</li>`,
+      );
       continue;
     }
 
@@ -109,7 +125,10 @@ function SummaryContent({ text }: { text: string }) {
 
         if (looksLikeHeading) {
           return (
-            <h3 key={`${line}-${index}`} className="text-sm font-extrabold text-foreground">
+            <h3
+              key={`${line}-${index}`}
+              className="text-sm font-extrabold text-foreground"
+            >
               {cleanSummaryLine(line).replace(/:$/, "")}
             </h3>
           );
@@ -117,15 +136,23 @@ function SummaryContent({ text }: { text: string }) {
 
         if (bullet || numbered) {
           return (
-            <div key={`${line}-${index}`} className="flex gap-2 text-sm leading-relaxed">
+            <div
+              key={`${line}-${index}`}
+              className="flex gap-2 text-sm leading-relaxed"
+            >
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-500" />
-              <p className="text-foreground/90">{cleanSummaryLine(bullet?.[1] ?? numbered?.[1] ?? line)}</p>
+              <p className="text-foreground/90">
+                {cleanSummaryLine(bullet?.[1] ?? numbered?.[1] ?? line)}
+              </p>
             </div>
           );
         }
 
         return (
-          <p key={`${line}-${index}`} className="text-sm text-foreground/90 leading-relaxed">
+          <p
+            key={`${line}-${index}`}
+            className="text-sm text-foreground/90 leading-relaxed"
+          >
             {cleanSummaryLine(line)}
           </p>
         );
@@ -185,7 +212,7 @@ export function LessonsView({
   const [personalSummary, setPersonalSummary] = useState<string | null>(null);
   const [savingToNotebook, setSavingToNotebook] = useState(false);
   const [improveGoal, setImproveGoal] = useState(
-    "Improve clarity, add learning objectives, examples, and short exercises."
+    "Improve clarity, add learning objectives, examples, and short exercises.",
   );
   const [improvingLesson, setImprovingLesson] = useState(false);
   const [improvedContent, setImprovedContent] = useState<string | null>(null);
@@ -204,7 +231,7 @@ export function LessonsView({
     (n) =>
       n.notificationType === "CLASS_QUESTION" &&
       n.classId === parsedClassId &&
-      !n.read
+      !n.read,
   );
   const commentBadge = unreadCommentNotifs.length;
 
@@ -219,14 +246,18 @@ export function LessonsView({
     (id: number) => {
       setParams({ [QueryKey.lessonId]: String(id) });
     },
-    [setParams]
+    [setParams],
   );
 
   // Keep callback props in refs so they never appear in effect dep arrays
   const onLessonOpenRef = useRef(onLessonOpen);
   const onLessonCloseRef = useRef(onLessonClose);
-  useEffect(() => { onLessonOpenRef.current = onLessonOpen; }, [onLessonOpen]);
-  useEffect(() => { onLessonCloseRef.current = onLessonClose; }, [onLessonClose]);
+  useEffect(() => {
+    onLessonOpenRef.current = onLessonOpen;
+  }, [onLessonOpen]);
+  useEffect(() => {
+    onLessonCloseRef.current = onLessonClose;
+  }, [onLessonClose]);
 
   const clearLesson = useCallback(() => {
     setLesson(null);
@@ -256,7 +287,7 @@ export function LessonsView({
       selectLesson(id);
       void loadLessonDetail(id);
     },
-    [selectLesson, loadLessonDetail]
+    [selectLesson, loadLessonDetail],
   );
 
   const loadLessons = useCallback(async () => {
@@ -271,7 +302,10 @@ export function LessonsView({
       const list = await lessonService.listLessons(parsedClassId);
       setLessons(list);
       const selectedId = lessonIdParam ? Number(lessonIdParam) : NaN;
-      if (Number.isFinite(selectedId) && list.some((l) => l.id === selectedId)) {
+      if (
+        Number.isFinite(selectedId) &&
+        list.some((l) => l.id === selectedId)
+      ) {
         await loadLessonDetail(selectedId);
       } else {
         setLesson(null);
@@ -350,7 +384,10 @@ export function LessonsView({
       const result =
         !isTeacher || !Number.isFinite(materialId)
           ? await lessonAiService.generateSummaryFromLessonContent(lesson.id)
-          : await lessonAiService.generateSummaryFromLesson(lesson.id, materialId);
+          : await lessonAiService.generateSummaryFromLesson(
+              lesson.id,
+              materialId,
+            );
       if (result.persisted) {
         setLesson({ ...lesson, summary: result.summary });
         setPersonalSummary(null);
@@ -361,7 +398,7 @@ export function LessonsView({
       setSummaryError(
         isTeacher
           ? "Summary could not be generated. Check the lesson content or uploaded files."
-          : "Summary could not be generated. This lesson may not have written notes yet."
+          : "Summary could not be generated. This lesson may not have written notes yet.",
       );
     } finally {
       setSummaryGenerating(false);
@@ -398,7 +435,10 @@ export function LessonsView({
     if (!lesson || !e.target.files?.length) return;
     setUploading(true);
     try {
-      await lessonService.uploadMaterials(lesson.id, Array.from(e.target.files));
+      await lessonService.uploadMaterials(
+        lesson.id,
+        Array.from(e.target.files),
+      );
       await loadLessonDetail(lesson.id);
     } catch {
       setError("Upload failed. Use PDF, PPTX, or DOCX under 50MB.");
@@ -427,7 +467,10 @@ export function LessonsView({
   const handleQueueMaterialIndex = async (materialId: number) => {
     if (!lesson) return;
     try {
-      const status = await lessonAiService.queueMaterialIndex(lesson.id, materialId);
+      const status = await lessonAiService.queueMaterialIndex(
+        lesson.id,
+        materialId,
+      );
       void showAlert(`AI indexing status: ${status.status}`, {
         title: "Indexing queued",
         variant: "success",
@@ -445,7 +488,7 @@ export function LessonsView({
     if (!Number.isFinite(parsedClassId)) return;
     const ok = await confirm(
       `"${displayTitle}" and all its lessons will be permanently deleted. This cannot be undone.`,
-      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" }
+      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" },
     );
     if (!ok) return;
     setDeletingClass(true);
@@ -463,7 +506,11 @@ export function LessonsView({
     const target = lessons.find((l) => l.id === lessonId);
     const ok = await confirm(
       `"${target?.title ?? "This lesson"}" will be permanently removed from the class.`,
-      { title: "Delete Lesson", confirmLabel: "Delete", variant: "destructive" }
+      {
+        title: "Delete Lesson",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      },
     );
     if (!ok) return;
     setDeletingLessonId(lessonId);
@@ -478,8 +525,11 @@ export function LessonsView({
     }
   };
 
-  const displayTitle = classTitle ?? lesson?.className ?? lessons[0]?.className ?? "Class";
-  const [bottomPanel, setBottomPanel] = useState<"comments" | "materials">("comments");
+  const displayTitle =
+    classTitle ?? lesson?.className ?? lessons[0]?.className ?? "Class";
+  const [bottomPanel, setBottomPanel] = useState<"comments" | "materials">(
+    "comments",
+  );
   const [showBottom, setShowBottom] = useState(true);
   const [showAI, setShowAI] = useState(true);
   const [aiWidth, setAiWidth] = useState(360);
@@ -526,11 +576,14 @@ export function LessonsView({
     e.preventDefault();
     setDragging(true);
     const startY = e.clientY;
-    const startH = bottomPanelRef.current ? bottomPanelRef.current.offsetHeight : 0;
+    const startH = bottomPanelRef.current
+      ? bottomPanelRef.current.offsetHeight
+      : 0;
     const onMove = (ev: MouseEvent) => {
       const raw = startH - (ev.clientY - startY);
       const h = raw < BOTTOM_COLLAPSE_THRESHOLD ? 0 : Math.min(480, raw);
-      if (bottomPanelRef.current) bottomPanelRef.current.style.height = `${h}px`;
+      if (bottomPanelRef.current)
+        bottomPanelRef.current.style.height = `${h}px`;
     };
     const onUp = (ev: MouseEvent) => {
       const raw = startH - (ev.clientY - startY);
@@ -538,7 +591,9 @@ export function LessonsView({
       if (raw < BOTTOM_COLLAPSE_THRESHOLD) {
         setShowBottom(false);
       } else {
-        setBottomHeight(Math.min(480, Math.max(BOTTOM_COLLAPSE_THRESHOLD, raw)));
+        setBottomHeight(
+          Math.min(480, Math.max(BOTTOM_COLLAPSE_THRESHOLD, raw)),
+        );
         setShowBottom(true);
       }
       setDragging(false);
@@ -562,21 +617,49 @@ export function LessonsView({
       {/* Teacher action bar */}
       {canManage && Number.isFinite(parsedClassId) && (
         <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-black/6 flex items-center gap-2 justify-end">
-          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={() => setRosterOpen(true)}>
-            <Users className="h-3.5 w-3.5" />Manage Students
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-semibold"
+            onClick={() => setRosterOpen(true)}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Manage Students
           </Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" disabled={deletingClass} onClick={() => void handleDeleteClass()}>
-            {deletingClass ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Delete Class
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+            disabled={deletingClass}
+            onClick={() => void handleDeleteClass()}
+          >
+            {deletingClass ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            Delete Class
           </Button>
         </div>
       )}
 
-      <ClassStudentsDialog open={rosterOpen} onOpenChange={setRosterOpen} classId={Number.isFinite(parsedClassId) ? parsedClassId : null} className={displayTitle} canManage={canManage} />
+      <ClassStudentsDialog
+        open={rosterOpen}
+        onOpenChange={setRosterOpen}
+        classId={Number.isFinite(parsedClassId) ? parsedClassId : null}
+        className={displayTitle}
+        canManage={canManage}
+      />
 
-      {error && <p className="px-6 py-2 text-sm text-zinc-600 shrink-0">{error}</p>}
+      {error && (
+        <p className="px-6 py-2 text-sm text-zinc-600 shrink-0">{error}</p>
+      )}
 
-      {!loading && !error && (
-        lesson ? (
+      {!loading &&
+        !error &&
+        (lesson ? (
           /* ── 3-panel lesson reader ── */
           <div
             className="flex-1 flex min-h-0 overflow-hidden p-1 gap-0"
@@ -589,7 +672,6 @@ export function LessonsView({
             />
             {/* LEFT column */}
             <div className="relative flex-1 flex flex-col min-h-0 min-w-0 gap-1.5 overflow-hidden pr-1.5">
-
               {/* ── Floating toolbar — absolutely positioned over the lesson content ── */}
               <div className="absolute top-2 left-2 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
                 {/* Left: back + lesson title pill */}
@@ -619,7 +701,9 @@ export function LessonsView({
                       boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
                     }}
                   >
-                    <span className="text-xs font-semibold text-zinc-700 truncate">{lesson.title}</span>
+                    <span className="text-xs font-semibold text-zinc-700 truncate">
+                      {lesson.title}
+                    </span>
                   </div>
                 </div>
 
@@ -628,25 +712,31 @@ export function LessonsView({
                   <button
                     type="button"
                     onClick={() => {
-                      if (!showBottom) { unreadCommentNotifs.forEach((n) => void markRead(n.id)); }
+                      if (!showBottom) {
+                        unreadCommentNotifs.forEach((n) => void markRead(n.id));
+                      }
                       setShowBottom((v) => !v);
                     }}
                     className="h-8 px-3 rounded-2xl flex items-center gap-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-                    style={showBottom ? {
-                      background: "var(--glass-bg)",
-                      backdropFilter: "blur(16px) saturate(1.5)",
-                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
-                      border: "1px solid var(--glass-border-color)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                      color: "#18181b",
-                    } : {
-                      background: "var(--glass-bg)",
-                      backdropFilter: "blur(16px) saturate(1.5)",
-                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
-                      border: "1px solid var(--glass-border-color)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                      color: "#a1a1aa",
-                    }}
+                    style={
+                      showBottom
+                        ? {
+                            background: "var(--glass-bg)",
+                            backdropFilter: "blur(16px) saturate(1.5)",
+                            WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                            border: "1px solid var(--glass-border-color)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                            color: "#18181b",
+                          }
+                        : {
+                            background: "var(--glass-bg)",
+                            backdropFilter: "blur(16px) saturate(1.5)",
+                            WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                            border: "1px solid var(--glass-border-color)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                            color: "#a1a1aa",
+                          }
+                    }
                   >
                     <MessageSquare className="h-3 w-3" />
                     Comments
@@ -660,21 +750,25 @@ export function LessonsView({
                     type="button"
                     onClick={() => setShowAI((v) => !v)}
                     className="h-8 px-3 rounded-2xl flex items-center gap-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-                    style={showAI ? {
-                      background: "var(--glass-bg)",
-                      backdropFilter: "blur(16px) saturate(1.5)",
-                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
-                      border: "1px solid var(--glass-border-color)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                      color: "#18181b",
-                    } : {
-                      background: "var(--glass-bg)",
-                      backdropFilter: "blur(16px) saturate(1.5)",
-                      WebkitBackdropFilter: "blur(16px) saturate(1.5)",
-                      border: "1px solid var(--glass-border-color)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                      color: "#a1a1aa",
-                    }}
+                    style={
+                      showAI
+                        ? {
+                            background: "var(--glass-bg)",
+                            backdropFilter: "blur(16px) saturate(1.5)",
+                            WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                            border: "1px solid var(--glass-border-color)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                            color: "#18181b",
+                          }
+                        : {
+                            background: "var(--glass-bg)",
+                            backdropFilter: "blur(16px) saturate(1.5)",
+                            WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+                            border: "1px solid var(--glass-border-color)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                            color: "#a1a1aa",
+                          }
+                    }
                   >
                     <Sparkles className="h-3 w-3" />
                     AI
@@ -696,7 +790,11 @@ export function LessonsView({
               >
                 <LessonRichContent
                   html={lesson.description}
-                  emptyMessage={canManage ? "No notes yet. Write content in Course Content, then assign it to this class." : "Your teacher has not published notes for this lesson yet."}
+                  emptyMessage={
+                    canManage
+                      ? "No notes yet. Write content in Course Content, then assign it to this class."
+                      : "Your teacher has not published notes for this lesson yet."
+                  }
                 />
               </div>
 
@@ -717,13 +815,15 @@ export function LessonsView({
                 )}
                 style={{
                   height: showBottom ? bottomHeight : 0,
-                  ...(showBottom ? {
-                    background: "var(--glass-bg)",
-                    backdropFilter: "var(--glass-blur)",
-                    WebkitBackdropFilter: "var(--glass-blur)",
-                    border: "1px solid var(--glass-border-color)",
-                    boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                  } : {}),
+                  ...(showBottom
+                    ? {
+                        background: "var(--glass-bg)",
+                        backdropFilter: "var(--glass-blur)",
+                        WebkitBackdropFilter: "var(--glass-blur)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                      }
+                    : {}),
                 }}
               >
                 {showBottom && (
@@ -734,47 +834,108 @@ export function LessonsView({
                         <button
                           key={tab}
                           type="button"
-                          onClick={() => { setBottomPanel(tab); if (tab === "comments") unreadCommentNotifs.forEach((n) => void markRead(n.id)); }}
+                          onClick={() => {
+                            setBottomPanel(tab);
+                            if (tab === "comments")
+                              unreadCommentNotifs.forEach(
+                                (n) => void markRead(n.id),
+                              );
+                          }}
                           className={cn(
                             "px-3 py-1 text-xs font-semibold rounded-full transition-colors",
                             bottomPanel === tab
                               ? "bg-zinc-900 text-white"
-                              : "text-muted-foreground hover:text-foreground hover:bg-black/6"
+                              : "text-muted-foreground hover:text-foreground hover:bg-black/6",
                           )}
                         >
-                          {tab === "comments" ? "Comments" : `Materials (${materialCount})`}
+                          {tab === "comments"
+                            ? "Comments"
+                            : `Materials (${materialCount})`}
                         </button>
                       ))}
                       {bottomPanel === "materials" && canManage && (
                         <label className="inline-flex cursor-pointer items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-black/6 transition-colors">
-                          <input type="file" className="hidden" multiple accept=".pdf,.pptx,.docx,.ppt,.doc" onChange={(e) => void handleUpload(e)} disabled={uploading} />
-                          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}Upload
+                          <input
+                            type="file"
+                            className="hidden"
+                            multiple
+                            accept=".pdf,.pptx,.docx,.ppt,.doc"
+                            onChange={(e) => void handleUpload(e)}
+                            disabled={uploading}
+                          />
+                          {uploading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Upload className="h-3 w-3" />
+                          )}
+                          Upload
                         </label>
                       )}
                     </div>
                     {/* Tab content */}
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pb-3">
-                      {bottomPanel === "comments" && Number.isFinite(parsedClassId) && (
-                        <ClassCommentsPanel classId={parsedClassId} canPost={canPostComments} />
-                      )}
+                      {bottomPanel === "comments" &&
+                        Number.isFinite(parsedClassId) && (
+                          <ClassCommentsPanel
+                            classId={parsedClassId}
+                            canPost={canPostComments}
+                          />
+                        )}
                       {bottomPanel === "materials" && (
                         <ul className="space-y-1">
                           {lesson.materials.length === 0 ? (
                             <li className="py-6 text-center text-xs text-muted-foreground">
-                              {canManage ? "No files yet. Upload above." : "No files for this lesson yet."}
+                              {canManage
+                                ? "No files yet. Upload above."
+                                : "No files for this lesson yet."}
                             </li>
-                          ) : lesson.materials.map((file) => (
-                            <li key={file.id} className="flex items-center justify-between gap-3 py-2 rounded-xl px-2 hover:bg-black/4 transition-colors">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-foreground truncate">{file.fileName}</p>
-                                <p className="text-[10px] text-muted-foreground">{formatBytes(file.fileSizeBytes)}{file.ragStatus ? ` · AI: ${file.ragStatus}` : ""}</p>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isTeacher && <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 font-semibold" onClick={() => void handleQueueMaterialIndex(file.id)}>Index AI</Button>}
-                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 font-semibold" onClick={() => void handleDownload(file.id, file.fileName)}>Download</Button>
-                              </div>
-                            </li>
-                          ))}
+                          ) : (
+                            lesson.materials.map((file) => (
+                              <li
+                                key={file.id}
+                                className="flex items-center justify-between gap-3 py-2 rounded-xl px-2 hover:bg-black/4 transition-colors"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-foreground truncate">
+                                    {file.fileName}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatBytes(file.fileSizeBytes)}
+                                    {file.ragStatus
+                                      ? ` · AI: ${file.ragStatus}`
+                                      : ""}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isTeacher && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 text-[10px] px-2 font-semibold"
+                                      onClick={() =>
+                                        void handleQueueMaterialIndex(file.id)
+                                      }
+                                    >
+                                      Index AI
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 text-[10px] px-2 font-semibold"
+                                    onClick={() =>
+                                      void handleDownload(
+                                        file.id,
+                                        file.fileName,
+                                      )
+                                    }
+                                  >
+                                    Download
+                                  </Button>
+                                </div>
+                              </li>
+                            ))
+                          )}
                         </ul>
                       )}
                     </div>
@@ -801,23 +962,26 @@ export function LessonsView({
               )}
               style={{
                 width: showAI ? aiWidth : 0,
-                ...(showAI ? {
-                  background: "var(--glass-bg)",
-                  backdropFilter: "var(--glass-blur)",
-                  WebkitBackdropFilter: "var(--glass-blur)",
-                  border: "1px solid var(--glass-border-color)",
-                  boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                } : {}),
+                ...(showAI
+                  ? {
+                      background: "var(--glass-bg)",
+                      backdropFilter: "var(--glass-blur)",
+                      WebkitBackdropFilter: "var(--glass-blur)",
+                      border: "1px solid var(--glass-border-color)",
+                      boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                    }
+                  : {}),
               }}
             >
-              {showAI && (
-                !isTeacher ? (
+              {showAI &&
+                (!isTeacher ? (
                   <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
                     {/* Compact header */}
                     <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
                       <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                      <span className="text-xs font-bold text-foreground">AI Assistant</span>
+                      <span className="text-xs font-bold text-foreground">
+                        AI Assistant
+                      </span>
                     </div>
 
                     {/* Chat — fills remaining space, summary injected as chat message */}
@@ -827,9 +991,18 @@ export function LessonsView({
                         lessonTitle={lesson.title}
                         aiReady={lesson.aiReady}
                         hasLessonContent={Boolean(lesson.description?.trim())}
-                        materialId={lesson.materials.length > 0 ? Number(summaryMaterialId || lesson.materials[0].id) : null}
+                        materialId={
+                          lesson.materials.length > 0
+                            ? Number(
+                                summaryMaterialId || lesson.materials[0].id,
+                              )
+                            : null
+                        }
                         onSummarize={async () => {
-                          const result = await lessonAiService.generateSummaryFromLessonContent(lesson.id);
+                          const result =
+                            await lessonAiService.generateSummaryFromLessonContent(
+                              lesson.id,
+                            );
                           return result.summary;
                         }}
                       />
@@ -839,27 +1012,72 @@ export function LessonsView({
                   <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pt-3 pb-4 space-y-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="text-xs font-bold text-foreground">AI Tools</span>
+                      <span className="text-xs font-bold text-foreground">
+                        AI Tools
+                      </span>
                     </div>
-                    <textarea value={improveGoal} onChange={(e) => setImproveGoal(e.target.value)} rows={3} className="w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="Tell AI how to improve this lesson…" />
+                    <textarea
+                      value={improveGoal}
+                      onChange={(e) => setImproveGoal(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      placeholder="Tell AI how to improve this lesson…"
+                    />
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 h-8 gap-1.5 text-xs rounded-xl" disabled={improvingLesson} onClick={() => void handleImproveLesson(false)}>
-                        {improvingLesson ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}Preview
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
+                        disabled={improvingLesson}
+                        onClick={() => void handleImproveLesson(false)}
+                      >
+                        {improvingLesson ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        Preview
                       </Button>
-                      <Button size="sm" className="flex-1 h-8 gap-1.5 text-xs rounded-xl" disabled={improvingLesson} onClick={() => void handleImproveLesson(true)}>
-                        <Save className="w-3.5 h-3.5" />Save
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
+                        disabled={improvingLesson}
+                        onClick={() => void handleImproveLesson(true)}
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save
                       </Button>
                     </div>
                     {improvedContent && (
-                      <div className="rounded-xl p-3" style={{ background: "var(--glass-bg-subtle)", border: "1px solid var(--glass-border-color-subtle)" }}>
-                        <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Preview</p>
-                        <div className="prose prose-sm max-w-none dark:prose-invert text-xs" dangerouslySetInnerHTML={{ __html: improvedContent }} />
+                      <div
+                        className="rounded-xl p-3"
+                        style={{
+                          background: "var(--glass-bg-subtle)",
+                          border: "1px solid var(--glass-border-color-subtle)",
+                        }}
+                      >
+                        <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
+                          Preview
+                        </p>
+                        <div
+                          className="prose prose-sm max-w-none dark:prose-invert text-xs"
+                          dangerouslySetInnerHTML={{ __html: improvedContent }}
+                        />
                       </div>
                     )}
-                    <LessonAskPanel lessonId={lesson.id} lessonTitle={lesson.title} aiReady={lesson.aiReady} hasLessonContent={Boolean(lesson.description?.trim())} materialId={lesson.materials.length > 0 ? Number(summaryMaterialId || lesson.materials[0].id) : null} />
+                    <LessonAskPanel
+                      lessonId={lesson.id}
+                      lessonTitle={lesson.title}
+                      aiReady={lesson.aiReady}
+                      hasLessonContent={Boolean(lesson.description?.trim())}
+                      materialId={
+                        lesson.materials.length > 0
+                          ? Number(summaryMaterialId || lesson.materials[0].id)
+                          : null
+                      }
+                    />
                   </div>
-                )
-              )}
+                ))}
             </div>
           </div>
         ) : (
@@ -875,8 +1093,7 @@ export function LessonsView({
               deletingLessonId={deletingLessonId}
             />
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }

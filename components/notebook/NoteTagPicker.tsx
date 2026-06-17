@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Tag } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  glassBtnSubtleClass,
+  glassInputClass,
+} from "@/components/ui/glass-field";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,12 +51,7 @@ export function NoteTagPicker({ tag, onChange, disabled }: NoteTagPickerProps) {
     <DropdownMenu open={open} onOpenChange={openChange}>
       <DropdownMenuTrigger
         disabled={disabled}
-        className="inline-flex items-center justify-center h-7 w-7 rounded-xl outline-none transition-all disabled:opacity-40"
-        style={{
-          background: "var(--glass-bg)",
-          border: "1px solid var(--glass-border-color)",
-          boxShadow: "none",
-        }}
+        className="liquid-glass-btn inline-flex items-center justify-center h-7 w-7 rounded-xl outline-none disabled:opacity-40"
         aria-label={tag ? `Tag: ${tag.label}` : "Note tag"}
         onClick={(e) => e.stopPropagation()}
       >
@@ -72,19 +69,29 @@ export function NoteTagPicker({ tag, onChange, disabled }: NoteTagPickerProps) {
       <DropdownMenuContent
         align="start"
         side="bottom"
-        sideOffset={6}
-        className="w-56 p-3 rounded-xl shadow-lg"
+        sideOffset={8}
+        className="glass-modal w-60 p-4 rounded-2xl min-w-60"
       >
-        <p className="text-[11px] font-semibold text-muted-foreground mb-2">Tag</p>
-        <Input
+        <p className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+          Tag
+        </p>
+        <input
           placeholder="Tag name"
           value={draftLabel}
           disabled={disabled}
           onChange={(e) => setDraftLabel(e.target.value)}
-          className="h-8 text-[13px] mb-3"
+          className={cn(glassInputClass, "h-9 text-[13px] mb-4")}
         />
-        <p className="text-[11px] font-semibold text-muted-foreground mb-2">Color</p>
-        <div className="grid grid-cols-4 gap-2 mb-3">
+        <p className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+          Color
+        </p>
+        <div
+          className="grid grid-cols-4 gap-2 mb-4 p-2.5 rounded-xl"
+          style={{
+            background: "var(--glass-bg-subtle)",
+            border: "1px solid var(--glass-border-color-subtle)",
+          }}
+        >
           {NOTE_TAG_COLORS.map((preset) => (
             <button
               key={preset.hex}
@@ -103,16 +110,14 @@ export function NoteTagPicker({ tag, onChange, disabled }: NoteTagPickerProps) {
           ))}
         </div>
         {tag && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="w-full h-8 text-xs"
+            className={cn(glassBtnSubtleClass, "w-full h-9 text-xs")}
             disabled={disabled}
             onClick={clearTag}
           >
             Remove tag
-          </Button>
+          </button>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

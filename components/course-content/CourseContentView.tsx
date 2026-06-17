@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Layers,
-  Plus,
-  Search,
-  Loader2,
-  FileUp,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Layers, Plus, Loader2, FileUp } from "lucide-react";
+import { GlassSearchInput } from "@/components/ui/glass-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,11 +48,12 @@ export function CourseContentView() {
   const isEditing = Number.isFinite(editingId) && editingId > 0;
 
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
-  const role = (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ?? "student";
+  const role =
+    (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ??
+    "student";
   const roleLoaded = !userLoading;
-  const [libraryConfig, setLibraryConfig] = useState<MaterialLibraryConfigDto | null>(
-    null
-  );
+  const [libraryConfig, setLibraryConfig] =
+    useState<MaterialLibraryConfigDto | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<MaterialLibraryItemDto[]>([]);
   const [poolFiles, setPoolFiles] = useState<LibraryMaterialSummaryDto[]>([]);
@@ -66,7 +61,7 @@ export function CourseContentView() {
 
   const viewIds = useMemo(
     () => libraryConfig?.views.map((v) => v.id) ?? [],
-    [libraryConfig]
+    [libraryConfig],
   );
   const contentTab = resolveContentTab(get(QueryKey.contentTab), viewIds);
   const filesTabId =
@@ -77,16 +72,17 @@ export function CourseContentView() {
   const activeView = libraryConfig?.views.find((v) => v.id === contentTab);
   const searchPlaceholder =
     activeView?.searchPlaceholder ?? activeView?.label ?? "Search…";
-  const [assignTemplate, setAssignTemplate] = useState<MaterialLibraryItemDto | null>(
-    null
-  );
+  const [assignTemplate, setAssignTemplate] =
+    useState<MaterialLibraryItemDto | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [teacherClasses, setTeacherClasses] = useState<ClassSummary[]>([]);
   const [classesLoading, setClassesLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(
+    null,
+  );
   const [deletingFileKey, setDeletingFileKey] = useState<string | null>(null);
 
   const filePoolLabel = libraryConfig?.filePoolLabel ?? "Stored files";
@@ -111,17 +107,17 @@ export function CourseContentView() {
 
   const filteredTemplates = useMemo(
     () => filterTemplatesForSearch(templates, searchQuery),
-    [templates, searchQuery]
+    [templates, searchQuery],
   );
 
   const poolAttachmentRows = useMemo(
     () => poolFilesToAttachmentRows(poolFiles, filePoolLabel),
-    [poolFiles, filePoolLabel]
+    [poolFiles, filePoolLabel],
   );
 
   const filteredPoolFiles = useMemo(
     () => filterAttachmentsForSearch(poolAttachmentRows, searchQuery),
-    [poolAttachmentRows, searchQuery]
+    [poolAttachmentRows, searchQuery],
   );
 
   const loadConfig = useCallback(async () => {
@@ -150,14 +146,14 @@ export function CourseContentView() {
         [QueryKey.contentTab]: tabId === defaultTabId ? null : tabId,
       });
     },
-    [setParams, defaultTabId]
+    [setParams, defaultTabId],
   );
 
   const openEditor = useCallback(
     (id: number) => {
       setParams({ [QueryKey.contentId]: String(id) });
     },
-    [setParams]
+    [setParams],
   );
 
   const closeEditor = useCallback(() => {
@@ -201,7 +197,11 @@ export function CourseContentView() {
   const handleDeleteTemplate = async (template: MaterialLibraryItemDto) => {
     const ok = await confirm(
       `Delete "${template.title}" and all its files? This cannot be undone.`,
-      { title: "Delete Template", confirmLabel: "Delete", variant: "destructive" }
+      {
+        title: "Delete Template",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      },
     );
     if (!ok) {
       return;
@@ -249,7 +249,7 @@ export function CourseContentView() {
     try {
       await lessonService.assignLibraryToClass(assignTemplate.id, classId);
       setMessage(
-        `"${assignTemplate.title}" added to ${className}. Students can open the lesson and download attached files.`
+        `"${assignTemplate.title}" added to ${className}. Students can open the lesson and download attached files.`,
       );
       setAssignTemplate(null);
     } catch {
@@ -269,7 +269,11 @@ export function CourseContentView() {
         <FileUp className="h-4 w-4 mr-1.5" />
         Upload files
       </Button>
-      <Button size="sm" disabled={creating} onClick={() => void handleCreateTemplate()}>
+      <Button
+        size="sm"
+        disabled={creating}
+        onClick={() => void handleCreateTemplate()}
+      >
         {creating ? (
           <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
         ) : (
@@ -280,9 +284,16 @@ export function CourseContentView() {
     </>
   );
 
-  const renderTemplatesGrid = (items: MaterialLibraryItemDto[], empty: string) => {
+  const renderTemplatesGrid = (
+    items: MaterialLibraryItemDto[],
+    empty: string,
+  ) => {
     if (items.length === 0) {
-      return <p className="text-sm text-muted-foreground text-center py-10">{empty}</p>;
+      return (
+        <p className="text-sm text-muted-foreground text-center py-10">
+          {empty}
+        </p>
+      );
     }
     return (
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -302,7 +313,11 @@ export function CourseContentView() {
 
   const renderFilesGrid = (items: LibraryAttachmentRow[], empty: string) => {
     if (items.length === 0) {
-      return <p className="text-sm text-muted-foreground text-center py-10">{empty}</p>;
+      return (
+        <p className="text-sm text-muted-foreground text-center py-10">
+          {empty}
+        </p>
+      );
     }
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -334,7 +349,8 @@ export function CourseContentView() {
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-12 text-center">
         <Layers className="h-10 w-10 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          This workspace is for teachers only. Open a class from Classes to view your lessons.
+          This workspace is for teachers only. Open a class from Classes to view
+          your lessons.
         </p>
       </div>
     );
@@ -375,23 +391,21 @@ export function CourseContentView() {
             Course Content Library
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload files to your library, build lesson templates in the editor, attach files
-            to templates, then assign to a class.
+            Upload files to your library, build lesson templates in the editor,
+            attach files to templates, then assign to a class.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">{headerActions}</div>
       </header>
 
       <div className="shrink-0 px-6 py-3 border-b border-slate-200/60 dark:border-zinc-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <div className="relative flex-1 min-w-0 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            className="pl-9 h-9"
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <GlassSearchInput
+          containerClassName="max-w-md"
+          className="h-11"
+          placeholder={searchPlaceholder}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         <div className="flex gap-1 -mb-px overflow-x-auto shrink-0 sm:ml-auto">
           {libraryConfig.views.map((tab) => (
             <button
@@ -402,7 +416,7 @@ export function CourseContentView() {
                 "px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors",
                 contentTab === tab.id
                   ? "border-violet-500 text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               {tab.label}
@@ -435,23 +449,25 @@ export function CourseContentView() {
         ) : contentTab === templatesTabId ? (
           renderTemplatesGrid(
             filteredTemplates,
-            "No templates yet. Create one to build lesson content."
+            "No templates yet. Create one to build lesson content.",
           )
         ) : contentTab === filesTabId ? (
           renderFilesGrid(
             filteredPoolFiles,
-            "No stored files yet. Use Upload files to add PDF, DOCX, or PPTX to your library."
+            "No stored files yet. Use Upload files to add PDF, DOCX, or PPTX to your library.",
           )
         ) : (
           <div className="space-y-10">
             <section>
-              <h2 className="text-sm font-extrabold text-foreground mb-1">Templates</h2>
+              <h2 className="text-sm font-extrabold text-foreground mb-1">
+                Templates
+              </h2>
               <p className="text-xs text-muted-foreground mb-4">
                 Reusable lesson builds — notes, structure, and metadata.
               </p>
               {renderTemplatesGrid(
                 filteredTemplates,
-                "No templates yet. Create one to get started."
+                "No templates yet. Create one to get started.",
               )}
             </section>
             <section>
@@ -459,12 +475,12 @@ export function CourseContentView() {
                 File attachments
               </h2>
               <p className="text-xs text-muted-foreground mb-4">
-                PDF, DOCX, and PPTX in your library — attach to templates from the editor,
-                then copy to class lessons when assigned.
+                PDF, DOCX, and PPTX in your library — attach to templates from
+                the editor, then copy to class lessons when assigned.
               </p>
               {renderFilesGrid(
                 filteredPoolFiles,
-                "No stored files yet. Use Upload files above."
+                "No stored files yet. Use Upload files above.",
               )}
             </section>
           </div>

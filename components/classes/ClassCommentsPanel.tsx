@@ -20,7 +20,12 @@ function formatWhen(iso: string) {
 }
 
 function initials(name: string) {
-  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 interface ClassCommentsPanelProps {
@@ -29,7 +34,10 @@ interface ClassCommentsPanelProps {
   className?: string;
 }
 
-export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPanelProps) {
+export function ClassCommentsPanel({
+  classId,
+  canPost = true,
+}: ClassCommentsPanelProps) {
   const [comments, setComments] = useState<ClassComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -52,7 +60,9 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
     }
   }, [classId]);
 
-  useEffect(() => { void loadComments(); }, [loadComments]);
+  useEffect(() => {
+    void loadComments();
+  }, [loadComments]);
 
   const handleReply = (comment: ClassComment) => {
     setReplyingTo(comment);
@@ -60,7 +70,10 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
     textareaRef.current?.focus();
   };
 
-  const cancelReply = () => { setReplyingTo(null); setBody(""); };
+  const cancelReply = () => {
+    setReplyingTo(null);
+    setBody("");
+  };
 
   const handlePost = async () => {
     const text = body.trim();
@@ -102,10 +115,14 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
                 className={cn("flex gap-2 group", isReply && "ml-5")}
               >
                 {/* Avatar */}
-                <div className={cn(
-                  "w-6 h-6 rounded-full shrink-0 mt-0.5 flex items-center justify-center text-[9px] font-bold",
-                  isReply ? "bg-violet-100 text-violet-600" : "bg-zinc-200 text-zinc-600"
-                )}>
+                <div
+                  className={cn(
+                    "w-6 h-6 rounded-full shrink-0 mt-0.5 flex items-center justify-center text-[9px] font-bold",
+                    isReply
+                      ? "bg-violet-100 text-violet-600"
+                      : "bg-zinc-200 text-zinc-600",
+                  )}
+                >
                   {initials(comment.authorName)}
                 </div>
 
@@ -114,8 +131,12 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
                   <div
                     className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs"
                     style={{
-                      background: isReply ? "rgba(237,233,254,0.7)" : "rgba(255,255,255,0.75)",
-                      border: isReply ? "1px solid rgba(196,181,253,0.5)" : "1px solid rgba(255,255,255,0.9)",
+                      background: isReply
+                        ? "rgba(237,233,254,0.7)"
+                        : "rgba(255,255,255,0.75)",
+                      border: isReply
+                        ? "1px solid rgba(196,181,253,0.5)"
+                        : "1px solid rgba(255,255,255,0.9)",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                     }}
                   >
@@ -126,10 +147,16 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
                       </div>
                     )}
                     <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                      <span className="font-semibold text-foreground truncate">{comment.authorName}</span>
-                      <span className="text-[9px] text-muted-foreground shrink-0">{formatWhen(comment.createdAt)}</span>
+                      <span className="font-semibold text-foreground truncate">
+                        {comment.authorName}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground shrink-0">
+                        {formatWhen(comment.createdAt)}
+                      </span>
                     </div>
-                    <p className="text-foreground/85 whitespace-pre-wrap leading-relaxed">{comment.body}</p>
+                    <p className="text-foreground/85 whitespace-pre-wrap leading-relaxed">
+                      {comment.body}
+                    </p>
                   </div>
 
                   {canPost && (
@@ -153,13 +180,22 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
       {canPost && (
         <div className="shrink-0 px-3 pb-3 space-y-1.5">
           {replyingTo && (
-            <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-xl"
-              style={{ background: "rgba(237,233,254,0.6)", border: "1px solid rgba(196,181,253,0.4)" }}>
+            <div
+              className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-xl"
+              style={{
+                background: "rgba(237,233,254,0.6)",
+                border: "1px solid rgba(196,181,253,0.4)",
+              }}
+            >
               <span className="text-[10px] text-violet-600 flex items-center gap-1">
                 <CornerDownRight className="h-2.5 w-2.5" />
                 Replying to <strong>{replyingTo.authorName}</strong>
               </span>
-              <button type="button" onClick={cancelReply} className="text-violet-400 hover:text-violet-600 transition-colors">
+              <button
+                type="button"
+                onClick={cancelReply}
+                className="text-violet-400 hover:text-violet-600 transition-colors"
+              >
                 <X className="h-3 w-3" />
               </button>
             </div>
@@ -176,7 +212,11 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
           >
             <textarea
               ref={textareaRef}
-              placeholder={replyingTo ? `Reply to ${replyingTo.authorName}… (Enter to post)` : "Add a comment… (Enter to post)"}
+              placeholder={
+                replyingTo
+                  ? `Reply to ${replyingTo.authorName}… (Enter to post)`
+                  : "Add a comment… (Enter to post)"
+              }
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={(e) => {
@@ -194,7 +234,11 @@ export function ClassCommentsPanel({ classId, canPost = true }: ClassCommentsPan
               onClick={() => void handlePost()}
               className="shrink-0 w-7 h-7 rounded-2xl flex items-center justify-center transition-all duration-150 border bg-[#305FC9] text-white border-[#305FC9]/20 shadow-sm shadow-slate-900/4 hover:bg-[#2854b8] hover:shadow-md hover:shadow-slate-900/6 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
             >
-              {posting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" />}
+              {posting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ArrowUp className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
         </div>

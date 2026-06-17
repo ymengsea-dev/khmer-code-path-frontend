@@ -1,14 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Wrench,
-  Loader2,
-  Plus,
-  Video,
-  Laptop,
-  DoorOpen,
-} from "lucide-react";
+import { Wrench, Loader2, Plus, Video, Laptop, DoorOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,8 +56,7 @@ function infraBadgeClass(variant: InfraBadgeVariant) {
 }
 
 function RequestIconBox({ icon }: { icon: TeacherRequest["icon"] }) {
-  const Icon =
-    icon === "video" ? Video : icon === "laptop" ? Laptop : DoorOpen;
+  const Icon = icon === "video" ? Video : icon === "laptop" ? Laptop : DoorOpen;
   return (
     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
       <Icon className="h-5 w-5" />
@@ -72,13 +64,7 @@ function RequestIconBox({ icon }: { icon: TeacherRequest["icon"] }) {
   );
 }
 
-function InfraCard({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: InfraStatusRow[];
-}) {
+function InfraCard({ title, rows }: { title: string; rows: InfraStatusRow[] }) {
   return (
     <Card className="border-slate-200/80 dark:border-zinc-800 shadow-2xs">
       <CardHeader className="pb-2">
@@ -93,7 +79,10 @@ function InfraCard({
             <span className="text-foreground/90">{row.label}</span>
             <Badge
               variant="outline"
-              className={cn("text-[11px] font-semibold", infraBadgeClass(row.variant))}
+              className={cn(
+                "text-[11px] font-semibold",
+                infraBadgeClass(row.variant),
+              )}
             >
               {row.status}
             </Badge>
@@ -139,7 +128,9 @@ export function OperationsView() {
       setSystemHealth(infra.systemHealth);
       setFacilityStatus(infra.facilityStatus);
     } catch {
-      setError("Could not load operations data. Try signing in again as admin.");
+      setError(
+        "Could not load operations data. Try signing in again as admin.",
+      );
     } finally {
       setLoading(false);
     }
@@ -155,7 +146,7 @@ export function OperationsView() {
 
   const pendingCount = useMemo(
     () => requests.filter((r) => r.status === "pending").length,
-    [requests]
+    [requests],
   );
 
   const setActiveTab = useCallback(
@@ -164,20 +155,18 @@ export function OperationsView() {
         [QueryKey.opsTab]: tab === "inventory" ? null : tab,
       });
     },
-    [setParams]
+    [setParams],
   );
 
   const handleRequestAction = async (
     id: number,
-    action: "approved" | "rejected"
+    action: "approved" | "rejected",
   ) => {
     setActionId(id);
     try {
       const status = action === "approved" ? "APPROVED" : "REJECTED";
       const updated = await operationsService.updateRequestStatus(id, status);
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? updated : r))
-      );
+      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
     } catch {
       setError("Failed to update request.");
     } finally {
@@ -241,7 +230,7 @@ export function OperationsView() {
                 "px-4 py-2.5 text-sm font-medium rounded-2xl transition-colors inline-flex items-center gap-1.5",
                 activeTab === tab.id
                   ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
-                  : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground",
               )}
             >
               {tab.label}
@@ -270,7 +259,9 @@ export function OperationsView() {
             {activeTab === "inventory" && (
               <section className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h2 className="text-lg font-bold text-foreground">Asset Tracking</h2>
+                  <h2 className="text-lg font-bold text-foreground">
+                    Asset Tracking
+                  </h2>
                   <Button size="sm" onClick={() => setAddAssetOpen(true)}>
                     <Plus className="h-4 w-4 mr-1.5" />
                     Add Asset
@@ -315,7 +306,7 @@ export function OperationsView() {
                                   variant="outline"
                                   className={cn(
                                     "text-[11px] font-semibold",
-                                    assetStatusBadge(asset.status)
+                                    assetStatusBadge(asset.status),
                                   )}
                                 >
                                   {assetStatusLabel(asset.status)}
@@ -362,7 +353,9 @@ export function OperationsView() {
                           <div className="flex items-center gap-4 min-w-0">
                             <RequestIconBox icon={req.icon} />
                             <div className="min-w-0">
-                              <p className="font-bold text-foreground">{req.title}</p>
+                              <p className="font-bold text-foreground">
+                                {req.title}
+                              </p>
                               <p className="text-sm text-muted-foreground mt-0.5">
                                 Request by:{" "}
                                 <span className="font-semibold text-foreground/80">
@@ -422,4 +415,3 @@ export function OperationsView() {
     </div>
   );
 }
-

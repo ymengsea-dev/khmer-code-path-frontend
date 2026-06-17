@@ -50,6 +50,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classService } from "@/lib/services/class-service";
 import type { ClassSummary, ClassStatus } from "@/lib/types/class-api";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import {
+  BouncyLoadingCard,
+  BouncyStagger,
+  BouncyStaggerItem,
+} from "@/components/motion";
 
 interface CourseGridProps {
   courses: Course[];
@@ -61,7 +66,11 @@ interface CourseGridProps {
   onCreateCourse?: () => void;
   onEditCourse?: (course: Course) => void;
   onCoursesChanged?: () => void;
-  onEnterClass?: (payload: { classId: string; title: string; module: string }) => void;
+  onEnterClass?: (payload: {
+    classId: string;
+    title: string;
+    module: string;
+  }) => void;
 }
 
 type StatCard = {
@@ -71,7 +80,6 @@ type StatCard = {
   icon: React.ComponentType<{ className?: string }>;
   positive: boolean;
 };
-
 
 export function CourseGrid({
   courses,
@@ -272,13 +280,15 @@ export function CourseGrid({
   const handleDeleteClass = async (klass: ClassSummary) => {
     const ok = await confirm(
       `"${klass.name}" and all its lessons will be permanently deleted.`,
-      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" }
+      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" },
     );
     if (!ok) return;
     setDeletingClassId(klass.id);
     try {
       await classService.deleteClass(klass.id);
-      await queryClient.invalidateQueries({ queryKey: ["dashboard", "classes"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["dashboard", "classes"],
+      });
     } catch {
       // silently ignore — the list will reflect the real state on next load
     } finally {
@@ -286,7 +296,8 @@ export function CourseGrid({
     }
   };
 
-  const canSeeClassSection = role === "student" || role === "teacher" || role === "admin";
+  const canSeeClassSection =
+    role === "student" || role === "teacher" || role === "admin";
   const {
     data: classPage,
     isLoading: classesLoading,
@@ -302,56 +313,61 @@ export function CourseGrid({
   return (
     <div className="h-full w-full flex flex-col min-w-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto gap-6 flex flex-col">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           {statsLoading ? (
-            <div className="col-span-full flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <BouncyStaggerItem key={i}>
+                  <BouncyLoadingCard className="h-28" />
+                </BouncyStaggerItem>
+              ))}
+            </>
           ) : (
             statCards.map((stat, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-2xl flex flex-col justify-between h-28 relative overflow-hidden transition-all"
-                style={{
-                  background: "var(--glass-bg)",
-                  backdropFilter: "var(--glass-blur)",
-                  WebkitBackdropFilter: "var(--glass-blur)",
-                  border: "1px solid var(--glass-border-color)",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                }}
-              >
-                <div className="flex justify-between items-start">
-                  <span className="text-xs text-muted-foreground font-semibold">
-                    {stat.label}
-                  </span>
-                  <div
-                    className={cn(
-                      "p-1.5 rounded-lg",
-                      stat.positive
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-amber-500/10 text-amber-500"
-                    )}
-                  >
-                    <stat.icon className="w-4 h-4" />
+              <BouncyStaggerItem key={i}>
+                <div
+                  className="p-4 rounded-2xl flex flex-col justify-between h-28 relative overflow-hidden transition-all"
+                  style={{
+                    background: "var(--glass-bg)",
+                    backdropFilter: "var(--glass-blur)",
+                    WebkitBackdropFilter: "var(--glass-blur)",
+                    border: "1px solid var(--glass-border-color)",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-muted-foreground font-semibold">
+                      {stat.label}
+                    </span>
+                    <div
+                      className={cn(
+                        "p-1.5 rounded-lg",
+                        stat.positive
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-amber-500/10 text-amber-500",
+                      )}
+                    >
+                      <stat.icon className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-black text-foreground tracking-tight">
+                      {stat.value}
+                    </div>
+                    <div
+                      className={cn(
+                        "text-[10px] font-bold flex items-center gap-1",
+                        stat.positive ? "text-emerald-500" : "text-amber-500",
+                      )}
+                    >
+                      {stat.trend}
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-black text-foreground tracking-tight">
-                    {stat.value}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[10px] font-bold flex items-center gap-1",
-                      stat.positive ? "text-emerald-500" : "text-amber-500"
-                    )}
-                  >
-                    {stat.trend}
-                  </div>
-                </div>
-              </div>
+              </BouncyStaggerItem>
             ))
           )}
-        </div>
+        </BouncyStagger>
 
         {role === "student" && <CourseBreakdown />}
 
@@ -361,20 +377,24 @@ export function CourseGrid({
               Recent Student Questions
             </h2>
             {teacherDash.recentQuestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-white/60 rounded-xl"
-                style={{ background: "var(--glass-bg-subtle)" }}>
+              <p
+                className="text-sm text-muted-foreground py-6 text-center border border-dashed border-white/60 rounded-xl"
+                style={{ background: "var(--glass-bg-subtle)" }}
+              >
                 No student questions yet. Students can post comments from the
                 Classes page.
               </p>
             ) : (
-              <div className="rounded-2xl overflow-hidden divide-y divide-black/5"
+              <div
+                className="rounded-2xl overflow-hidden divide-y divide-black/5"
                 style={{
                   background: "var(--glass-bg)",
                   backdropFilter: "var(--glass-blur)",
                   WebkitBackdropFilter: "var(--glass-blur)",
                   border: "1px solid var(--glass-border-color)",
                   boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                }}>
+                }}
+              >
                 {teacherDash.recentQuestions.map((q) => (
                   <div
                     key={q.id}
@@ -408,9 +428,13 @@ export function CourseGrid({
               Classes
             </h2>
             {classesLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <BouncyStaggerItem key={i}>
+                    <BouncyLoadingCard className="min-h-40" />
+                  </BouncyStaggerItem>
+                ))}
+              </BouncyStagger>
             ) : classesIsError ? (
               <p className="text-sm text-destructive" role="alert">
                 Failed to load classes.
@@ -421,118 +445,129 @@ export function CourseGrid({
               </p>
             ) : (
               <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-                {classItems.map((klass: ClassSummary) => (
+                <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                  {classItems.map((klass: ClassSummary) => (
+                  <BouncyStaggerItem key={klass.id} enter="simple">
                   <Card
-                    key={klass.id}
-                    className="flex flex-col overflow-hidden transition-all duration-200 hover:scale-[1.01]"
-                    style={{
-                      background: "var(--glass-bg)",
-                      backdropFilter: "var(--glass-blur)",
-                      WebkitBackdropFilter: "var(--glass-blur)",
-                      border: "1px solid var(--glass-border-color)",
-                      boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    <div
-                      className={`h-24 bg-linear-to-br ${klass.cardGradient} relative overflow-hidden flex items-center justify-center`}
-                    >
-                      <div className="absolute inset-0 bg-black/10" />
-                      <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                        <Badge
-                          className={
-                            klass.status === "ACTIVE"
-                              ? "bg-emerald-500 text-white font-bold"
-                              : "bg-amber-500 text-white font-bold"
-                          }
+                    bouncy={false}
+                    className="flex flex-col overflow-hidden"
+                        style={{
+                          background: "var(--glass-bg)",
+                          backdropFilter: "var(--glass-blur)",
+                          WebkitBackdropFilter: "var(--glass-blur)",
+                          border: "1px solid var(--glass-border-color)",
+                          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                        }}
+                      >
+                        <div
+                          className={`h-24 bg-linear-to-br ${klass.cardGradient} relative overflow-hidden flex items-center justify-center`}
                         >
-                          {klass.statusLabel}
-                        </Badge>
-                        <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
-                          {klass.code}
-                        </span>
-                      </div>
-                      <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md">
-                        {klass.name}
-                      </h3>
-                    </div>
-                    <CardContent className="p-4 flex-1 flex flex-col gap-3">
-                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5 text-emerald-500" />
-                          {klass.enrolledCount} Students
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-medium">
-                        {klass.semesterLabel || "—"}
-                      </p>
-                      <p className="text-xs text-muted-foreground/90 leading-relaxed">
-                        Teacher: {klass.teacherName}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          onClick={() =>
-                            onEnterClass?.({
-                              classId: String(klass.id),
-                              title: klass.name,
-                              module: klass.semesterLabel ?? "",
-                            })
-                          }
-                        >
-                          Open class
-                        </Button>
-
-                        {canDeleteClass && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              aria-label="Class options"
-                              className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground outline-none"
+                          <div className="absolute inset-0 bg-black/10" />
+                          <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                            <Badge
+                              className={
+                                klass.status === "ACTIVE"
+                                  ? "bg-emerald-500 text-white font-bold"
+                                  : "bg-amber-500 text-white font-bold"
+                              }
                             >
-                              {deletingClassId === klass.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <MoreVertical className="h-4 w-4" />
-                              )}
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem
-                                onClick={() => setEditingClass(klass)}
-                                className="gap-2 cursor-pointer"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Edit class
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => void handleDeleteClass(klass)}
-                                disabled={deletingClassId === klass.id}
-                                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Delete class
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                              {klass.statusLabel}
+                            </Badge>
+                            <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
+                              {klass.code}
+                            </span>
+                          </div>
+                          <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md">
+                            {klass.name}
+                          </h3>
+                        </div>
+                        <CardContent className="p-4 flex-1 flex flex-col gap-3">
+                          <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5 text-emerald-500" />
+                              {klass.enrolledCount} Students
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-medium">
+                            {klass.semesterLabel || "—"}
+                          </p>
+                          <p className="text-xs text-muted-foreground/90 leading-relaxed">
+                            Teacher: {klass.teacherName}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={() =>
+                                onEnterClass?.({
+                                  classId: String(klass.id),
+                                  title: klass.name,
+                                  module: klass.semesterLabel ?? "",
+                                })
+                              }
+                            >
+                              Open class
+                            </Button>
 
-              {editingClass && (
-                <EditClassDialog
-                  klass={editingClass}
-                  onOpenChange={(open) => { if (!open) setEditingClass(null); }}
-                  onSaved={async () => {
-                    setEditingClass(null);
-                    await queryClient.invalidateQueries({ queryKey: ["dashboard", "classes"] });
-                  }}
-                />
-              )}
+                            {canDeleteClass && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  aria-label="Class options"
+                                  className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground outline-none"
+                                >
+                                  {deletingClassId === klass.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <MoreVertical className="h-4 w-4" />
+                                  )}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-40"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={() => setEditingClass(klass)}
+                                    className="gap-2 cursor-pointer"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit class
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      void handleDeleteClass(klass)
+                                    }
+                                    disabled={deletingClassId === klass.id}
+                                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Delete class
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </BouncyStaggerItem>
+                  ))}
+                </BouncyStagger>
+
+                {editingClass && (
+                  <EditClassDialog
+                    klass={editingClass}
+                    onOpenChange={(open) => {
+                      if (!open) setEditingClass(null);
+                    }}
+                    onSaved={async () => {
+                      setEditingClass(null);
+                      await queryClient.invalidateQueries({
+                        queryKey: ["dashboard", "classes"],
+                      });
+                    }}
+                  />
+                )}
               </>
             )}
           </div>
@@ -557,7 +592,7 @@ function EditClassDialog({
   const [code, setCode] = useState(klass.code);
   const [semester, setSemester] = useState(klass.semester ?? "");
   const [academicYear, setAcademicYear] = useState(
-    klass.academicYear != null ? String(klass.academicYear) : ""
+    klass.academicYear != null ? String(klass.academicYear) : "",
   );
   const [status, setStatus] = useState<ClassStatus>(klass.status);
   const [saving, setSaving] = useState(false);
@@ -653,7 +688,11 @@ function EditClassDialog({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button

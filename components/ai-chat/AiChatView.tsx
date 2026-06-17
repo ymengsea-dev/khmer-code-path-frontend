@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Loader2, Pencil, Plus, Sparkles, SquarePen, Trash2, User, X } from "lucide-react";
+import {
+  ArrowUp,
+  Check,
+  Loader2,
+  Pencil,
+  Plus,
+  Sparkles,
+  SquarePen,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -88,7 +99,10 @@ function ConversationRow({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitEdit();
+              }
               if (e.key === "Escape") cancelEdit();
             }}
             className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-foreground focus:outline-none"
@@ -96,7 +110,10 @@ function ConversationRow({
           />
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); commitEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              commitEdit();
+            }}
             className="shrink-0 h-5 w-5 rounded flex items-center justify-center hover:bg-black/8 transition-colors"
             style={{ color: "#305FC9" }}
             aria-label="Save"
@@ -128,13 +145,18 @@ function ConversationRow({
                 : undefined
             }
             onMouseEnter={(e) => {
-              if (!selected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.04)";
+              if (!selected)
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(0,0,0,0.04)";
             }}
             onMouseLeave={(e) => {
-              if (!selected) (e.currentTarget as HTMLButtonElement).style.background = "";
+              if (!selected)
+                (e.currentTarget as HTMLButtonElement).style.background = "";
             }}
           >
-            <p className="text-[13px] font-medium text-foreground truncate">{thread.title}</p>
+            <p className="text-[13px] font-medium text-foreground truncate">
+              {thread.title}
+            </p>
           </button>
 
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -148,12 +170,19 @@ function ConversationRow({
             </button>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               disabled={deleting}
               className="h-6 w-6 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-black/8 transition-colors disabled:opacity-40"
               aria-label={`Delete ${thread.title}`}
             >
-              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              {deleting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Trash2 className="h-3 w-3" />
+              )}
             </button>
           </div>
         </>
@@ -162,11 +191,22 @@ function ConversationRow({
   );
 }
 
-function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming?: boolean }) {
+function MessageBubble({
+  msg,
+  streaming = false,
+}: {
+  msg: ChatMessage;
+  streaming?: boolean;
+}) {
   const isUser = msg.role === "user";
 
   return (
-    <div className={cn("flex w-full gap-2.5 items-end", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "flex w-full gap-2.5 items-end",
+        isUser ? "justify-end" : "justify-start",
+      )}
+    >
       {/* AI avatar — left side */}
       {!isUser && (
         <div
@@ -177,14 +217,18 @@ function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming
             boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         >
-          <Sparkles className="h-3.5 w-3.5" style={{ color: "#305FC9" }} strokeWidth={2} />
+          <Sparkles
+            className="h-3.5 w-3.5"
+            style={{ color: "#305FC9" }}
+            strokeWidth={2}
+          />
         </div>
       )}
 
       <div
         className={cn(
           "min-w-0 max-w-[90%] rounded-2xl text-[14px] leading-relaxed px-4 py-2.5 overflow-hidden",
-          isUser ? "rounded-br-md" : "rounded-bl-md"
+          isUser ? "rounded-br-md" : "rounded-bl-md",
         )}
         style={
           isUser
@@ -208,38 +252,97 @@ function MessageBubble({ msg, streaming = false }: { msg: ChatMessage; streaming
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                p: ({ children }) => <p className="my-1.5 leading-relaxed">{children}</p>,
-                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                p: ({ children }) => (
+                  <p className="my-1.5 leading-relaxed">{children}</p>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold">{children}</strong>
+                ),
                 em: ({ children }) => <em className="italic">{children}</em>,
-                h1: ({ children }) => <h1 className="text-[17px] font-semibold mt-3 mb-1">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-[15px] font-semibold mt-3 mb-1">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-[14px] font-semibold mt-2 mb-1">{children}</h3>,
-                ul: ({ children }) => <ul className="my-1.5 pl-5 list-disc space-y-0.5">{children}</ul>,
-                ol: ({ children }) => <ol className="my-1.5 pl-5 list-decimal space-y-0.5">{children}</ol>,
-                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
+                h1: ({ children }) => (
+                  <h1 className="text-[17px] font-semibold mt-3 mb-1">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-[15px] font-semibold mt-3 mb-1">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-[14px] font-semibold mt-2 mb-1">
+                    {children}
+                  </h3>
+                ),
+                ul: ({ children }) => (
+                  <ul className="my-1.5 pl-5 list-disc space-y-0.5">
+                    {children}
+                  </ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="my-1.5 pl-5 list-decimal space-y-0.5">
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => (
+                  <li className="leading-relaxed">{children}</li>
+                ),
+                code: ({
+                  inline,
+                  children,
+                }: {
+                  inline?: boolean;
+                  children?: React.ReactNode;
+                }) =>
                   inline ? (
-                    <code className="text-[13px] font-mono bg-black/6 px-1 py-0.5 rounded">{children}</code>
+                    <code className="text-[13px] font-mono bg-black/6 px-1 py-0.5 rounded">
+                      {children}
+                    </code>
                   ) : (
                     <code>{children}</code>
                   ),
                 pre: ({ children }) => (
-                  <pre className="my-2 bg-black/5 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-black/8">{children}</pre>
+                  <pre className="my-2 bg-black/5 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-black/8">
+                    {children}
+                  </pre>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="my-2 border-l-2 pl-3 italic text-muted-foreground" style={{ borderColor: "#305FC9" }}>{children}</blockquote>
+                  <blockquote
+                    className="my-2 border-l-2 pl-3 italic text-muted-foreground"
+                    style={{ borderColor: "#305FC9" }}
+                  >
+                    {children}
+                  </blockquote>
                 ),
                 hr: () => <hr className="my-3 border-black/10" />,
                 a: ({ href, children }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80" style={{ color: "#305FC9" }}>{children}</a>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:opacity-80"
+                    style={{ color: "#305FC9" }}
+                  >
+                    {children}
+                  </a>
                 ),
                 table: ({ children }) => (
                   <div className="my-2 overflow-x-auto">
-                    <table className="w-full text-[13px] border-collapse">{children}</table>
+                    <table className="w-full text-[13px] border-collapse">
+                      {children}
+                    </table>
                   </div>
                 ),
-                th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold border border-black/8 bg-black/4">{children}</th>,
-                td: ({ children }) => <td className="px-3 py-1.5 border border-black/8">{children}</td>,
+                th: ({ children }) => (
+                  <th className="px-3 py-1.5 text-left font-semibold border border-black/8 bg-black/4">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-3 py-1.5 border border-black/8">
+                    {children}
+                  </td>
+                ),
               }}
             >
               {msg.content}
@@ -277,15 +380,19 @@ export function AiChatView() {
   const conversationIdFromUrl = get(QueryKey.thread);
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationIdState] = useState<string | null>(
-    conversationIdFromUrl
-  );
+  const [activeConversationId, setActiveConversationIdState] = useState<
+    string | null
+  >(conversationIdFromUrl);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
-  const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
+  const [deletingConversationId, setDeletingConversationId] = useState<
+    string | null
+  >(null);
+  const [renamingConversationId, setRenamingConversationId] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -297,7 +404,7 @@ export function AiChatView() {
       setActiveConversationIdState(id);
       setParams({ [QueryKey.thread]: id });
     },
-    [setParams]
+    [setParams],
   );
 
   const loadConversations = useCallback(async () => {
@@ -344,7 +451,12 @@ export function AiChatView() {
     return () => {
       cancelled = true;
     };
-  }, [conversationIdFromUrl, loadConversations, loadMessages, setActiveConversationId]);
+  }, [
+    conversationIdFromUrl,
+    loadConversations,
+    loadMessages,
+    setActiveConversationId,
+  ]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -420,7 +532,7 @@ export function AiChatView() {
           if (rafRef.current === null) {
             rafRef.current = requestAnimationFrame(flushStreamBuffer);
           }
-        }
+        },
       );
 
       // Cancel any pending frame, then do a final synchronous flush.
@@ -433,8 +545,8 @@ export function AiChatView() {
       // Finalise: give the message a stable id and refresh the sidebar.
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === STREAM_MSG_ID ? { ...m, id: `assistant-${Date.now()}` } : m
-        )
+          m.id === STREAM_MSG_ID ? { ...m, id: `assistant-${Date.now()}` } : m,
+        ),
       );
       await loadConversations();
     } catch (err) {
@@ -444,7 +556,9 @@ export function AiChatView() {
         rafRef.current = null;
       }
       setMessages((prev) => prev.filter((m) => m.id !== STREAM_MSG_ID));
-      setError("Unable to reach the AI service. Check your connection and try again.");
+      setError(
+        "Unable to reach the AI service. Check your connection and try again.",
+      );
     } finally {
       setIsLoading(false);
       textareaRef.current?.focus();
@@ -455,7 +569,9 @@ export function AiChatView() {
     try {
       setIsBootstrapping(true);
       setError(null);
-      const created = await aiChatService.createConversation({ sectionType: "GENERAL" });
+      const created = await aiChatService.createConversation({
+        sectionType: "GENERAL",
+      });
       await loadConversations();
       setActiveConversationId(created.id);
       setMessages([]);
@@ -483,11 +599,14 @@ export function AiChatView() {
   const handleDeleteConversation = async (id: string) => {
     const target = conversations.find((c) => c.id === id);
     if (!target) return;
-    const ok = await confirm(`Delete "${target.title}"? This cannot be undone.`, {
-      title: "Delete Conversation",
-      confirmLabel: "Delete",
-      variant: "destructive",
-    });
+    const ok = await confirm(
+      `Delete "${target.title}"? This cannot be undone.`,
+      {
+        title: "Delete Conversation",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      },
+    );
     if (!ok) return;
 
     setDeletingConversationId(id);
@@ -519,7 +638,9 @@ export function AiChatView() {
     setError(null);
     try {
       const updated = await aiChatService.renameConversation(id, newTitle);
-      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: updated.title } : c)));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: updated.title } : c)),
+      );
     } catch {
       setError("Could not rename this conversation.");
     } finally {
@@ -539,12 +660,13 @@ export function AiChatView() {
     }
   };
 
-  const activeConversation = conversations.find((c) => c.id === activeConversationId);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
 
   return (
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
       <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row gap-3">
-
         {/* Sidebar */}
         <aside
           className="w-full lg:w-[260px] xl:w-[280px] shrink-0 flex flex-col min-h-0 rounded-2xl overflow-hidden scrollbar-hide"
@@ -559,8 +681,12 @@ export function AiChatView() {
           <div className="shrink-0 px-4 pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[15px] font-semibold tracking-tight text-foreground">AI Chat</h1>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Your private workspace</p>
+                <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
+                  AI Chat
+                </h1>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Your private workspace
+                </p>
               </div>
               <button
                 type="button"
@@ -589,7 +715,9 @@ export function AiChatView() {
               </div>
             ) : conversations.length === 0 ? (
               <div className="px-4 py-10 flex flex-col items-center gap-3 text-center">
-                <p className="text-[12px] text-muted-foreground">No conversation history</p>
+                <p className="text-[12px] text-muted-foreground">
+                  No conversation history
+                </p>
                 <button
                   type="button"
                   disabled={isBootstrapping}
@@ -612,7 +740,9 @@ export function AiChatView() {
                   selected={activeConversationId === thread.id}
                   onSelect={() => void handleSelectConversation(thread.id)}
                   onDelete={() => void handleDeleteConversation(thread.id)}
-                  onRename={(newTitle) => void handleRenameConversation(thread.id, newTitle)}
+                  onRename={(newTitle) =>
+                    void handleRenameConversation(thread.id, newTitle)
+                  }
                   deleting={deletingConversationId === thread.id}
                 />
               ))
@@ -642,7 +772,10 @@ export function AiChatView() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide overscroll-y-contain px-4 sm:px-6 py-5">
+          <div
+            ref={scrollRef}
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-hide overscroll-y-contain px-4 sm:px-6 py-5"
+          >
             {isBootstrapping ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -661,20 +794,30 @@ export function AiChatView() {
                         boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                       }}
                     >
-                      <Sparkles className="h-6 w-6" style={{ color: "#305FC9" }} strokeWidth={2} />
+                      <Sparkles
+                        className="h-6 w-6"
+                        style={{ color: "#305FC9" }}
+                        strokeWidth={2}
+                      />
                     </div>
                     {activeConversationId ? (
                       <>
-                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">AI Assistant</h2>
+                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">
+                          AI Assistant
+                        </h2>
                         <p className="text-muted-foreground text-[13px] max-w-xs leading-relaxed">
-                          Ask anything about your class content, get explanations, or explore ideas.
+                          Ask anything about your class content, get
+                          explanations, or explore ideas.
                         </p>
                       </>
                     ) : (
                       <>
-                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">No conversation selected</h2>
+                        <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-tight">
+                          No conversation selected
+                        </h2>
                         <p className="text-muted-foreground text-[13px] max-w-xs leading-relaxed mb-4">
-                          Start a new chat to begin talking with your AI assistant.
+                          Start a new chat to begin talking with your AI
+                          assistant.
                         </p>
                         <button
                           type="button"
@@ -710,7 +853,11 @@ export function AiChatView() {
                         boxShadow: "none",
                       }}
                     >
-                      <Sparkles className="h-3.5 w-3.5" style={{ color: "#305FC9" }} strokeWidth={2} />
+                      <Sparkles
+                        className="h-3.5 w-3.5"
+                        style={{ color: "#305FC9" }}
+                        strokeWidth={2}
+                      />
                     </div>
                     <div
                       className="rounded-2xl rounded-bl-md px-4 py-3 inline-flex items-center gap-1.5"
@@ -731,7 +878,9 @@ export function AiChatView() {
           </div>
 
           {error ? (
-            <p className="px-6 py-1.5 text-[12px] text-center text-red-500">{error}</p>
+            <p className="px-6 py-1.5 text-[12px] text-center text-red-500">
+              {error}
+            </p>
           ) : null}
 
           {/* Composer */}
@@ -754,12 +903,14 @@ export function AiChatView() {
                   placeholder="Ask anything… (Enter to send, Shift+Enter for new line)"
                   rows={1}
                   aria-label="Message"
-                  disabled={isLoading || isBootstrapping || !activeConversationId}
+                  disabled={
+                    isLoading || isBootstrapping || !activeConversationId
+                  }
                   className={cn(
                     "ai-composer-textarea",
                     "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent pt-2 pb-3 px-0 m-0 border-0",
                     "text-[14px] leading-normal text-foreground placeholder:text-muted-foreground/60",
-                    "focus-visible:outline-none disabled:opacity-50"
+                    "focus-visible:outline-none disabled:opacity-50",
                   )}
                 />
               </div>
@@ -782,10 +933,8 @@ export function AiChatView() {
               </button>
             </form>
           </div>
-
         </main>
       </div>
     </div>
   );
 }
-

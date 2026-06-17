@@ -9,8 +9,6 @@ import {
   Sparkles,
   ClipboardList,
   Notebook,
-  Plus,
-  MoreHorizontal,
   Users,
   Building2,
   Wrench,
@@ -29,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { AppLogoMark } from "@/components/brand/AppLogo";
 import { useSession } from "next-auth/react";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
@@ -75,16 +74,12 @@ export function Sidebar({
               type="button"
               onClick={() => (open ? onNavChange("courses") : setOpen(true))}
               className={cn(
-                "flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left transition-colors hover:bg-zinc-100/70 dark:hover:bg-white/7",
+                "flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left",
                 !open && "justify-center px-0"
               )}
               aria-label={open ? "Go to dashboard" : "Expand sidebar"}
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-sm ring-1 ring-white/25 dark:ring-white/10">
-                <svg viewBox="0 0 24 24" className="size-4 fill-white">
-                  <path d="M12 2L2 22h20L12 2zm0 3.8L18.7 19H5.3L12 5.8z" />
-                </svg>
-              </span>
+              <AppLogoMark className="size-8" />
               {open ? (
                 <span className="truncate text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   AI-LMS
@@ -108,7 +103,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onOpenSearch}
-              className="h-10 w-full rounded-2xl px-3 flex items-center justify-between text-sm text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
+              className="h-10 w-full rounded-2xl px-3 flex items-center justify-between text-sm text-zinc-500 cursor-pointer hover:text-zinc-700 liquid-glass-btn"
               style={{
                 background: "var(--glass-bg)",
                 border: "1px solid var(--glass-border-color)",
@@ -129,7 +124,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onOpenSearch}
-              className="h-10 w-full rounded-2xl flex items-center justify-center text-zinc-500 transition-all cursor-pointer hover:text-zinc-700"
+              className="h-10 w-full rounded-2xl flex items-center justify-center text-zinc-500 cursor-pointer hover:text-zinc-700 liquid-glass-btn"
               style={{
                 background: "var(--glass-bg)",
                 border: "1px solid var(--glass-border-color)",
@@ -289,10 +284,7 @@ export function Sidebar({
                     <ClipboardList className="w-4 h-4" />
                   </span>
                   {open && (
-                    <>
-                      <span className="flex-1 text-left">Quizzes</span>
-                      <Plus className="w-3.5 h-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground shrink-0" />
-                    </>
+                    <span className="flex-1 text-left">Quizzes</span>
                   )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -304,21 +296,9 @@ export function Sidebar({
         {/* Section 2: Workspace Navigation */}
         {showLearnerNav && (
         <SidebarGroup className="space-y-1">
-          <SidebarGroupLabel className={cn("flex items-center justify-between group/label px-2 h-6", !open && "justify-center px-0")}>
+          <SidebarGroupLabel className={cn("px-2 h-6", !open && "justify-center px-0")}>
             {open ? (
-              <>
-                    <span className="text-xs font-bold text-zinc-500">
-                  Workspace
-                </span>
-                <div className="flex items-center gap-1 opacity-0 group-hover/label:opacity-100 transition-opacity">
-                  <button className="p-1 hover:bg-zinc-100/80 dark:hover:bg-white/7 rounded-md transition-colors text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-white">
-                    <MoreHorizontal className="w-3.5 h-3.5" />
-                  </button>
-                  <button className="p-1 hover:bg-zinc-100/80 dark:hover:bg-white/7 rounded-md transition-colors text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-white">
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </>
+              <span className="text-xs font-bold text-zinc-500">Workspace</span>
             ) : (
               <span className="h-px w-5 bg-white/50 dark:bg-white/12" />
             )}
@@ -397,21 +377,9 @@ export function Sidebar({
         {/* Section 3: Classes List */}
         {showLearnerNav && (
         <SidebarGroup className="space-y-1">
-          <SidebarGroupLabel className={cn("flex items-center justify-between group/label px-2 h-6", !open && "justify-center px-0")}>
+          <SidebarGroupLabel className={cn("px-2 h-6", !open && "justify-center px-0")}>
             {open ? (
-              <>
-                    <span className="text-xs font-bold text-zinc-500">
-                  Classes
-                </span>
-                <div className="flex items-center gap-1 opacity-0 group-hover/label:opacity-100 transition-opacity">
-                  <button className="p-1 hover:bg-zinc-100/80 dark:hover:bg-white/7 rounded-md transition-colors text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-white">
-                    <MoreHorizontal className="w-3.5 h-3.5" />
-                  </button>
-                  <button className="p-1 hover:bg-zinc-100/80 dark:hover:bg-white/7 rounded-md transition-colors text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-white">
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </>
+              <span className="text-xs font-bold text-zinc-500">Classes</span>
             ) : (
               <span className="h-px w-5 bg-white/50 dark:bg-white/12" />
             )}

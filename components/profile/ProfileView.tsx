@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
@@ -9,15 +8,15 @@ import {
   ClipboardList,
   FileText,
   GraduationCap,
-  Loader2,
   Medal,
   ShieldCheck,
   Star,
   Trophy,
   Users,
 } from "lucide-react";
-import { getRoleLabel, getUserInitials } from "@/lib/auth/user-display";
-import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { CurrentUserAvatar } from "@/components/profile/CurrentUserAvatar";
+import { BouncyEnter, BouncyLoadingCard, BouncyStagger, BouncyStaggerItem } from "@/components/motion";
+import { useUserProfile } from "@/lib/hooks/use-user-profile";
 import { profileSummaryService } from "@/lib/services/profile-summary-service";
 import type { AdminDashboard, StudentDashboard, TeacherDashboard } from "@/lib/types/dashboard-api";
 import type { ComponentType } from "react";
@@ -157,19 +156,11 @@ function buildAchievements({
 }
 
 export function ProfileView() {
-  const { data: session } = useSession();
-  const { data: currentUser } = useCurrentUser();
-  const role = (currentUser?.role?.toLowerCase() as Role | undefined) ?? "student";
-  const displayName = currentUser?.userName?.trim() || session?.user?.name || "";
-  const email = currentUser?.email || session?.user?.email || "";
-  const roleLabel = getRoleLabel(currentUser?.role ?? session?.user?.role);
-  const initials = getUserInitials(displayName || email || "?");
-  const studentId = currentUser?.userId;
-  const bio = (currentUser as { bio?: string | null } | null | undefined)?.bio;
+  const { displayName, email, bio, roleLabel, userId, role, user } = useUserProfile();
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["profile-summary", role, studentId],
-    enabled: Boolean(currentUser),
+    queryKey: ["profile-summary", role, userId],
+    enabled: Boolean(user),
     queryFn: () => profileSummaryService.getProfileSummary(),
   });
 
@@ -213,19 +204,14 @@ export function ProfileView() {
       <div className="flex flex-col gap-5 px-0 py-0 pb-6">
 
         {/* ── Hero card ── */}
-        <div className="rounded-2xl p-5 sm:p-6" style={GLASS}>
+        <BouncyEnter variant="open" className="rounded-2xl p-5 sm:p-6" style={GLASS}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Avatar */}
-              <div
-                className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0"
-                style={{
-                  background: "linear-gradient(135deg, #305FC9 0%, #7c3aed 100%)",
-                  boxShadow: "0 4px 16px rgba(48,95,201,0.35)",
-                }}
-              >
-                {initials}
-              </div>
+              <CurrentUserAvatar
+                className="h-16 w-16 sm:h-20 sm:w-20"
+                textClassName="text-2xl"
+              />
 
               <div className="space-y-1 min-w-0">
                 <h2 className="text-lg sm:text-xl font-bold text-foreground leading-tight">
@@ -258,13 +244,18 @@ export function ProfileView() {
               </div>
             )}
           </div>
-        </div>
+        </BouncyEnter>
 
         {/* ── Loading / Error ── */}
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <BouncyStagger className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <BouncyStaggerItem>
+              <BouncyLoadingCard className="min-h-48" />
+            </BouncyStaggerItem>
+            <BouncyStaggerItem>
+              <BouncyLoadingCard className="min-h-48" />
+            </BouncyStaggerItem>
+          </BouncyStagger>
         ) : isError ? (
           <p className="text-sm text-destructive px-1">Could not load profile activity.</p>
         ) : (

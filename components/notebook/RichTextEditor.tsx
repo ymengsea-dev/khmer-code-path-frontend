@@ -23,7 +23,11 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  glassBtnPrimaryClass,
+  glassBtnSubtleClass,
+  GlassInput,
+} from "@/components/ui/glass-field";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -929,7 +933,7 @@ export function RichTextEditor({
         : null}
 
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-        <DialogContent>
+        <DialogContent className="gap-5">
           <DialogHeader>
             <DialogTitle>Insert hyperlink</DialogTitle>
             <DialogDescription>
@@ -938,7 +942,7 @@ export function RichTextEditor({
               note to open it.
             </DialogDescription>
           </DialogHeader>
-          <Input
+          <GlassInput
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://example.com"
@@ -949,19 +953,23 @@ export function RichTextEditor({
               }
             }}
           />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <button
+              type="button"
+              className={glassBtnSubtleClass}
+              onClick={() => setLinkOpen(false)}
+            >
               Cancel
-            </Button>
-            <Button variant="inverse" onClick={applyLink}>
+            </button>
+            <button type="button" className={cn(glassBtnPrimaryClass, "gap-1.5")} onClick={applyLink}>
               Insert
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={embedOpen} onOpenChange={setEmbedOpen}>
-        <DialogContent>
+        <DialogContent className="gap-5">
           <DialogHeader>
             <DialogTitle>Embed link</DialogTitle>
             <DialogDescription>
@@ -969,7 +977,7 @@ export function RichTextEditor({
               in a new tab.
             </DialogDescription>
           </DialogHeader>
-          <Input
+          <GlassInput
             value={embedUrl}
             onChange={(e) => setEmbedUrl(e.target.value)}
             placeholder="https://example.com"
@@ -980,13 +988,17 @@ export function RichTextEditor({
               }
             }}
           />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmbedOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <button
+              type="button"
+              className={glassBtnSubtleClass}
+              onClick={() => setEmbedOpen(false)}
+            >
               Cancel
-            </Button>
-            <Button variant="inverse" onClick={applyEmbed}>
+            </button>
+            <button type="button" className={cn(glassBtnPrimaryClass, "gap-1.5")} onClick={applyEmbed}>
               Embed
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

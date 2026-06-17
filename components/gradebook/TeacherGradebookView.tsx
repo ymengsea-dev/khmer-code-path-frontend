@@ -5,7 +5,7 @@ import { BookOpenCheck, Loader2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { GlassSelect } from "@/components/ui/glass-field";
 import { classService } from "@/lib/services/class-service";
 import { gradeService } from "@/lib/services/grade-service";
 import type { ClassSummary } from "@/lib/types/class-api";
@@ -61,8 +61,8 @@ export function TeacherGradebookView() {
             data.rows.map((row) => [
               row.studentId,
               row.numericGrade == null ? "" : String(row.numericGrade),
-            ])
-          )
+            ]),
+          ),
         );
       })
       .catch(() => {
@@ -73,12 +73,17 @@ export function TeacherGradebookView() {
   }, [selectedClassId]);
 
   const avg = useMemo(() => averageGrade(gradebook), [gradebook]);
-  const gradedCount = gradebook?.rows.filter((row) => row.numericGrade != null).length ?? 0;
+  const gradedCount =
+    gradebook?.rows.filter((row) => row.numericGrade != null).length ?? 0;
 
   const saveGrade = async (studentId: string, gradeId: number | null) => {
     if (!selectedClassId) return;
     const numericGrade = Number(drafts[studentId]);
-    if (!Number.isFinite(numericGrade) || numericGrade < 0 || numericGrade > 100) {
+    if (
+      !Number.isFinite(numericGrade) ||
+      numericGrade < 0 ||
+      numericGrade > 100
+    ) {
       setError("Grade must be a number from 0 to 100.");
       return;
     }
@@ -88,7 +93,11 @@ export function TeacherGradebookView() {
       if (gradeId) {
         await gradeService.updateGrade(gradeId, { numericGrade });
       } else {
-        await gradeService.createGrade({ classId: selectedClassId, studentId, numericGrade });
+        await gradeService.createGrade({
+          classId: selectedClassId,
+          studentId,
+          numericGrade,
+        });
       }
       const refreshed = await gradeService.getGradebook(selectedClassId);
       setGradebook(refreshed);
@@ -111,17 +120,17 @@ export function TeacherGradebookView() {
             Manage class grades from one dedicated page.
           </p>
         </div>
-        <select
+        <GlassSelect
           value={selectedClassId ?? ""}
           onChange={(event) => setSelectedClassId(Number(event.target.value))}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 min-w-[12rem]"
         >
           {classes.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
           ))}
-        </select>
+        </GlassSelect>
       </div>
 
       {error ? (
@@ -132,16 +141,24 @@ export function TeacherGradebookView() {
 
       <div className="grid gap-3 md:grid-cols-3">
         <Card className="p-4">
-          <p className="text-xs font-semibold text-muted-foreground">Students</p>
-          <p className="text-2xl font-extrabold">{gradebook?.rows.length ?? 0}</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            Students
+          </p>
+          <p className="text-2xl font-extrabold">
+            {gradebook?.rows.length ?? 0}
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs font-semibold text-muted-foreground">Graded</p>
           <p className="text-2xl font-extrabold">{gradedCount}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs font-semibold text-muted-foreground">Class Average</p>
-          <p className="text-2xl font-extrabold">{avg == null ? "--" : avg.toFixed(1)}</p>
+          <p className="text-xs font-semibold text-muted-foreground">
+            Class Average
+          </p>
+          <p className="text-2xl font-extrabold">
+            {avg == null ? "--" : avg.toFixed(1)}
+          </p>
         </Card>
       </div>
 
@@ -164,7 +181,9 @@ export function TeacherGradebookView() {
               <tbody>
                 {gradebook?.rows.map((row) => (
                   <tr key={row.studentId} className="border-t border-border/70">
-                    <td className="px-4 py-3 font-semibold">{row.studentName}</td>
+                    <td className="px-4 py-3 font-semibold">
+                      {row.studentName}
+                    </td>
                     <td className="px-4 py-3">
                       <Input
                         type="number"
@@ -181,14 +200,18 @@ export function TeacherGradebookView() {
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="secondary">{row.letterGrade ?? "Not graded"}</Badge>
+                      <Badge variant="secondary">
+                        {row.letterGrade ?? "Not graded"}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button
                         size="sm"
                         className="h-8 gap-1.5"
                         disabled={savingStudentId === row.studentId}
-                        onClick={() => void saveGrade(row.studentId, row.gradeId)}
+                        onClick={() =>
+                          void saveGrade(row.studentId, row.gradeId)
+                        }
                       >
                         {savingStudentId === row.studentId ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />

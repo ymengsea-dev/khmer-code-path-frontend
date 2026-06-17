@@ -49,6 +49,8 @@ import { QueryKey } from "@/lib/navigation/app-query";
 import { cn } from "@/lib/utils";
 import { CLASSES_UPDATED_EVENT } from "@/components/notifications/notification-context";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { GlassSearchInput, GlassSelect } from "@/components/ui/glass-field";
+import { BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 
 type UserRole = "student" | "teacher" | "admin";
 
@@ -241,42 +243,23 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
 
       <div className="flex-1 overflow-y-auto pt-3 space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-3.5 h-4 w-4 text-zinc-400 z-10 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search classes…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 h-12 text-sm rounded-2xl placeholder:text-zinc-400 text-zinc-700 focus:outline-none"
-              style={{
-                background: "var(--glass-bg)",
-                backdropFilter: "var(--glass-blur)",
-                WebkitBackdropFilter: "var(--glass-blur)",
-                border: "1px solid var(--glass-border-color)",
-                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-              }}
-            />
-          </div>
-          <select
+          <GlassSearchInput
+            placeholder="Search classes…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <GlassSelect
             value={selectedSemester}
             onChange={(e) => setSelectedSemester(e.target.value)}
             disabled={!classConfig}
-            className="h-12 px-4 rounded-2xl text-sm font-semibold text-zinc-700 focus:outline-none w-full sm:w-auto disabled:opacity-50"
-            style={{
-              background: "var(--glass-bg)",
-              backdropFilter: "var(--glass-blur)",
-              WebkitBackdropFilter: "var(--glass-blur)",
-              border: "1px solid var(--glass-border-color)",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            }}
+            className="w-full sm:w-auto"
           >
             {(classConfig?.semesterFilters ?? []).map((filter) => (
               <option key={filter.value} value={filter.value}>
                 {filter.label}
               </option>
             ))}
-          </select>
+          </GlassSelect>
         </div>
 
         {configError && (
@@ -299,14 +282,15 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
         )}
 
         {!loading && !loadError && classes.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((displayClass) => {
               const { summary: cls, iconBg, description, statusLabel, semesterLabel } =
                 displayClass;
               return (
+              <BouncyStaggerItem key={cls.id} enter="simple">
               <Card
-                key={cls.id}
-                className="border border-slate-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden"
+                bouncy={false}
+                className="border border-slate-200/80 dark:border-zinc-800/80 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md flex flex-col overflow-hidden h-full"
               >
                 {/* clickable banner */}
                 <button
@@ -403,9 +387,10 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                   </div>
                 </CardContent>
               </Card>
+              </BouncyStaggerItem>
             );
             })}
-          </div>
+          </BouncyStagger>
         )}
 
         {!loading && !loadError && classes.length === 0 && (

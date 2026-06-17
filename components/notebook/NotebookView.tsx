@@ -15,7 +15,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import {
+  glassBtnPrimaryClass,
+  glassBtnSubtleClass,
+  GlassInput,
+  GlassSearchInput,
+} from "@/components/ui/glass-field";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +40,18 @@ import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { noteService } from "@/lib/services/note-service";
-import type { NoteDto, NoteSummaryDto, SharedNoteDto } from "@/lib/types/note-api";
+import type {
+  NoteDto,
+  NoteSummaryDto,
+  SharedNoteDto,
+} from "@/lib/types/note-api";
 import { RichTextDocumentEditor } from "@/components/editor/RichTextDocumentEditor";
 import { RichTextEditor } from "@/components/notebook/RichTextEditor";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { EMPTY_EDITOR_HTML, formatDocumentTimestamp } from "@/lib/editor/html-content";
+import {
+  EMPTY_EDITOR_HTML,
+  formatDocumentTimestamp,
+} from "@/lib/editor/html-content";
 import { NoteTagPicker } from "@/components/notebook/NoteTagPicker";
 import {
   parseNoteTags,
@@ -91,7 +103,8 @@ const AUTOSAVE_MS = 30_000;
 const NOTE_EDITOR_ID = "note-body-editor";
 
 function buildShareUrl(shareToken: string): string {
-  if (typeof window === "undefined") return `/?view=notebook&share=${shareToken}`;
+  if (typeof window === "undefined")
+    return `/?view=notebook&share=${shareToken}`;
   const path = window.location.pathname.replace(/\/$/, "") || "";
   return `${window.location.origin}${path}/?view=notebook&share=${encodeURIComponent(shareToken)}`;
 }
@@ -117,15 +130,17 @@ function NoteRow({
         onClick={onSelect}
         className={cn(
           "w-full text-left rounded-xl py-2.5 pr-8 transition-all overflow-hidden flex",
-          selected
-            ? ""
-            : "hover:bg-black/4"
+          selected ? "" : "hover:bg-black/4",
         )}
-        style={selected ? {
-          background: "var(--glass-bg)",
-          border: "1px solid rgba(255,255,255,0.85)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        } : undefined}
+        style={
+          selected
+            ? {
+                background: "var(--glass-bg)",
+                border: "1px solid rgba(255,255,255,0.85)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              }
+            : undefined
+        }
       >
         {accent ? (
           <span
@@ -138,7 +153,9 @@ function NoteRow({
         )}
         <span className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2 mb-0.5">
-            <span className="font-semibold text-[13px] text-foreground truncate">{note.title}</span>
+            <span className="font-semibold text-[13px] text-foreground truncate">
+              {note.title}
+            </span>
             <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
               {formatNoteListDate(note.updatedAt)}
             </span>
@@ -149,7 +166,10 @@ function NoteRow({
           {(apiTags.length > 0 || note.sourceLabel) && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {apiTags.map((tag) => (
-                <NoteTagBadge key={`${note.id}-${tag.label}-${tag.color}`} tag={tag} />
+                <NoteTagBadge
+                  key={`${note.id}-${tag.label}-${tag.color}`}
+                  tag={tag}
+                />
               ))}
               {note.sourceLabel ? (
                 <Badge
@@ -169,7 +189,7 @@ function NoteRow({
             "absolute right-4 top-2.5 p-1 rounded-md text-muted-foreground",
             "opacity-0 group-hover:opacity-100 focus:opacity-100",
             "hover:bg-black/6 dark:hover:bg-white/8 outline-none",
-            selected && "opacity-100"
+            selected && "opacity-100",
           )}
           aria-label="Note options"
           onClick={(e) => e.stopPropagation()}
@@ -211,7 +231,9 @@ export function NotebookView() {
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "dirty">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "dirty">(
+    "idle",
+  );
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [shareCopyDone, setShareCopyDone] = useState(false);
@@ -304,7 +326,7 @@ export function NotebookView() {
       materialId: activeNote?.materialId ?? null,
       tags,
     }),
-    [activeNote, bodyHtml, tags, title]
+    [activeNote, bodyHtml, tags, title],
   );
 
   const persistNote = useCallback(
@@ -324,7 +346,10 @@ export function NotebookView() {
         } else if (!silent || dirtyRef.current) {
           const created = await noteService.create(payload);
           setActiveNote(created);
-          setParams({ [QueryKey.note]: String(created.id), [QueryKey.share]: null });
+          setParams({
+            [QueryKey.note]: String(created.id),
+            [QueryKey.share]: null,
+          });
           dirtyRef.current = false;
           setSaveStatus("saved");
           await loadList();
@@ -336,7 +361,7 @@ export function NotebookView() {
         setSaving(false);
       }
     },
-    [activeNote, buildSavePayload, loadList, setParams]
+    [activeNote, buildSavePayload, loadList, setParams],
   );
 
   useEffect(() => {
@@ -385,7 +410,10 @@ export function NotebookView() {
       setTags(created.tags ?? []);
       dirtyRef.current = false;
       setSaveStatus("saved");
-      setParams({ [QueryKey.note]: String(created.id), [QueryKey.share]: null });
+      setParams({
+        [QueryKey.note]: String(created.id),
+        [QueryKey.share]: null,
+      });
       await loadList();
     } catch {
       setSaveError("Could not create note.");
@@ -433,8 +461,12 @@ export function NotebookView() {
   const noteCountLabel = `${notes.length} ${notes.length === 1 ? "Note" : "Notes"}`;
   const isSearchActive = Boolean(searchQuery.trim());
 
-  const taggedNotes = filteredNotes.filter((n) => parseNoteTags(n.tags).length > 0);
-  const untaggedNotes = filteredNotes.filter((n) => parseNoteTags(n.tags).length === 0);
+  const taggedNotes = filteredNotes.filter(
+    (n) => parseNoteTags(n.tags).length > 0,
+  );
+  const untaggedNotes = filteredNotes.filter(
+    (n) => parseNoteTags(n.tags).length === 0,
+  );
 
   const listPane = (
     <aside
@@ -449,8 +481,12 @@ export function NotebookView() {
     >
       <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Notes</h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{noteCountLabel}</p>
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
+            Notes
+          </h1>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {noteCountLabel}
+          </p>
         </div>
         <button
           type="button"
@@ -474,22 +510,12 @@ export function NotebookView() {
       </div>
 
       <div className="shrink-0 px-3 pb-2">
-        <div
-          className="relative flex items-center rounded-xl h-9"
-          style={{
-            background: "var(--glass-bg-subtle)",
-            border: "1px solid var(--glass-border-color)",
-            boxShadow: "none",
-          }}
-        >
-          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground z-10" />
-          <input
-            placeholder="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-full pl-8 pr-3 text-[13px] bg-transparent focus:outline-none placeholder:text-muted-foreground/60"
-          />
-        </div>
+        <GlassSearchInput
+          size="sm"
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide min-h-0">
@@ -568,9 +594,14 @@ export function NotebookView() {
             boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
           }}
         >
-          <div className="shrink-0 h-11 px-4 flex items-center" style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+          <div
+            className="shrink-0 h-11 px-4 flex items-center"
+            style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
+          >
             <span className="text-[12px] text-muted-foreground mr-auto">
-              {sharedNote ? `Shared · ${sharedNote.ownerDisplayName}` : "Shared note"}
+              {sharedNote
+                ? `Shared · ${sharedNote.ownerDisplayName}`
+                : "Shared note"}
             </span>
           </div>
           {sharedLoading ? (
@@ -674,16 +705,20 @@ export function NotebookView() {
                 disabled={saving}
                 onClick={() => void persistNote(false)}
                 className="absolute bottom-4 right-4 z-10 inline-flex items-center gap-1.5 h-7 px-3 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40"
-                style={saveStatus === "saved" ? {
-                  background: "var(--glass-bg)",
-                  border: "1px solid var(--glass-border-color)",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                  color: "#16a34a",
-                } : {
-                  background: "#305FC9",
-                  color: "white",
-                  boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
-                }}
+                style={
+                  saveStatus === "saved"
+                    ? {
+                        background: "var(--glass-bg)",
+                        border: "1px solid var(--glass-border-color)",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                        color: "#16a34a",
+                      }
+                    : {
+                        background: "#305FC9",
+                        color: "white",
+                        boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+                      }
+                }
               >
                 {saving ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -692,7 +727,13 @@ export function NotebookView() {
                 ) : (
                   <PenSquare className="h-3.5 w-3.5" />
                 )}
-                <span>{saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}</span>
+                <span>
+                  {saving
+                    ? "Saving"
+                    : saveStatus === "saved"
+                      ? "Saved"
+                      : "Save"}
+                </span>
               </button>
 
               {saveError && (
@@ -730,21 +771,26 @@ export function NotebookView() {
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent>
+        <DialogContent className="gap-5">
           <DialogHeader>
             <DialogTitle>Share note</DialogTitle>
             <DialogDescription>
-              Anyone signed in to Khmer Code Path can open this link and view the note (read-only).
+              Anyone signed in to Khmer Code Path can open this link and view
+              the note (read-only).
             </DialogDescription>
           </DialogHeader>
-          <Input readOnly value={shareUrl} className="text-xs font-mono" />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)}>
+          <GlassInput readOnly value={shareUrl} className="text-xs font-mono h-10" />
+          <DialogFooter className="gap-2 sm:gap-2">
+            <button
+              type="button"
+              className={glassBtnSubtleClass}
+              onClick={() => setShareOpen(false)}
+            >
               Close
-            </Button>
-            <Button
-              variant="inverse"
-              className="gap-1.5"
+            </button>
+            <button
+              type="button"
+              className={cn(glassBtnPrimaryClass, "gap-1.5")}
               onClick={async () => {
                 await navigator.clipboard.writeText(shareUrl);
                 setShareCopyDone(true);
@@ -752,7 +798,7 @@ export function NotebookView() {
             >
               <Copy className="w-3.5 h-3.5" />
               {shareCopyDone ? "Copied" : "Copy link"}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

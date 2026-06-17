@@ -72,7 +72,10 @@ interface ParsedQuestion {
 function parseQuizQuestions(content: string): ParsedQuestion[] | null {
   try {
     // Strip markdown code fences if the model wrapped the JSON
-    const cleaned = content.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
+    const cleaned = content
+      .replace(/^```[a-z]*\n?/i, "")
+      .replace(/\n?```$/i, "")
+      .trim();
     const parsed = JSON.parse(cleaned) as unknown;
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed as ParsedQuestion[];
@@ -86,13 +89,19 @@ function parseQuizQuestions(content: string): ParsedQuestion[] | null {
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
 
 function normalizeQuestion(question: ParsedQuestion): ParsedQuestion {
-  const rawOptions = Array.isArray(question.options) ? question.options.map(String) : [];
+  const rawOptions = Array.isArray(question.options)
+    ? question.options.map(String)
+    : [];
   const options = rawOptions.length >= 2 ? rawOptions : ["", ""];
   return {
     question: String(question.question ?? ""),
     options,
-    correctIndex: Math.min(Math.max(question.correctIndex ?? 0, 0), options.length - 1),
-    explanation: question.explanation != null ? String(question.explanation) : "",
+    correctIndex: Math.min(
+      Math.max(question.correctIndex ?? 0, 0),
+      options.length - 1,
+    ),
+    explanation:
+      question.explanation != null ? String(question.explanation) : "",
   };
 }
 
@@ -108,8 +117,7 @@ function QuizPreviewPanel({
   questions?: ParsedQuestion[];
 }) {
   const questions: ParsedQuestion[] | null =
-    preloaded ??
-    (content ? parseQuizQuestions(content) : null);
+    preloaded ?? (content ? parseQuizQuestions(content) : null);
 
   if (!questions) {
     return (
@@ -131,7 +139,9 @@ function QuizPreviewPanel({
             <span className="shrink-0 w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center mt-0.5">
               {qi + 1}
             </span>
-            <p className="text-sm font-semibold text-foreground leading-snug">{q.question}</p>
+            <p className="text-sm font-semibold text-foreground leading-snug">
+              {q.question}
+            </p>
           </div>
 
           {/* Options */}
@@ -145,7 +155,7 @@ function QuizPreviewPanel({
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",
                     isCorrect
                       ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
-                      : "bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-700/40"
+                      : "bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-700/40",
                   )}
                 >
                   <span
@@ -153,7 +163,7 @@ function QuizPreviewPanel({
                       "shrink-0 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center",
                       isCorrect
                         ? "bg-emerald-500 text-white"
-                        : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300"
+                        : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300",
                     )}
                   >
                     {OPTION_LABELS[oi] ?? oi}
@@ -163,7 +173,7 @@ function QuizPreviewPanel({
                       "flex-1",
                       isCorrect
                         ? "text-emerald-800 dark:text-emerald-300 font-medium"
-                        : "text-foreground"
+                        : "text-foreground",
                     )}
                   >
                     {opt}
@@ -180,7 +190,9 @@ function QuizPreviewPanel({
           {q.explanation && (
             <div className="mx-4 mb-4 flex items-start gap-2 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 px-3 py-2">
               <BookOpen className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-sky-700 dark:text-sky-300 leading-relaxed">{q.explanation}</p>
+              <p className="text-xs text-sky-700 dark:text-sky-300 leading-relaxed">
+                {q.explanation}
+              </p>
             </div>
           )}
         </div>
@@ -202,15 +214,23 @@ function EditableQuizPanel({
     onQuestionsChange(next.map(normalizeQuestion));
   };
 
-  const updateQuestion = (index: number, updater: (question: ParsedQuestion) => ParsedQuestion) => {
-    updateQuestions(questions.map((question, qi) => (qi === index ? updater(question) : question)));
+  const updateQuestion = (
+    index: number,
+    updater: (question: ParsedQuestion) => ParsedQuestion,
+  ) => {
+    updateQuestions(
+      questions.map((question, qi) =>
+        qi === index ? updater(question) : question,
+      ),
+    );
   };
 
   if (questions.length === 0) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-amber-600">
-          This quiz could not be parsed into editable questions. You can still review the raw output below.
+          This quiz could not be parsed into editable questions. You can still
+          review the raw output below.
         </p>
         <pre className="text-xs whitespace-pre-wrap font-mono text-foreground p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60">
           {content}
@@ -250,7 +270,9 @@ function EditableQuizPanel({
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               disabled={questions.length <= 1}
-              onClick={() => updateQuestions(questions.filter((_, index) => index !== qi))}
+              onClick={() =>
+                updateQuestions(questions.filter((_, index) => index !== qi))
+              }
               aria-label="Remove question"
             >
               <Trash2 className="h-4 w-4" />
@@ -272,7 +294,7 @@ function EditableQuizPanel({
                     "h-8 w-8 shrink-0 rounded-full text-xs font-bold flex items-center justify-center border",
                     oi === q.correctIndex
                       ? "bg-emerald-500 text-white border-emerald-500"
-                      : "bg-background text-muted-foreground border-slate-200 dark:border-zinc-800"
+                      : "bg-background text-muted-foreground border-slate-200 dark:border-zinc-800",
                   )}
                   title="Mark as correct answer"
                 >
@@ -284,7 +306,7 @@ function EditableQuizPanel({
                     updateQuestion(qi, (current) => ({
                       ...current,
                       options: current.options.map((value, index) =>
-                        index === oi ? event.target.value : value
+                        index === oi ? event.target.value : value,
                       ),
                     }))
                   }
@@ -299,7 +321,9 @@ function EditableQuizPanel({
                   disabled={q.options.length <= 2}
                   onClick={() =>
                     updateQuestion(qi, (current) => {
-                      const nextOptions = current.options.filter((_, index) => index !== oi);
+                      const nextOptions = current.options.filter(
+                        (_, index) => index !== oi,
+                      );
                       return {
                         ...current,
                         options: nextOptions,
@@ -337,7 +361,9 @@ function EditableQuizPanel({
             </Button>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Explanation</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Explanation
+              </Label>
               <textarea
                 value={q.explanation ?? ""}
                 onChange={(event) =>
@@ -395,7 +421,7 @@ function AssignQuizDialog({
   const [classesLoading, setClassesLoading] = useState(false);
   const [classId, setClassId] = useState<string>("");
   const [title, setTitle] = useState(
-    `Quiz: ${generatedQuiz.sourceFileName.replace(/\.[^.]+$/, "")}`
+    `Quiz: ${generatedQuiz.sourceFileName.replace(/\.[^.]+$/, "")}`,
   );
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("30");
@@ -431,7 +457,9 @@ function AssignQuizDialog({
       onAssigned();
       onOpenChange(false);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Could not publish quiz. Please try again."));
+      setError(
+        getApiErrorMessage(err, "Could not publish quiz. Please try again."),
+      );
     } finally {
       setSaving(false);
     }
@@ -446,7 +474,8 @@ function AssignQuizDialog({
             Assign Quiz to Class
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Publish this AI-generated quiz so students in the selected class can take it.
+            Publish this AI-generated quiz so students in the selected class can
+            take it.
           </DialogDescription>
         </DialogHeader>
 
@@ -462,7 +491,9 @@ function AssignQuizDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Description (optional)</Label>
+            <Label className="text-xs font-semibold">
+              Description (optional)
+            </Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -475,7 +506,8 @@ function AssignQuizDialog({
             <Label className="text-xs font-semibold">Assign to class</Label>
             {classesLoading ? (
               <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading classes…
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading
+                classes…
               </div>
             ) : classes.length === 0 ? (
               <p className="text-xs text-amber-600">No classes found.</p>
@@ -495,7 +527,9 @@ function AssignQuizDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Time limit (minutes)</Label>
+            <Label className="text-xs font-semibold">
+              Time limit (minutes)
+            </Label>
             <Input
               type="number"
               min={5}
@@ -522,7 +556,9 @@ function AssignQuizDialog({
             disabled={saving || !classId || !title.trim()}
             onClick={() => void handleAssign()}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+            ) : null}
             Publish to Class
           </Button>
         </DialogFooter>
@@ -540,11 +576,19 @@ export function MyTasksView() {
   const [sources, setSources] = useState<QuizMaterialSource[]>([]);
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [sourcesError, setSourcesError] = useState<string | null>(null);
-  const [lessonSource, setLessonSource] = useQueryState(QueryKey.lessonSource, "");
-  const [questionCount, setQuestionCount] = useQueryState(QueryKey.questions, "10");
+  const [lessonSource, setLessonSource] = useQueryState(
+    QueryKey.lessonSource,
+    "",
+  );
+  const [questionCount, setQuestionCount] = useQueryState(
+    QueryKey.questions,
+    "10",
+  );
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [generatedQuiz, setGeneratedQuiz] = useState<QuizGenerateDto | null>(null);
+  const [generatedQuiz, setGeneratedQuiz] = useState<QuizGenerateDto | null>(
+    null,
+  );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
 
@@ -562,9 +606,12 @@ export function MyTasksView() {
   /* ── Published quiz preview / delete / assign ── */
   const [publishedPreviewOpen, setPublishedPreviewOpen] = useState(false);
   const [publishedPreviewLoading, setPublishedPreviewLoading] = useState(false);
-  const [publishedPreviewQuiz, setPublishedPreviewQuiz] = useState<QuizDto | null>(null);
+  const [publishedPreviewQuiz, setPublishedPreviewQuiz] =
+    useState<QuizDto | null>(null);
   const [assignFromCardOpen, setAssignFromCardOpen] = useState(false);
-  const [assignFromCardQuiz, setAssignFromCardQuiz] = useState<QuizDto | null>(null);
+  const [assignFromCardQuiz, setAssignFromCardQuiz] = useState<QuizDto | null>(
+    null,
+  );
   const [resultsOpen, setResultsOpen] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
@@ -606,7 +653,7 @@ export function MyTasksView() {
     } catch {
       setSources([]);
       setSourcesError(
-        "Could not load lesson materials. Upload files in Course Content or a lesson template first."
+        "Could not load lesson materials. Upload files in Course Content or a lesson template first.",
       );
     } finally {
       setSourcesLoading(false);
@@ -643,26 +690,36 @@ export function MyTasksView() {
       setPublishedPreviewOpen(false);
       console.error(
         "Failed to load quiz preview:",
-        getApiErrorMessage(err, "Could not load quiz preview.")
+        getApiErrorMessage(err, "Could not load quiz preview."),
       );
     } finally {
       setPublishedPreviewLoading(false);
     }
   }, []);
 
-  const handleDeletePublishedQuiz = useCallback(async (quiz: QuizDto) => {
-    const ok = await confirm(
-      `"${quiz.title}" will be permanently removed and students will no longer be able to take it.`,
-      { title: "Delete quiz?", confirmLabel: "Delete", variant: "destructive" }
-    );
-    if (!ok) return;
-    try {
-      await quizService.delete(quiz.id);
-      setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
-    } catch (err) {
-      console.error("Failed to delete quiz:", getApiErrorMessage(err, "Could not delete quiz."));
-    }
-  }, [confirm]);
+  const handleDeletePublishedQuiz = useCallback(
+    async (quiz: QuizDto) => {
+      const ok = await confirm(
+        `"${quiz.title}" will be permanently removed and students will no longer be able to take it.`,
+        {
+          title: "Delete quiz?",
+          confirmLabel: "Delete",
+          variant: "destructive",
+        },
+      );
+      if (!ok) return;
+      try {
+        await quizService.delete(quiz.id);
+        setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
+      } catch (err) {
+        console.error(
+          "Failed to delete quiz:",
+          getApiErrorMessage(err, "Could not delete quiz."),
+        );
+      }
+    },
+    [confirm],
+  );
 
   const handleAssignFromCard = useCallback(async (quizId: number) => {
     try {
@@ -672,75 +729,90 @@ export function MyTasksView() {
     } catch (err) {
       console.error(
         "Failed to load quiz for reassignment:",
-        getApiErrorMessage(err, "Could not load quiz for assignment.")
+        getApiErrorMessage(err, "Could not load quiz for assignment."),
       );
     }
   }, []);
 
-  const handleReviewResults = useCallback(async (quizId: number) => {
-    setResultsOpen(true);
-    setResultsLoading(true);
-    setQuizResults(null);
-    try {
-      const results = await quizService.getResults(quizId);
-      setQuizResults(results);
-    } catch (err) {
-      setResultsOpen(false);
-      void alert(getApiErrorMessage(err, "Could not load quiz results."), {
-        title: "Quiz results error",
-        variant: "destructive",
-      });
-      console.error(
-        "Failed to load quiz results:",
-        getApiErrorMessage(err, "Could not load quiz results.")
-      );
-    } finally {
-      setResultsLoading(false);
-    }
-  }, [alert]);
-
-  const handleEditPublishedQuiz = useCallback(async (quiz: QuizDto) => {
-    if ((quiz.submittedCount ?? 0) > 0 || (quiz.failedCount ?? 0) > 0) {
-      void alert("This quiz already has student attempts. Duplicate and edit it instead.", {
-        title: "Cannot edit quiz",
-        variant: "info",
-      });
-      return;
-    }
-    try {
-      const full = await quizService.getQuiz(quiz.id);
-      const content =
-        full.generatedContent ??
-        serializeQuizQuestions(
-          (full.questions ?? []).map((q) => ({
-            question: q.question,
-            options: q.options,
-            correctIndex: q.correctIndex ?? 0,
-            explanation: q.explanation ?? "",
-          }))
+  const handleReviewResults = useCallback(
+    async (quizId: number) => {
+      setResultsOpen(true);
+      setResultsLoading(true);
+      setQuizResults(null);
+      try {
+        const results = await quizService.getResults(quizId);
+        setQuizResults(results);
+      } catch (err) {
+        setResultsOpen(false);
+        void alert(getApiErrorMessage(err, "Could not load quiz results."), {
+          title: "Quiz results error",
+          variant: "destructive",
+        });
+        console.error(
+          "Failed to load quiz results:",
+          getApiErrorMessage(err, "Could not load quiz results."),
         );
-      setEditingQuiz(full);
-      setEditTitle(full.title);
-      setEditDescription(full.description ?? "");
-      setEditDuration(String(full.durationMinutes ?? 30));
-      setEditContent(content);
-      setEditOpen(true);
-    } catch (err) {
-      void alert(getApiErrorMessage(err, "Could not load quiz for editing."), {
-        title: "Edit quiz error",
-        variant: "destructive",
-      });
-    }
-  }, [alert]);
+      } finally {
+        setResultsLoading(false);
+      }
+    },
+    [alert],
+  );
+
+  const handleEditPublishedQuiz = useCallback(
+    async (quiz: QuizDto) => {
+      if ((quiz.submittedCount ?? 0) > 0 || (quiz.failedCount ?? 0) > 0) {
+        void alert(
+          "This quiz already has student attempts. Duplicate and edit it instead.",
+          {
+            title: "Cannot edit quiz",
+            variant: "info",
+          },
+        );
+        return;
+      }
+      try {
+        const full = await quizService.getQuiz(quiz.id);
+        const content =
+          full.generatedContent ??
+          serializeQuizQuestions(
+            (full.questions ?? []).map((q) => ({
+              question: q.question,
+              options: q.options,
+              correctIndex: q.correctIndex ?? 0,
+              explanation: q.explanation ?? "",
+            })),
+          );
+        setEditingQuiz(full);
+        setEditTitle(full.title);
+        setEditDescription(full.description ?? "");
+        setEditDuration(String(full.durationMinutes ?? 30));
+        setEditContent(content);
+        setEditOpen(true);
+      } catch (err) {
+        void alert(
+          getApiErrorMessage(err, "Could not load quiz for editing."),
+          {
+            title: "Edit quiz error",
+            variant: "destructive",
+          },
+        );
+      }
+    },
+    [alert],
+  );
 
   const handleSavePublishedQuiz = useCallback(async () => {
     if (!editingQuiz) return;
     const questions = parseQuizQuestions(editContent) ?? [];
     if (questions.length === 0) {
-      void alert("Quiz questions are not valid. Please add at least one question.", {
-        title: "Invalid quiz",
-        variant: "destructive",
-      });
+      void alert(
+        "Quiz questions are not valid. Please add at least one question.",
+        {
+          title: "Invalid quiz",
+          variant: "destructive",
+        },
+      );
       return;
     }
     setEditSaving(true);
@@ -767,7 +839,15 @@ export function MyTasksView() {
     } finally {
       setEditSaving(false);
     }
-  }, [alert, editContent, editDescription, editDuration, editTitle, editingQuiz, loadQuizzes]);
+  }, [
+    alert,
+    editContent,
+    editDescription,
+    editDuration,
+    editTitle,
+    editingQuiz,
+    loadQuizzes,
+  ]);
 
   useEffect(() => {
     if (isTeacher) void loadSources();
@@ -788,22 +868,31 @@ export function MyTasksView() {
     try {
       let result: QuizGenerateDto;
       if (selectedSource.kind === "lesson" && selectedSource.lessonId != null) {
-        result = await lessonAiService.generateQuizFromLesson(selectedSource.lessonId, {
-          materialId: selectedSource.materialId,
-          questionCount: count,
-        });
-      } else if (selectedSource.kind === "library-content" && selectedSource.libraryItemId != null) {
+        result = await lessonAiService.generateQuizFromLesson(
+          selectedSource.lessonId,
+          {
+            materialId: selectedSource.materialId,
+            questionCount: count,
+          },
+        );
+      } else if (
+        selectedSource.kind === "library-content" &&
+        selectedSource.libraryItemId != null
+      ) {
         result = await lessonAiService.generateQuizFromLibraryContent(
           selectedSource.libraryItemId,
-          { questionCount: count }
+          { questionCount: count },
         );
-      } else if (selectedSource.kind === "library" && selectedSource.libraryItemId != null) {
+      } else if (
+        selectedSource.kind === "library" &&
+        selectedSource.libraryItemId != null
+      ) {
         result = await lessonAiService.generateQuizFromLibrary(
           selectedSource.libraryItemId,
           {
             materialId: selectedSource.materialId,
             questionCount: count,
-          }
+          },
         );
       } else {
         throw new Error("Invalid source");
@@ -813,24 +902,27 @@ export function MyTasksView() {
     } catch (err) {
       setGenerateError(
         getApiErrorMessage(err, "") ||
-        "Quiz generation failed. Make sure Ollama is running and the model is pulled."
+          "Quiz generation failed. Make sure Ollama is running and the model is pulled.",
       );
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleGeneratedQuestionsChange = useCallback((questions: ParsedQuestion[]) => {
-    setGeneratedQuiz((prev) =>
-      prev
-        ? {
-            ...prev,
-            questionCount: questions.length,
-            generatedContent: serializeQuizQuestions(questions),
-          }
-        : prev
-    );
-  }, []);
+  const handleGeneratedQuestionsChange = useCallback(
+    (questions: ParsedQuestion[]) => {
+      setGeneratedQuiz((prev) =>
+        prev
+          ? {
+              ...prev,
+              questionCount: questions.length,
+              generatedContent: serializeQuizQuestions(questions),
+            }
+          : prev,
+      );
+    },
+    [],
+  );
 
   /* ── Quiz taking (student) ── */
   if (activeQuiz) {
@@ -849,23 +941,70 @@ export function MyTasksView() {
   const summaryStats = summary
     ? isTeacher
       ? [
-          { label: "Quizzes",     value: String(summary.total),             sub: "published",           color: "#305FC9", bg: "rgba(48,95,201,0.08)"   },
-          { label: "Submissions", value: String(summary.totalSubmissions),   sub: "across all quizzes",  color: "#16a34a", bg: "rgba(22,163,74,0.08)"   },
-          { label: "Failed",      value: String(summary.totalFailed),        sub: "student attempts",    color: "#dc2626", bg: "rgba(220,38,38,0.08)"   },
-          { label: "Questions",   value: String(summary.totalQuestions),     sub: "total",               color: "#7c3aed", bg: "rgba(124,58,237,0.08)"  },
+          {
+            label: "Quizzes",
+            value: String(summary.total),
+            sub: "published",
+            color: "#305FC9",
+            bg: "rgba(48,95,201,0.08)",
+          },
+          {
+            label: "Submissions",
+            value: String(summary.totalSubmissions),
+            sub: "across all quizzes",
+            color: "#16a34a",
+            bg: "rgba(22,163,74,0.08)",
+          },
+          {
+            label: "Failed",
+            value: String(summary.totalFailed),
+            sub: "student attempts",
+            color: "#dc2626",
+            bg: "rgba(220,38,38,0.08)",
+          },
+          {
+            label: "Questions",
+            value: String(summary.totalQuestions),
+            sub: "total",
+            color: "#7c3aed",
+            bg: "rgba(124,58,237,0.08)",
+          },
         ]
       : [
-          { label: "Total",     value: String(summary.total),     sub: "assigned quizzes", color: "#305FC9", bg: "rgba(48,95,201,0.08)"  },
-          { label: "Pending",   value: String(summary.pending),   sub: "not yet started",  color: "#d97706", bg: "rgba(217,119,6,0.08)"  },
-          { label: "Completed", value: String(summary.completed), sub: "submitted",        color: "#16a34a", bg: "rgba(22,163,74,0.08)"  },
-          { label: "Missed",    value: String(summary.missed),    sub: "failed or closed", color: "#dc2626", bg: "rgba(220,38,38,0.08)"  },
+          {
+            label: "Total",
+            value: String(summary.total),
+            sub: "assigned quizzes",
+            color: "#305FC9",
+            bg: "rgba(48,95,201,0.08)",
+          },
+          {
+            label: "Pending",
+            value: String(summary.pending),
+            sub: "not yet started",
+            color: "#d97706",
+            bg: "rgba(217,119,6,0.08)",
+          },
+          {
+            label: "Completed",
+            value: String(summary.completed),
+            sub: "submitted",
+            color: "#16a34a",
+            bg: "rgba(22,163,74,0.08)",
+          },
+          {
+            label: "Missed",
+            value: String(summary.missed),
+            sub: "failed or closed",
+            color: "#dc2626",
+            bg: "rgba(220,38,38,0.08)",
+          },
         ]
     : [];
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col gap-5">
-
         {/* ── Summary stat cards ── */}
         {!quizzesLoading && summary !== null && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
@@ -888,8 +1027,12 @@ export function MyTasksView() {
                   {stat.value}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{stat.label}</p>
-                  <p className="text-[11px] text-muted-foreground">{stat.sub}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {stat.label}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {stat.sub}
+                  </p>
                 </div>
               </div>
             ))}
@@ -924,11 +1067,12 @@ export function MyTasksView() {
                   AI Quiz Generator
                 </h3>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Generate a quiz from lesson materials, then assign it to any of your classes.
+                  Generate a quiz from lesson materials, then assign it to any
+                  of your classes.
                 </p>
               </div>
             </div>
-            <div             className="flex flex-col lg:flex-row gap-4 lg:items-end">
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
               <div className="flex-2 space-y-2 min-w-0">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   Select lesson source (uploaded file)
@@ -980,7 +1124,11 @@ export function MyTasksView() {
                 disabled={generating || sourcesLoading || sources.length === 0}
                 onClick={() => void handleGenerate()}
                 className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 shrink-0"
-                style={{ background: "#305FC9", color: "white", boxShadow: "0 2px 8px rgba(48,95,201,0.25)" }}
+                style={{
+                  background: "#305FC9",
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+                }}
               >
                 {generating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -991,7 +1139,9 @@ export function MyTasksView() {
               </button>
             </div>
             {generateError && (
-              <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">{generateError}</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 mt-3">
+                {generateError}
+              </p>
             )}
             {selectedSource && !sourcesLoading && (
               <div className="mt-2 space-y-1.5">
@@ -1018,7 +1168,8 @@ export function MyTasksView() {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
                   <p className="text-xs font-semibold text-foreground truncate">
-                    {generatedQuiz.questionCount} questions ready — review and publish to a class
+                    {generatedQuiz.questionCount} questions ready — review and
+                    publish to a class
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -1039,7 +1190,10 @@ export function MyTasksView() {
                     type="button"
                     onClick={() => setAssignOpen(true)}
                     className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold text-white transition-all"
-                    style={{ background: "#305FC9", boxShadow: "0 1px 6px rgba(48,95,201,0.25)" }}
+                    style={{
+                      background: "#305FC9",
+                      boxShadow: "0 1px 6px rgba(48,95,201,0.25)",
+                    }}
                   >
                     <Users className="w-3.5 h-3.5" />
                     Assign to Class
@@ -1052,8 +1206,6 @@ export function MyTasksView() {
 
         {/* ── Quiz list ── */}
         <div>
-
-
           {quizzesLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1093,7 +1245,11 @@ export function MyTasksView() {
                   quiz={quiz}
                   isTeacher={isTeacher}
                   onStart={() => setActiveQuiz(quiz)}
-                  onCardClick={isTeacher ? () => void handlePreviewPublishedQuiz(quiz.id) : undefined}
+                  onCardClick={
+                    isTeacher
+                      ? () => void handlePreviewPublishedQuiz(quiz.id)
+                      : undefined
+                  }
                   onEdit={() => void handleEditPublishedQuiz(quiz)}
                   onReview={() => void handleReviewResults(quiz.id)}
                   onAssign={() => void handleAssignFromCard(quiz.id)}
@@ -1117,9 +1273,13 @@ export function MyTasksView() {
               </DialogTitle>
               {generatedQuiz && (
                 <DialogDescription className="text-xs mt-1">
-                  <span className="font-semibold text-foreground">{generatedQuiz.questionCount} questions</span>
+                  <span className="font-semibold text-foreground">
+                    {generatedQuiz.questionCount} questions
+                  </span>
                   {" · "}generated from{" "}
-                  <span className="font-medium">{generatedQuiz.sourceFileName}</span>
+                  <span className="font-medium">
+                    {generatedQuiz.sourceFileName}
+                  </span>
                 </DialogDescription>
               )}
             </div>
@@ -1146,7 +1306,11 @@ export function MyTasksView() {
 
           {/* Footer */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewOpen(false)}
+            >
               Close
             </Button>
             <Button
@@ -1217,10 +1381,15 @@ export function MyTasksView() {
             <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Quiz title</Label>
-                <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
+                <Input
+                  value={editTitle}
+                  onChange={(event) => setEditTitle(event.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Time limit (minutes)</Label>
+                <Label className="text-xs font-semibold">
+                  Time limit (minutes)
+                </Label>
                 <Input
                   type="number"
                   min={1}
@@ -1240,7 +1409,9 @@ export function MyTasksView() {
             {editContent ? (
               <EditableQuizPanel
                 content={editContent}
-                onQuestionsChange={(questions) => setEditContent(serializeQuizQuestions(questions))}
+                onQuestionsChange={(questions) =>
+                  setEditContent(serializeQuizQuestions(questions))
+                }
               />
             ) : (
               <div className="flex justify-center py-16">
@@ -1250,7 +1421,11 @@ export function MyTasksView() {
           </div>
 
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -1259,7 +1434,11 @@ export function MyTasksView() {
               disabled={editSaving || !editTitle.trim()}
               onClick={() => void handleSavePublishedQuiz()}
             >
-              {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
               Save Changes
             </Button>
           </div>
@@ -1276,7 +1455,9 @@ export function MyTasksView() {
             </DialogTitle>
             {quizResults ? (
               <DialogDescription className="text-xs mt-1">
-                <span className="font-semibold text-foreground">{quizResults.quiz.title}</span>
+                <span className="font-semibold text-foreground">
+                  {quizResults.quiz.title}
+                </span>
                 {" · "}
                 {quizResults.quiz.className}
               </DialogDescription>
@@ -1303,7 +1484,9 @@ export function MyTasksView() {
                       className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 px-4 py-3"
                     >
                       <p className="text-xs text-muted-foreground">{label}</p>
-                      <p className="text-xl font-black text-foreground">{value}</p>
+                      <p className="text-xl font-black text-foreground">
+                        {value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -1327,8 +1510,12 @@ export function MyTasksView() {
                       >
                         <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_1fr] gap-3 px-4 py-3 text-sm">
                           <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{submission.studentName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{submission.studentEmail}</p>
+                            <p className="font-semibold text-foreground truncate">
+                              {submission.studentName}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {submission.studentEmail}
+                            </p>
                           </div>
                           <div>
                             <Badge
@@ -1336,7 +1523,7 @@ export function MyTasksView() {
                                 "text-[10px] font-bold border-0",
                                 submission.status === "SUBMITTED"
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
                               )}
                             >
                               {submission.status}
@@ -1348,7 +1535,8 @@ export function MyTasksView() {
                             ) : null}
                           </div>
                           <p className="font-semibold text-foreground">
-                            {submission.score ?? "—"} / {submission.totalQuestions}
+                            {submission.score ?? "—"} /{" "}
+                            {submission.totalQuestions}
                             {submission.scorePercent != null ? (
                               <span className="block text-xs text-muted-foreground">
                                 {submission.scorePercent}%
@@ -1357,7 +1545,9 @@ export function MyTasksView() {
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {submission.submittedAt
-                              ? new Date(submission.submittedAt).toLocaleString()
+                              ? new Date(
+                                  submission.submittedAt,
+                                ).toLocaleString()
                               : "—"}
                           </p>
                         </div>
@@ -1365,7 +1555,8 @@ export function MyTasksView() {
                         {submission.wrongAnswers.length > 0 ? (
                           <div className="mx-4 mb-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 p-3 space-y-3">
                             <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
-                              Wrong / unanswered questions ({submission.wrongAnswers.length})
+                              Wrong / unanswered questions (
+                              {submission.wrongAnswers.length})
                             </p>
                             {submission.wrongAnswers.map((wrong, index) => (
                               <div
@@ -1415,7 +1606,11 @@ export function MyTasksView() {
           </div>
 
           <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button variant="outline" size="sm" onClick={() => setResultsOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setResultsOpen(false)}
+            >
               Close
             </Button>
           </div>
@@ -1423,7 +1618,10 @@ export function MyTasksView() {
       </Dialog>
 
       {/* Published quiz preview dialog */}
-      <Dialog open={publishedPreviewOpen} onOpenChange={setPublishedPreviewOpen}>
+      <Dialog
+        open={publishedPreviewOpen}
+        onOpenChange={setPublishedPreviewOpen}
+      >
         <DialogContent className="w-[88vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
           <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
             <div>
@@ -1472,7 +1670,11 @@ export function MyTasksView() {
           </div>
 
           <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button variant="outline" size="sm" onClick={() => setPublishedPreviewOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPublishedPreviewOpen(false)}
+            >
               Close
             </Button>
           </div>
@@ -1508,7 +1710,7 @@ function QuizCard({
     <div
       className={cn(
         "rounded-2xl p-5 flex flex-col transition-all duration-200",
-        isTeacher ? "cursor-pointer hover:scale-[1.01]" : ""
+        isTeacher ? "cursor-pointer hover:scale-[1.01]" : "",
       )}
       style={{
         background: "var(--glass-bg)",
@@ -1519,126 +1721,163 @@ function QuizCard({
       }}
       onClick={onCardClick}
     >
-        <div className="flex justify-between items-start gap-3 mb-3">
-          <span
-            className={cn(
-              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold",
-              isPending
-                ? "bg-amber-500/10 text-amber-600"
-                : isClosed
-                  ? "bg-black/6 text-muted-foreground"
-                  : "bg-emerald-500/10 text-emerald-600"
-            )}
-          >
-            {quiz.status === "PUBLISHED"
-              ? "Active"
-              : quiz.status === "DRAFT"
-                ? "Draft"
-                : "Closed"}
-          </span>
-          <div className="flex items-center gap-1 shrink-0">
-            {quiz.durationMinutes && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {quiz.durationMinutes} min
-              </span>
-            )}
-            {isTeacher && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                  aria-label="Quiz options"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  {(quiz.submittedCount ?? 0) === 0 && (quiz.failedCount ?? 0) === 0 ? (
-                    <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Edit Quiz
-                    </DropdownMenuItem>
-                  ) : null}
+      <div className="flex justify-between items-start gap-3 mb-3">
+        <span
+          className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold",
+            isPending
+              ? "bg-amber-500/10 text-amber-600"
+              : isClosed
+                ? "bg-black/6 text-muted-foreground"
+                : "bg-emerald-500/10 text-emerald-600",
+          )}
+        >
+          {quiz.status === "PUBLISHED"
+            ? "Active"
+            : quiz.status === "DRAFT"
+              ? "Draft"
+              : "Closed"}
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          {quiz.durationMinutes && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {quiz.durationMinutes} min
+            </span>
+          )}
+          {isTeacher && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                aria-label="Quiz options"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {(quiz.submittedCount ?? 0) === 0 &&
+                (quiz.failedCount ?? 0) === 0 ? (
                   <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onReview?.(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit?.();
+                    }}
                   >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Review Results
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Edit Quiz
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onAssign?.(); }}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Assign to Class
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
-        <h3 className="text-base font-semibold text-foreground mb-1 leading-snug">
-          {quiz.title}
-        </h3>
-        {quiz.description && (
-          <p className="text-[13px] text-muted-foreground mb-1">{quiz.description}</p>
-        )}
-        <p className="text-xs text-muted-foreground mb-4">
-          {quiz.className} · {quiz.questionCount} questions
-        </p>
-
-        {isTeacher && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              {[
-                { label: "Submitted", value: `${quiz.submittedCount ?? 0}${quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}` },
-                { label: "Failed", value: String(quiz.failedCount ?? 0) },
-                { label: "Pending", value: quiz.enrolledStudents != null ? String(Math.max(0, quiz.enrolledStudents - (quiz.submittedCount ?? 0) - (quiz.failedCount ?? 0))) : "—" },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-xl px-2.5 py-2"
-                  style={{
-                    background: "var(--glass-bg-subtle)",
-                    border: "1px solid var(--glass-border-color)",
-                    boxShadow: "none",
+                ) : null}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReview?.();
                   }}
                 >
-                  <p className="text-muted-foreground">{label}</p>
-                  <p className="font-black text-foreground">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Eye className="w-3.5 h-3.5" />
-              Click to preview
-            </div>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Review Results
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAssign?.();
+                  }}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Assign to Class
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.();
+                  }}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </div>
+      <h3 className="text-base font-semibold text-foreground mb-1 leading-snug">
+        {quiz.title}
+      </h3>
+      {quiz.description && (
+        <p className="text-[13px] text-muted-foreground mb-1">
+          {quiz.description}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground mb-4">
+        {quiz.className} · {quiz.questionCount} questions
+      </p>
+
+      {isTeacher && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            {[
+              {
+                label: "Submitted",
+                value: `${quiz.submittedCount ?? 0}${quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}`,
+              },
+              { label: "Failed", value: String(quiz.failedCount ?? 0) },
+              {
+                label: "Pending",
+                value:
+                  quiz.enrolledStudents != null
+                    ? String(
+                        Math.max(
+                          0,
+                          quiz.enrolledStudents -
+                            (quiz.submittedCount ?? 0) -
+                            (quiz.failedCount ?? 0),
+                        ),
+                      )
+                    : "—",
+              },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="rounded-xl px-2.5 py-2"
+                style={{
+                  background: "var(--glass-bg-subtle)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "none",
+                }}
+              >
+                <p className="text-muted-foreground">{label}</p>
+                <p className="font-black text-foreground">{value}</p>
+              </div>
+            ))}
           </div>
-        )}
-        {!isTeacher && isPending && (
-          <button
-            type="button"
-            className="w-full h-9 rounded-xl text-sm font-semibold text-white transition-all"
-            style={{ background: "#305FC9", boxShadow: "0 2px 8px rgba(48,95,201,0.25)" }}
-            onClick={(e) => { e.stopPropagation(); onStart(); }}
-          >
-            Start Quiz
-          </button>
-        )}
-        {!isTeacher && !isPending && (
-          <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold">
-            <CheckCircle2 className="w-4 h-4" />
-            {isClosed ? "Quiz closed" : "Completed"}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Eye className="w-3.5 h-3.5" />
+            Click to preview
           </div>
-        )}
+        </div>
+      )}
+      {!isTeacher && isPending && (
+        <button
+          type="button"
+          className="w-full h-9 rounded-xl text-sm font-semibold text-white transition-all"
+          style={{
+            background: "#305FC9",
+            boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onStart();
+          }}
+        >
+          Start Quiz
+        </button>
+      )}
+      {!isTeacher && !isPending && (
+        <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold">
+          <CheckCircle2 className="w-4 h-4" />
+          {isClosed ? "Quiz closed" : "Completed"}
+        </div>
+      )}
     </div>
   );
 }

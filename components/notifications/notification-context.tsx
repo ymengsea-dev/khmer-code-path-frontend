@@ -15,6 +15,10 @@ import {
   formatTimeAgo,
   notificationSection,
 } from "@/lib/format-time-ago";
+import {
+  getNotificationsEnabled,
+  NOTIFICATIONS_PREFERENCE_EVENT,
+} from "@/lib/notification-preferences";
 import { classService } from "@/lib/services/class-service";
 import { notificationService } from "@/lib/services/notification-service";
 import type {
@@ -109,9 +113,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(true);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const pushEnabledRef = useRef(true);
 
   const refresh = useCallback(async () => {
     if (status !== "authenticated") {
@@ -135,14 +141,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     void refresh();
   }, [refresh]);
 
-  // Request browser notification permission once when authenticated
   useEffect(() => {
-    if (status !== "authenticated") return;
+    setPushEnabled(getNotificationsEnabled());
+    pushEnabledRef.current = getNotificationsEnabled();
+    const onPreferenceChange = () => {
+      const enabled = getNotificationsEnabled();
+      setPushEnabled(enabled);
+      pushEnabledRef.current = enabled;
+    };
+    window.addEventListener(NOTIFICATIONS_PREFERENCE_EVENT, onPreferenceChange);
+    return () => window.removeEventListener(NOTIFICATIONS_PREFERENCE_EVENT, onPreferenceChange);
+  }, []);
+
+  // Request browser notification permission when push is enabled
+  useEffect(() => {
+    if (status !== "authenticated" || !pushEnabled) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission === "default") {
       void Notification.requestPermission();
     }
-  }, [status]);
+  }, [status, pushEnabled]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -172,6 +190,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
           // Native browser notification
           if (
+            pushEnabledRef.current &&
             typeof window !== "undefined" &&
             "Notification" in window &&
             Notification.permission === "granted" &&

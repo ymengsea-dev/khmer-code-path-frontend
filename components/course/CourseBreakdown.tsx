@@ -60,14 +60,16 @@ export function CourseBreakdown() {
         Course Breakdown
       </h2>
 
-      <div className="rounded-2xl overflow-hidden"
+      <div
+        className="rounded-2xl overflow-hidden"
         style={{
           background: "var(--glass-bg)",
           backdropFilter: "var(--glass-blur)",
           WebkitBackdropFilter: "var(--glass-blur)",
           border: "1px solid var(--glass-border-color)",
           boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-        }}>
+        }}
+      >
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -82,8 +84,10 @@ export function CourseBreakdown() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left border-collapse">
               <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-black/5"
-                  style={{ background: "var(--glass-bg-subtle)" }}>
+                <tr
+                  className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-black/5"
+                  style={{ background: "var(--glass-bg-subtle)" }}
+                >
                   <th className="px-5 py-3">Course</th>
                   <th className="px-5 py-3">Quizzes</th>
                   <th className="px-5 py-3">Midterm</th>
@@ -101,9 +105,15 @@ export function CourseBreakdown() {
                     <td className="px-5 py-3.5 font-semibold text-foreground">
                       {row.course}
                     </td>
-                    <td className="px-5 py-3.5 text-muted-foreground">{row.quizzes}</td>
-                    <td className="px-5 py-3.5 text-muted-foreground">{row.midterm}</td>
-                    <td className="px-5 py-3.5 text-muted-foreground">{row.finalExam}</td>
+                    <td className="px-5 py-3.5 text-muted-foreground">
+                      {row.quizzes}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground">
+                      {row.midterm}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground">
+                      {row.finalExam}
+                    </td>
                     <td className="px-5 py-3.5 text-muted-foreground">
                       {row.attendance}
                     </td>
@@ -111,7 +121,7 @@ export function CourseBreakdown() {
                       <span
                         className={cn(
                           "inline-flex text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs",
-                          gradeBadgeClass(row.grade)
+                          gradeBadgeClass(row.grade),
                         )}
                       >
                         {row.grade}

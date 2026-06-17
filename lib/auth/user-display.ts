@@ -20,3 +20,19 @@ export function getRoleLabel(role: string | undefined): string {
       return "Learner";
   }
 }
+
+const BACKEND_ORIGIN =
+  process.env.NEXT_PUBLIC_BACKEND_ORIGIN ?? "http://localhost:8080";
+
+export function resolveAvatarUrl(
+  avatarUrl: string | null | undefined,
+  cacheBust?: string | number
+): string | null {
+  if (!avatarUrl) return null;
+  const base = avatarUrl.startsWith("http")
+    ? avatarUrl
+    : `${BACKEND_ORIGIN}${avatarUrl.startsWith("/") ? avatarUrl : `/${avatarUrl}`}`;
+  if (cacheBust == null) return base;
+  const separator = base.includes("?") ? "&" : "?";
+  return `${base}${separator}v=${encodeURIComponent(String(cacheBust))}`;
+}

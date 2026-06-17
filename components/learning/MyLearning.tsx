@@ -1,6 +1,12 @@
 "use client";
 
-import { BookOpen, CheckCircle2, ClipboardList, Loader2, Trophy } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  ClipboardList,
+  Loader2,
+  Trophy,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -12,7 +18,11 @@ import { profileSummaryService } from "@/lib/services/profile-summary-service";
 import type { LearningClassDto } from "@/lib/types/profile-summary-api";
 
 interface MyLearningProps {
-  onEnterClass?: (payload: { classId: string; title: string; module: string }) => void;
+  onEnterClass?: (payload: {
+    classId: string;
+    title: string;
+    module: string;
+  }) => void;
 }
 
 function clamp(value: number): number {
@@ -21,8 +31,10 @@ function clamp(value: number): number {
 
 function progressValue(item: LearningClassDto): number {
   if (item.progress?.completed) return 100;
-  if (typeof item.progress?.numericGrade === "number") return clamp(item.progress.numericGrade);
-  if (typeof item.progress?.attendanceRate === "number") return clamp(item.progress.attendanceRate);
+  if (typeof item.progress?.numericGrade === "number")
+    return clamp(item.progress.numericGrade);
+  if (typeof item.progress?.attendanceRate === "number")
+    return clamp(item.progress.attendanceRate);
   return 0;
 }
 
@@ -46,7 +58,7 @@ function LearningCourseCard({
             <div
               className={cn(
                 "h-11 w-11 rounded-xl flex items-center justify-center text-sm font-black text-white shadow-sm shrink-0 bg-linear-to-br",
-                klass.cardGradient
+                klass.cardGradient,
               )}
             >
               {klass.code.slice(0, 2).toUpperCase()}
@@ -73,14 +85,18 @@ function LearningCourseCard({
           <div className="rounded-lg bg-muted/50 px-3 py-2">
             <p className="text-muted-foreground">Grade</p>
             <p className="font-bold text-foreground">
-              {item.progress?.letterGrade ?? item.progress?.numericGrade ?? "Pending"}
+              {item.progress?.letterGrade ??
+                item.progress?.numericGrade ??
+                "Pending"}
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 px-3 py-2">
             <p className="text-muted-foreground">Quizzes</p>
             <p className="font-bold text-foreground">
               {item.progress?.quizzesCompleted ?? 0} done
-              {item.pendingQuizzes > 0 ? ` · ${item.pendingQuizzes} pending` : ""}
+              {item.pendingQuizzes > 0
+                ? ` · ${item.pendingQuizzes} pending`
+                : ""}
             </p>
           </div>
         </div>
@@ -92,7 +108,10 @@ function LearningCourseCard({
           </div>
           <div className="h-2.5 rounded-full bg-muted overflow-hidden">
             <div
-              className={cn("h-full rounded-full bg-linear-to-r", klass.cardGradient)}
+              className={cn(
+                "h-full rounded-full bg-linear-to-r",
+                klass.cardGradient,
+              )}
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -153,7 +172,9 @@ export function MyLearning({ onEnterClass }: MyLearningProps) {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : isError ? (
-            <p className="text-sm text-destructive">Could not load your learning data.</p>
+            <p className="text-sm text-destructive">
+              Could not load your learning data.
+            </p>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -162,7 +183,9 @@ export function MyLearning({ onEnterClass }: MyLearningProps) {
                     <BookOpen className="h-5 w-5 text-violet-500" />
                     <div>
                       <p className="text-xs text-muted-foreground">Enrolled</p>
-                      <p className="text-xl font-black">{data?.dashboard.coursesEnrolled ?? 0}</p>
+                      <p className="text-xl font-black">
+                        {data?.dashboard.coursesEnrolled ?? 0}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -171,7 +194,9 @@ export function MyLearning({ onEnterClass }: MyLearningProps) {
                     <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                     <div>
                       <p className="text-xs text-muted-foreground">Completed</p>
-                      <p className="text-xl font-black">{data?.dashboard.coursesCompleted ?? 0}</p>
+                      <p className="text-xl font-black">
+                        {data?.dashboard.coursesCompleted ?? 0}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -179,8 +204,12 @@ export function MyLearning({ onEnterClass }: MyLearningProps) {
                   <CardContent className="p-4 flex items-center gap-3">
                     <ClipboardList className="h-5 w-5 text-amber-500" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Quizzes Done</p>
-                      <p className="text-xl font-black">{data?.dashboard.quizzesCompleted ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Quizzes Done
+                      </p>
+                      <p className="text-xl font-black">
+                        {data?.dashboard.quizzesCompleted ?? 0}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
