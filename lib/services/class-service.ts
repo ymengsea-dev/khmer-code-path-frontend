@@ -3,6 +3,7 @@ import type {
   ClassConfigDto,
   ClassDetail,
   ClassPage,
+  ClassSettingsConfigDto,
   ClassStudent,
   CreateClassPayload,
   UpdateClassPayload,
@@ -42,6 +43,13 @@ export const classService = {
     return response.data.data;
   },
 
+  async getClassSettingsConfig(classId: number): Promise<ClassSettingsConfigDto> {
+    const response = await apiClient.get<{ data: ClassSettingsConfigDto }>(
+      `/classes/${classId}/settings/config`,
+    );
+    return response.data.data;
+  },
+
   async createClass(payload: CreateClassPayload): Promise<ClassDetail> {
     const response = await apiClient.post<{ data: ClassDetail }>(
       "/classes",
@@ -53,6 +61,13 @@ export const classService = {
   async listClassStudents(classId: number): Promise<ClassStudent[]> {
     const response = await apiClient.get<{ data: ClassStudent[] }>(
       `/classes/${classId}/students`
+    );
+    return response.data.data ?? [];
+  },
+
+  async listInviteCandidates(classId: number): Promise<ClassStudent[]> {
+    const response = await apiClient.get<{ data: ClassStudent[] }>(
+      `/classes/${classId}/students/invite-candidates`,
     );
     return response.data.data ?? [];
   },

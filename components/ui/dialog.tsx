@@ -4,7 +4,6 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
@@ -59,17 +58,23 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-4 right-4 h-8 w-8 p-0 rounded-full liquid-glass-btn-subtle liquid-glass-btn"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+            render={(props) => (
+              <button
+                type="button"
+                {...props}
+                aria-label="Close"
+                className={cn(
+                  "absolute top-4 right-4 inline-flex size-9.5 shrink-0 items-center justify-center rounded-xl",
+                  "border-transparent bg-transparent text-muted-foreground shadow-none outline-none",
+                  "hover:bg-white/35 hover:text-foreground dark:hover:bg-white/8 dark:hover:text-foreground",
+                  "liquid-glass-btn-subtle liquid-glass-btn",
+                  props.className,
+                )}
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            )}
+          />
         )}
       </DialogPrimitive.Popup>
     </DialogPortal>

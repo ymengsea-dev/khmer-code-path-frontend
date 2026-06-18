@@ -8,7 +8,7 @@ import {
   PenSquare,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { GlassButton } from "@/components/ui/glass-button";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { RichTextDocumentEditor } from "@/components/editor/RichTextDocumentEditor";
 import { TemplateFilesPanel } from "@/components/course-content/TemplateFilesPanel";
 import {
@@ -30,10 +31,23 @@ import {
   fromEditorHtml,
   toEditorHtml,
 } from "@/lib/editor/html-content";
-import { Input } from "@/components/ui/input";
+import {
+  GlassInput,
+  glassBtnPrimaryClass,
+  glassBtnSubtleClass,
+} from "@/components/ui/glass-field";
+import { cn } from "@/lib/utils";
 
 const AUTOSAVE_MS = 30_000;
 const EDITOR_ID = "course-content-body-editor";
+
+const glassEditorPanelStyle = {
+  background: "var(--glass-bg-subtle)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
+  border: "1px solid var(--glass-border-color)",
+  boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+} as const;
 
 interface CourseContentEditorProps {
   templateId: number;
@@ -195,123 +209,156 @@ export function CourseContentEditor({
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-[#fffef8] dark:bg-[#1c1c1e]">
+      <div className="flex flex-1 items-center justify-center min-h-[40vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-1 flex-col min-h-0 overflow-hidden bg-[#fffef8] dark:bg-[#1c1c1e]">
-      <RichTextDocumentEditor
-        title={title}
-        onTitleChange={(v) => {
-          setTitle(v);
-          markDirty();
-        }}
-        bodyHtml={bodyHtml}
-        onBodyChange={(html) => {
-          setBodyHtml(html);
-          markDirty();
-        }}
-        updatedAt={updatedAt}
-        titlePlaceholder="Template title"
-        bodyPlaceholder="Describe this lesson template…"
-        disabled={saving}
-        editorId={EDITOR_ID}
-        meta={
-          <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1 text-[12px] text-muted-foreground flex-1 min-w-[200px] max-w-sm">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">
-                Topic label (optional)
-              </span>
-              <Input
-                className="h-9 text-sm"
-                value={moduleTag}
-                disabled={saving}
-                placeholder="e.g. Week 3 — Sorting"
-                onChange={(e) => {
-                  setModuleTag(e.target.value);
-                  markDirty();
-                }}
-              />
-            </label>
-            <p className="text-[11px] text-muted-foreground pb-1">
-              {assetCount} file{assetCount === 1 ? "" : "s"} stored · assign to
-              a class to publish lesson + files
-            </p>
-          </div>
-        }
-        toolbar={
-          <>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-[13px]"
-              disabled={saving}
-              onClick={() => void handleBack()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Library</span>
-            </Button>
-            <div className="flex-1" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              disabled={saving || deleting}
-              aria-label="Delete template"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-[13px] font-medium"
-              disabled={saving || !dirty}
-              onClick={() => void persist(false)}
-            >
-              {saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : savedFlash && !dirty ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              ) : (
-                <PenSquare className="h-3.5 w-3.5" />
-              )}
-              <span className="ml-1.5 hidden sm:inline">
-                {saving ? "Saving" : savedFlash && !dirty ? "Saved" : "Save"}
-              </span>
-            </Button>
-          </>
-        }
-        editorToolbarEnd={
-          <TemplateFilesPanel
-            templateId={templateId}
-            uploadAccept={uploadAccept}
-            poolFiles={poolFiles}
-            disabled={saving}
-            onMaterialsChanged={() => {
-              void loadTemplate();
-              void loadPoolFiles();
-              onSaved();
-            }}
-          />
-        }
-        className="flex-1 min-h-0"
-      />
+  const saveStatus = saving ? "saving" : savedFlash && !dirty ? "saved" : "idle";
 
-      {(saveError || (dirty && !saving)) && (
-        <p className="shrink-0 px-6 py-2 text-[11px] text-center text-muted-foreground border-t border-black/4">
-          {saveError ??
-            "Unsaved · auto-saves every 30s · press Ctrl+S to save now"}
-        </p>
-      )}
+  return (
+    <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden scrollbar-hide">
+      <main
+        className="relative flex flex-1 flex-col min-h-0 overflow-hidden rounded-2xl"
+        style={glassEditorPanelStyle}
+      >
+        <RichTextDocumentEditor
+          title={title}
+          onTitleChange={(v) => {
+            setTitle(v);
+            markDirty();
+          }}
+          bodyHtml={bodyHtml}
+          onBodyChange={(html) => {
+            setBodyHtml(html);
+            markDirty();
+          }}
+          updatedAt={updatedAt}
+          titlePlaceholder="Template title"
+          bodyPlaceholder="Describe this lesson template…"
+          disabled={saving}
+          editorId={EDITOR_ID}
+          meta={
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1.5 flex-1 min-w-[200px] max-w-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Topic label (optional)
+                </span>
+                <GlassInput
+                  className="h-10 text-sm"
+                  value={moduleTag}
+                  disabled={saving}
+                  placeholder="e.g. Week 3 — Sorting"
+                  onChange={(e) => {
+                    setModuleTag(e.target.value);
+                    markDirty();
+                  }}
+                />
+              </label>
+              <span
+                className="inline-flex items-center h-10 px-3 rounded-xl text-[11px] font-semibold text-muted-foreground shrink-0"
+                style={{
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                }}
+              >
+                {assetCount} file{assetCount === 1 ? "" : "s"} attached
+              </span>
+            </div>
+          }
+          toolbar={
+            <>
+              <GlassButton
+                subtle
+                className={cn(glassBtnSubtleClass, "h-8 px-3 text-xs gap-1.5 shrink-0")}
+                disabled={saving}
+                onClick={() => void handleBack()}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Content Management</span>
+              </GlassButton>
+              <div className="flex-1 min-w-0" />
+              <GlassButton
+                subtle
+                className={cn(
+                  glassBtnSubtleClass,
+                  "h-8 w-8 p-0 shrink-0 text-destructive hover:text-destructive",
+                )}
+                disabled={saving || deleting}
+                aria-label="Delete template"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </GlassButton>
+            </>
+          }
+          editorToolbarEnd={
+            <TemplateFilesPanel
+              templateId={templateId}
+              uploadAccept={uploadAccept}
+              poolFiles={poolFiles}
+              disabled={saving}
+              onMaterialsChanged={() => {
+                void loadTemplate();
+                void loadPoolFiles();
+                onSaved();
+              }}
+            />
+          }
+          className="flex-1 min-h-0"
+        />
+
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void persist(false)}
+          className="absolute bottom-4 right-4 z-10 inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
+          style={
+            saveStatus === "saved"
+              ? {
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border-color)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  color: "#16a34a",
+                }
+              : {
+                  background: "#305FC9",
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
+                }
+          }
+        >
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : saveStatus === "saved" ? (
+            <CheckCircle2 className="h-3.5 w-3.5" />
+          ) : (
+            <PenSquare className="h-3.5 w-3.5" />
+          )}
+          <span>
+            {saving ? "Saving" : saveStatus === "saved" ? "Saved" : "Save"}
+          </span>
+        </button>
+
+        {(saveError || (dirty && !saving)) && (
+          <p
+            className="absolute bottom-4 left-4 right-28 z-10 text-[11px] text-muted-foreground rounded-xl px-3 py-2 truncate"
+            style={{
+              background: "var(--glass-bg)",
+              backdropFilter: "var(--glass-blur)",
+              WebkitBackdropFilter: "var(--glass-blur)",
+              border: "1px solid var(--glass-border-color)",
+            }}
+          >
+            {saveError ??
+              "Unsaved · auto-saves every 30s · press Ctrl+S to save now"}
+          </p>
+        )}
+      </main>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md glass-modal">
           <DialogHeader>
             <DialogTitle>Delete this template?</DialogTitle>
             <DialogDescription>

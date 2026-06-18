@@ -10,11 +10,12 @@ import { MyTasksView } from "@/components/tasks/MyTasksView";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { ClassesView } from "@/components/classes/ClassesView";
+import { ClassDetailView } from "@/components/classes/ClassDetailView";
 import { NotebookView } from "@/components/notebook/NotebookView";
 import { LessonsView } from "@/components/lessons/LessonsView";
 import { AiChatView } from "@/components/ai-chat/AiChatView";
-import { UserManagementView } from "@/components/users/UserManagementView";
-import { TeacherGradebookView } from "@/components/gradebook/TeacherGradebookView";
+import { StudentManagementView } from "@/components/users/StudentManagementView";
+import { AttendanceManagementView } from "@/components/attendance/AttendanceManagementView";
 import { DepartmentsView } from "@/components/departments/DepartmentsView";
 import { OperationsView } from "@/components/operations/OperationsView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
@@ -53,11 +54,12 @@ const VIEW_LABELS: Record<AppView, string> = {
   learning:       "My Learning",
   profile:        "Profile",
   settings:       "Settings",
-  users:          "User Management",
-  gradebook:      "Gradebook",
+  "student-management": "Student Management",
+  "attendance-management": "Attendance Management",
   departments:    "Departments",
   operations:     "Operations",
-  "course-content": "Course Content",
+  "course-content": "Content Management",
+  "class-detail": "Class Details",
 };
 
 const useIsMobile = () => {
@@ -104,7 +106,12 @@ export function HomePage() {
   const { displayName, role: appRole } = useUserProfile();
   const [lessonClasses, setLessonClasses] = useState<ClassSummary[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [classDetailTitle, setClassDetailTitle] = useState<string | null>(null);
   const headerName = displayName || session?.user?.name?.trim() || null;
+
+  useEffect(() => {
+    if (activeNav !== "class-detail") setClassDetailTitle(null);
+  }, [activeNav]);
 
   useEffect(() => {
     if (appRole !== "admin" || !viewParam) return;
@@ -190,6 +197,20 @@ export function HomePage() {
     [setParams, appRole]
   );
 
+  const handleViewClassDetail = useCallback(
+    (payload: { classId: string }) => {
+      setParams({
+        [QueryKey.view]: "class-detail",
+        [QueryKey.course]: payload.classId,
+        [QueryKey.lesson]: null,
+        [QueryKey.module]: null,
+        [QueryKey.lessonId]: null,
+        [QueryKey.tab]: null,
+      });
+    },
+    [setParams],
+  );
+
   const handleSearchNavigate = useCallback(
     (result: GlobalSearchResultDto) => {
       const updates: Record<string, string | null> = {
@@ -205,7 +226,6 @@ export function HomePage() {
   );
 
   const handleBackToClasses = useCallback(() => {
-    setOpenedLesson(null);
     setParams({
       [QueryKey.view]: "classes",
       [QueryKey.course]: null,
@@ -216,11 +236,23 @@ export function HomePage() {
     });
   }, [setParams]);
 
+  const handleBackToClassDetail = useCallback(() => {
+    if (!courseParam) return;
+    setParams({
+      [QueryKey.view]: "class-detail",
+      [QueryKey.course]: courseParam,
+      [QueryKey.lesson]: null,
+      [QueryKey.module]: null,
+      [QueryKey.lessonId]: null,
+      [QueryKey.tab]: null,
+    });
+  }, [courseParam, setParams]);
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-transparent text-foreground overflow-hidden font-sans">
         <Sidebar
-          activeNav={activeNav}
+          activeNav={activeNav === "class-detail" ? "classes" : activeNav}
           activeCourseId={activeCourseId}
           lessonClasses={lessonClasses}
           onNavChange={handleNavChange}
@@ -243,6 +275,12 @@ export function HomePage() {
                     {lessonContext.module}
                   </span>
                 )}
+              </GlassPageTitle>
+            ) : activeNav === "class-detail" ? (
+              <GlassPageTitle>
+                <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
+                  {classDetailTitle ?? "Class"}
+                </h1>
               </GlassPageTitle>
             ) : (
               <GlassPageTitle>
@@ -313,13 +351,22 @@ export function HomePage() {
                 classTitle={lessonContext?.title}
                 classModule={lessonContext?.module}
                 onBackToClasses={handleBackToClasses}
+                onBackToClassDetail={handleBackToClassDetail}
               />
             )}
             {activeNav === "classes" && (
               <ClassesView onEnterClass={handleEnterClass} />
             )}
-            {activeNav === "users" && <UserManagementView />}
-            {activeNav === "gradebook" && <TeacherGradebookView />}
+            {activeNav === "class-detail" && (
+              <ClassDetailView
+                classId={activeCourseId}
+                onBack={handleBackToClasses}
+                onEnterClass={handleEnterClass}
+                onClassNameLoaded={setClassDetailTitle}
+              />
+            )}
+            {activeNav === "student-management" && <StudentManagementView />}
+            {activeNav === "attendance-management" && <AttendanceManagementView />}
             {activeNav === "departments" && <DepartmentsView />}
             {activeNav === "operations" && <OperationsView />}
             {activeNav === "course-content" && <CourseContentView />}
@@ -330,6 +377,7 @@ export function HomePage() {
                 coursesError={coursesError}
                 onSelect={() => {}}
                 onEnterClass={handleEnterClass}
+                onViewClassDetail={handleViewClassDetail}
                 canManageCourses={false}
               />
             )}

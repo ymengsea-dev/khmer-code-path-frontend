@@ -119,7 +119,7 @@ export async function loadQuizMaterialSources(): Promise<QuizMaterialSource[]> {
         kind: "library-content",
         libraryItemId: template.id,
         fileName: "Written notes",
-        group: "Lesson templates (Course Content)",
+        group: "Lesson templates (Content Management)",
         label: `${template.title} — Written notes`,
       });
     }
@@ -139,7 +139,7 @@ export async function loadQuizMaterialSources(): Promise<QuizMaterialSource[]> {
         libraryItemId: template.id,
         materialId: mat.id,
         fileName: mat.fileName,
-        group: "Lesson templates (Course Content)",
+        group: "Lesson templates (Content Management)",
         label: `${template.title} — ${mat.fileName}`,
       });
     }

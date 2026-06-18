@@ -17,6 +17,9 @@ export const QueryKey = {
   questions: "questions",
   userTab: "userTab",
   userStatus: "userStatus",
+  userClass: "userClass",
+  attendanceClass: "attendanceClass",
+  attendanceMonth: "attendanceMonth",
   opsTab: "opsTab",
   contentModule: "contentModule",
   contentId: "contentId",
@@ -35,11 +38,12 @@ export type AppView =
   | "learning"
   | "profile"
   | "settings"
-  | "users"
-  | "gradebook"
+  | "student-management"
+  | "attendance-management"
   | "departments"
   | "operations"
-  | "course-content";
+  | "course-content"
+  | "class-detail";
 
 export type UserManagementTab =
   | "all"
@@ -70,11 +74,12 @@ const VALID_VIEWS = new Set<string>([
   "learning",
   "profile",
   "settings",
-  "users",
-  "gradebook",
+  "student-management",
+  "attendance-management",
   "departments",
   "operations",
   "course-content",
+  "class-detail",
 ]);
 
 const VALID_USER_TABS = new Set<string>([
@@ -99,10 +104,27 @@ export function parseUserStatus(value: string | null): UserStatusFilter {
   return "all";
 }
 
+export function parseUserClass(value: string | null): string {
+  if (value && value.trim()) return value.trim();
+  return "all";
+}
+
 export function parseView(value: string | null): AppView {
+  if (value === "users") return "student-management";
+  if (value === "gradebook") return "attendance-management";
+  if (value === "class-settings") return "class-detail";
   if (value && VALID_VIEWS.has(value)) {
     return value as AppView;
   }
   return "courses";
+}
+
+export function parseAttendanceMonth(
+  value: string | null,
+  defaultId?: string | null,
+): string {
+  if (value && value.trim()) return value.trim();
+  if (defaultId && defaultId.trim()) return defaultId.trim();
+  return "all";
 }
 

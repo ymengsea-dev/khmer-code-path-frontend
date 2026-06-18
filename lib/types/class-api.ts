@@ -37,6 +37,7 @@ export interface ClassDetail {
   status: ClassStatus;
   enrollment?: { enrolled: number };
   lessons?: { total: number };
+  gradingWeights?: GradingWeightsDto;
   teacher?: {
     id: string;
     name: string;
@@ -64,6 +65,28 @@ export interface GradingWeightsDto {
   finalExam: number;
 }
 
+export type GradingWeightKey = keyof GradingWeightsDto;
+
+export interface ScoreComponentDto {
+  key: GradingWeightKey;
+  label: string;
+  /** UI color token from API, e.g. emerald, blue */
+  color: string;
+}
+
+export interface ClassStatusOptionDto {
+  value: ClassStatus;
+  label: string;
+}
+
+export interface ClassSettingsConfigDto {
+  classId: number;
+  className: string;
+  tabs: LessonTabDto[];
+  scoreComponents: ScoreComponentDto[];
+  statusOptions: ClassStatusOptionDto[];
+}
+
 export interface ClassConfigDto {
   allSemestersLabel: string;
   semesterFilters: SemesterFilterDto[];
@@ -74,6 +97,7 @@ export interface ClassConfigDto {
     academicYear: number;
   };
   gradingWeights?: GradingWeightsDto;
+  scoreComponents?: ScoreComponentDto[];
 }
 
 export interface CreateClassPayload {
@@ -97,11 +121,13 @@ export interface UpdateClassPayload {
   schedule?: string;
   roomNumber?: string;
   status?: ClassStatus;
+  gradingWeights?: GradingWeightsDto;
 }
 
 export interface ClassStudent {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   studentId?: string | null;
 }

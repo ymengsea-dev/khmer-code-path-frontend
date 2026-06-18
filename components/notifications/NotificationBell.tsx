@@ -224,13 +224,7 @@ export function NotificationBell({ className }: { className?: string }) {
       <DropdownMenuContent
         align="end"
         sideOffset={10}
-        className="w-[min(100vw-2rem,380px)] p-0 overflow-hidden rounded-3xl border border-white/50 dark:border-white/12 shadow-2xl shadow-black/12 notif-panel data-[state=open]:notif-panel-open data-[state=closed]:notif-panel-closed"
-        style={{
-          background: "var(--glass-bg)",
-          backdropFilter: "blur(28px) saturate(1.8)",
-          WebkitBackdropFilter: "blur(28px) saturate(1.8)",
-          transformOrigin: "top right",
-        }}
+        className="w-[min(100vw-2rem,380px)] p-0 overflow-hidden rounded-3xl"
       >
         {/* header */}
         <div className="flex items-center justify-between border-b border-black/6 dark:border-white/8 px-5 py-3.5">

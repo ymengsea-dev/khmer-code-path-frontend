@@ -9,44 +9,22 @@ import {
   User,
   Plus,
   Loader2,
-  MoreVertical,
-  Pencil,
-  Trash2,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { classService } from "@/lib/services/class-service";
-import type { ClassConfigDto, ClassStatus, ClassSummary } from "@/lib/types/class-api";
+import type { ClassConfigDto, ClassSummary, GradingWeightsDto } from "@/lib/types/class-api";
 import {
   parseSemesterFilter,
   resolveSemesterSelection,
   semesterToParam,
 } from "@/lib/class-display";
 import { CreateClassDialog } from "./CreateClassDialog";
-import { ClassStudentsDialog } from "./ClassStudentsDialog";
 import { ClassPreviewSheet } from "./ClassPreviewSheet";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
-import { cn } from "@/lib/utils";
 import { CLASSES_UPDATED_EVENT } from "@/components/notifications/notification-context";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { GlassSearchInput, GlassSelect } from "@/components/ui/glass-field";
@@ -60,6 +38,7 @@ interface DisplayClass {
   description: string;
   statusLabel: string;
   semesterLabel: string;
+  gradingWeights: GradingWeightsDto | null;
 }
 
 interface ClassesViewProps {
@@ -97,10 +76,6 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [rosterClass, setRosterClass] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
   const [previewClass, setPreviewClass] = useState<DisplayClass | null>(null);
 
   const teacherUserId =
@@ -110,12 +85,23 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
   const isAdmin = role === "admin";
   const isStudent = role === "student";
   const canCreateClass = isTeacher || isAdmin;
-  const canViewRoster = isTeacher || isAdmin;
   const canManageClass = isTeacher || isAdmin;
 
-  const { confirm } = useConfirm();
-  const [deletingClassId, setDeletingClassId] = useState<number | null>(null);
-  const [editingClass, setEditingClass] = useState<ClassSummary | null>(null);
+  const openClassDetail = (classId: number) => {
+    setParams({
+      [QueryKey.view]: "class-detail",
+      [QueryKey.course]: String(classId),
+      [QueryKey.tab]: null,
+    });
+  };
+
+  const openClass = (displayClass: DisplayClass) => {
+    if (canManageClass) {
+      openClassDetail(displayClass.summary.id);
+    } else {
+      setPreviewClass(displayClass);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -158,11 +144,14 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
       const withMeta: DisplayClass[] = await Promise.all(
         items.map(async (summary) => {
           let description = "";
+          let gradingWeights: GradingWeightsDto | null = null;
           try {
             const detail = await classService.getClass(summary.id);
             description = detail.description?.trim() ?? "";
+            gradingWeights = detail.gradingWeights ?? null;
           } catch {
             description = "";
+            gradingWeights = null;
           }
           const semesterLabel = summary.semesterLabel?.trim() || "—";
           return {
@@ -174,6 +163,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
               "Open this class to view lessons and materials.",
             statusLabel: summary.statusLabel,
             semesterLabel,
+            gradingWeights,
           };
         })
       );
@@ -201,30 +191,6 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
     window.addEventListener(CLASSES_UPDATED_EVENT, onClassesUpdated);
     return () => window.removeEventListener(CLASSES_UPDATED_EVENT, onClassesUpdated);
   }, [loadClasses]);
-
-
-  const handleDeleteClass = async (cls: ClassSummary) => {
-    const ok = await confirm(
-      `"${cls.name}" and all its lessons will be permanently deleted. This cannot be undone.`,
-      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" }
-    );
-    if (!ok) return;
-    setDeletingClassId(cls.id);
-    try {
-      await classService.deleteClass(cls.id);
-      void loadClasses();
-    } catch {
-      // list will reflect real state on next load
-    } finally {
-      setDeletingClassId(null);
-    }
-  };
-
-  const headerBadge = isStudent
-    ? "Enrolled"
-    : isTeacher
-      ? "Teaching"
-      : "All";
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -292,11 +258,10 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                 bouncy={false}
                 className="border border-slate-200/80 dark:border-zinc-800/80 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md flex flex-col overflow-hidden h-full"
               >
-                {/* clickable banner */}
                 <button
                   type="button"
                   className={`h-24 bg-linear-to-br ${iconBg} relative overflow-hidden flex items-center justify-center w-full text-left`}
-                  onClick={() => setPreviewClass(displayClass)}
+                  onClick={() => openClass(displayClass)}
                 >
                   <div className="absolute inset-0 bg-black/10" />
                   <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
@@ -322,7 +287,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                 <CardContent className="p-4 flex-1 flex flex-col gap-3">
                   <div
                     className="text-left flex-1 flex flex-col gap-3 cursor-pointer"
-                    onClick={() => setPreviewClass(displayClass)}
+                    onClick={() => openClass(displayClass)}
                   >
                     <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
                       <span className="flex items-center gap-1">
@@ -342,49 +307,14 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-1">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="flex-1 text-xs"
-                      onClick={() => setPreviewClass(displayClass)}
-                    >
-                      View details
-                    </Button>
-
-                    {canManageClass && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          aria-label="Class options"
-                          className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground outline-none"
-                        >
-                          {deletingClassId === cls.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <MoreVertical className="h-4 w-4" />
-                          )}
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem
-                            onClick={() => setEditingClass(cls)}
-                            className="gap-2 cursor-pointer"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit class
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => void handleDeleteClass(cls)}
-                            disabled={deletingClassId === cls.id}
-                            className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete class
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="w-full text-xs mt-1"
+                    onClick={() => openClass(displayClass)}
+                  >
+                    View details
+                  </Button>
                 </CardContent>
               </Card>
               </BouncyStaggerItem>
@@ -412,7 +342,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
                 {isStudent
                   ? "You have no classes yet. Accept an invitation from your teacher in the notification bell."
                   : canCreateClass
-                    ? "Create a class, then open the roster to invite students."
+                    ? "Create a class to get started."
                     : "No classes matched your filters."}
               </p>
             </div>
@@ -428,157 +358,31 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
         onCreated={() => void loadClasses()}
       />
 
-      <ClassStudentsDialog
-        open={rosterClass !== null}
-        onOpenChange={(open) => !open && setRosterClass(null)}
-        classId={rosterClass?.id ?? null}
-        className={rosterClass?.name ?? ""}
-        canManage={canViewRoster}
-      />
-
-      {editingClass && (
-        <EditClassDialog
-          klass={editingClass}
-          onOpenChange={(open) => { if (!open) setEditingClass(null); }}
-          onSaved={() => {
-            setEditingClass(null);
-            void loadClasses();
+      {isStudent && (
+        <ClassPreviewSheet
+          open={previewClass !== null}
+          onOpenChange={(open) => !open && setPreviewClass(null)}
+          classSummary={previewClass?.summary ?? null}
+          description={previewClass?.description ?? ""}
+          semesterLabel={previewClass?.semesterLabel ?? ""}
+          statusLabel={previewClass?.statusLabel ?? "Active"}
+          gradingWeights={
+            previewClass?.gradingWeights ??
+            classConfig?.gradingWeights ??
+            null
+          }
+          scoreComponents={classConfig?.scoreComponents ?? []}
+          onEnterClass={() => {
+            if (!previewClass) return;
+            onEnterClass?.({
+              classId: String(previewClass.summary.id),
+              title: previewClass.summary.name,
+              module: previewClass.semesterLabel,
+            });
+            setPreviewClass(null);
           }}
         />
       )}
-
-      <ClassPreviewSheet
-        open={previewClass !== null}
-        onOpenChange={(open) => !open && setPreviewClass(null)}
-        classSummary={previewClass?.summary ?? null}
-        description={previewClass?.description ?? ""}
-        semesterLabel={previewClass?.semesterLabel ?? ""}
-        statusLabel={previewClass?.statusLabel ?? "Active"}
-        canViewRoster={canViewRoster}
-        isStudent={isStudent}
-        gradingWeights={classConfig?.gradingWeights ?? {
-          attendance: 10,
-          assignment: 10,
-          quiz: 5,
-          midterm: 25,
-          finalExam: 50,
-        }}
-        onEnterClass={() => {
-          if (!previewClass) return;
-          onEnterClass?.({
-            classId: String(previewClass.summary.id),
-            title: previewClass.summary.name,
-            module: previewClass.semesterLabel,
-          });
-          setPreviewClass(null);
-        }}
-        onManageRoster={() => {
-          if (!previewClass) return;
-          setRosterClass({
-            id: previewClass.summary.id,
-            name: previewClass.summary.name,
-          });
-          setPreviewClass(null);
-        }}
-      />
-
     </div>
-  );
-}
-
-/* ─── Edit Class Dialog ─────────────────────────────────────────────────── */
-
-function EditClassDialog({
-  klass,
-  onOpenChange,
-  onSaved,
-}: {
-  klass: ClassSummary;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-}) {
-  const [name, setName] = useState(klass.name);
-  const [code, setCode] = useState(klass.code);
-  const [semester, setSemester] = useState(klass.semester ?? "");
-  const [academicYear, setAcademicYear] = useState(
-    klass.academicYear != null ? String(klass.academicYear) : ""
-  );
-  const [status, setStatus] = useState<ClassStatus>(klass.status);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = async () => {
-    if (!name.trim() || !code.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await classService.updateClass(klass.id, {
-        name: name.trim(),
-        code: code.trim(),
-        semester: semester.trim() || undefined,
-        academicYear: academicYear ? Number(academicYear) : undefined,
-        status,
-      });
-      onSaved();
-    } catch {
-      setError("Could not save changes. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
-            <Pencil className="h-4 w-4 text-violet-500" />
-            Edit Class
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Class name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-sm" placeholder="e.g. Mathematics 101" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Class code</Label>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} className="h-9 text-sm" placeholder="e.g. MATH101" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Semester</Label>
-              <Input value={semester} onChange={(e) => setSemester(e.target.value)} className="h-9 text-sm" placeholder="e.g. Semester 1" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Academic year</Label>
-              <Input type="number" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="h-9 text-sm" placeholder="e.g. 2025" />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Status</Label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ClassStatus)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="DRAFT">Draft</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button size="sm" disabled={saving || !name.trim() || !code.trim()} onClick={() => void handleSave()}>
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-            Save changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

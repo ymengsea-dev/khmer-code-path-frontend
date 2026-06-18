@@ -71,6 +71,8 @@ interface LessonAskPanelProps {
   materialId?: number | null;
   /** When provided, shows a "Summarize" chip that injects summary as a chat message */
   onSummarize?: () => Promise<string>;
+  /** Footer-only layout for AI Tools — input always visible, no empty message area */
+  compactFooter?: boolean;
 }
 
 export function LessonAskPanel({
@@ -80,6 +82,7 @@ export function LessonAskPanel({
   hasLessonContent,
   materialId,
   onSummarize,
+  compactFooter = false,
 }: LessonAskPanelProps) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
@@ -139,44 +142,28 @@ export function LessonAskPanel({
     }
   };
 
-  return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Messages area */}
-      <div
-        id="ai-panel-messages"
-        ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-3 py-3 space-y-3"
-      >
-        {messages.length === 0 && !sending && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-8">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border-color)" }}>
-              <Sparkles className="w-5 h-5 text-zinc-400" />
-            </div>
-            <p className="text-xs text-muted-foreground max-w-[180px] leading-relaxed">
-              {canAsk
-                ? "Ask anything about this lesson."
-                : "Upload files or add lesson notes first so the AI can answer your questions."}
-            </p>
-            {onSummarize && canAsk && (
-              <button
-                type="button"
-                onClick={() => void handleSummarize()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-                style={{
-                  background: "var(--glass-bg)",
-                  border: "1px solid var(--glass-border-color)",
-                  boxShadow: "none",
-                  color: "#52525b",
-                }}
-              >
-                <Sparkles className="w-3 h-3" />
-                Summarize this lesson
-              </button>
-            )}
-          </div>
-        )}
+  const hasMessages = messages.length > 0 || sending || Boolean(error);
 
+  return (
+    <div
+      className={cn(
+        "flex flex-col min-h-0",
+        compactFooter ? "shrink-0" : "h-full",
+      )}
+    >
+      {(!compactFooter || hasMessages) && (
+        <div
+          id="ai-panel-messages"
+          ref={scrollRef}
+          className={cn(
+            "overflow-y-auto scrollbar-hide px-3 space-y-3",
+            compactFooter
+              ? "max-h-[min(36vh,240px)] shrink-0 py-3"
+              : messages.length > 0 || sending
+                ? "flex-1 min-h-0 py-3"
+                : "shrink-0",
+          )}
+        >
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -259,10 +246,26 @@ export function LessonAskPanel({
         {error && (
           <p className="text-[10px] text-red-500 px-2">{error}</p>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Compose bar */}
-      <div className="shrink-0 px-3 pb-3">
+      <div className={cn("shrink-0 px-3 pb-3 pt-2", !compactFooter && "mt-auto")}>
+        {onSummarize && !compactFooter && canAsk && messages.length === 0 && !sending && (
+          <button
+            type="button"
+            onClick={() => void handleSummarize()}
+            className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors hover:bg-black/4"
+            style={{
+              background: "var(--glass-bg)",
+              border: "1px solid var(--glass-border-color)",
+              color: "#52525b",
+            }}
+          >
+            <Sparkles className="w-3 h-3" />
+            Summarize this lesson
+          </button>
+        )}
         <div
           className="flex items-end gap-2 rounded-2xl px-3 py-2"
           style={{

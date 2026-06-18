@@ -871,7 +871,7 @@ export function RichTextEditor({
           className={cn(
             readOnly
               ? ""
-              : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain",
+              : "flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-hide",
             isApple && "bg-transparent dark:bg-transparent",
           )}
         >

@@ -3,11 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   BarChart3,
   CheckCircle2,
   CheckCircle,
   Clock,
-  Eye,
   FlaskConical,
   Loader2,
   MoreVertical,
@@ -59,8 +59,27 @@ import { useQueryState } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { QuizTakingView } from "./QuizTakingView";
+import {
+  BouncyStagger,
+  BouncyStaggerItem,
+} from "@/components/motion";
+import { glassBtnSubtleClass } from "@/components/ui/glass-field";
 
 type UserRole = "student" | "teacher" | "admin";
+type QuizViewMode = "list" | "detail" | "edit";
+
+const QUIZ_CARD_GRADIENTS = [
+  "from-violet-500 via-purple-500 to-fuchsia-600",
+  "from-indigo-500 via-blue-500 to-cyan-600",
+  "from-emerald-500 via-teal-500 to-green-600",
+  "from-amber-500 via-orange-500 to-rose-500",
+  "from-rose-500 via-pink-500 to-violet-600",
+  "from-sky-500 via-indigo-500 to-violet-600",
+];
+
+function quizCardGradient(quizId: number): string {
+  return QUIZ_CARD_GRADIENTS[quizId % QUIZ_CARD_GRADIENTS.length];
+}
 
 interface ParsedQuestion {
   question: string;
@@ -603,8 +622,8 @@ export function MyTasksView() {
   /* ── Active quiz taking ── */
   const [activeQuiz, setActiveQuiz] = useState<QuizDto | null>(null);
 
-  /* ── Published quiz preview / delete / assign ── */
-  const [publishedPreviewOpen, setPublishedPreviewOpen] = useState(false);
+  /* ── Published quiz detail / edit ── */
+  const [quizViewMode, setQuizViewMode] = useState<QuizViewMode>("list");
   const [publishedPreviewLoading, setPublishedPreviewLoading] = useState(false);
   const [publishedPreviewQuiz, setPublishedPreviewQuiz] =
     useState<QuizDto | null>(null);
@@ -615,7 +634,6 @@ export function MyTasksView() {
   const [resultsOpen, setResultsOpen] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<QuizDto | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -653,7 +671,7 @@ export function MyTasksView() {
     } catch {
       setSources([]);
       setSourcesError(
-        "Could not load lesson materials. Upload files in Course Content or a lesson template first.",
+        "Could not load lesson materials. Upload files in Content Management or a lesson template first.",
       );
     } finally {
       setSourcesLoading(false);
@@ -679,22 +697,28 @@ export function MyTasksView() {
     }
   }, [isTeacher]);
 
-  const handlePreviewPublishedQuiz = useCallback(async (quizId: number) => {
+  const handleViewPublishedQuiz = useCallback(async (quizId: number) => {
     setPublishedPreviewLoading(true);
-    setPublishedPreviewOpen(true);
+    setQuizViewMode("detail");
     setPublishedPreviewQuiz(null);
     try {
       const full = await quizService.getQuiz(quizId);
       setPublishedPreviewQuiz(full);
     } catch (err) {
-      setPublishedPreviewOpen(false);
+      setQuizViewMode("list");
       console.error(
-        "Failed to load quiz preview:",
-        getApiErrorMessage(err, "Could not load quiz preview."),
+        "Failed to load quiz:",
+        getApiErrorMessage(err, "Could not load quiz."),
       );
     } finally {
       setPublishedPreviewLoading(false);
     }
+  }, []);
+
+  const closeQuizDetail = useCallback(() => {
+    setQuizViewMode("list");
+    setPublishedPreviewQuiz(null);
+    setEditingQuiz(null);
   }, []);
 
   const handleDeletePublishedQuiz = useCallback(
@@ -711,6 +735,9 @@ export function MyTasksView() {
       try {
         await quizService.delete(quiz.id);
         setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
+        if (publishedPreviewQuiz?.id === quiz.id) {
+          closeQuizDetail();
+        }
       } catch (err) {
         console.error(
           "Failed to delete quiz:",
@@ -718,7 +745,7 @@ export function MyTasksView() {
         );
       }
     },
-    [confirm],
+    [confirm, closeQuizDetail, publishedPreviewQuiz?.id],
   );
 
   const handleAssignFromCard = useCallback(async (quizId: number) => {
@@ -759,6 +786,24 @@ export function MyTasksView() {
     [alert],
   );
 
+  const populateEditState = useCallback((full: QuizDto) => {
+    const content =
+      full.generatedContent ??
+      serializeQuizQuestions(
+        (full.questions ?? []).map((q) => ({
+          question: q.question,
+          options: q.options,
+          correctIndex: q.correctIndex ?? 0,
+          explanation: q.explanation ?? "",
+        })),
+      );
+    setEditingQuiz(full);
+    setEditTitle(full.title);
+    setEditDescription(full.description ?? "");
+    setEditDuration(String(full.durationMinutes ?? 30));
+    setEditContent(content);
+  }, []);
+
   const handleEditPublishedQuiz = useCallback(
     async (quiz: QuizDto) => {
       if ((quiz.submittedCount ?? 0) > 0 || (quiz.failedCount ?? 0) > 0) {
@@ -772,23 +817,18 @@ export function MyTasksView() {
         return;
       }
       try {
-        const full = await quizService.getQuiz(quiz.id);
-        const content =
-          full.generatedContent ??
-          serializeQuizQuestions(
-            (full.questions ?? []).map((q) => ({
-              question: q.question,
-              options: q.options,
-              correctIndex: q.correctIndex ?? 0,
-              explanation: q.explanation ?? "",
-            })),
-          );
-        setEditingQuiz(full);
-        setEditTitle(full.title);
-        setEditDescription(full.description ?? "");
-        setEditDuration(String(full.durationMinutes ?? 30));
-        setEditContent(content);
-        setEditOpen(true);
+        if (
+          publishedPreviewQuiz?.id === quiz.id &&
+          (publishedPreviewQuiz.questions?.length ||
+            publishedPreviewQuiz.generatedContent)
+        ) {
+          populateEditState(publishedPreviewQuiz);
+        } else {
+          const full = await quizService.getQuiz(quiz.id);
+          setPublishedPreviewQuiz(full);
+          populateEditState(full);
+        }
+        setQuizViewMode("edit");
       } catch (err) {
         void alert(
           getApiErrorMessage(err, "Could not load quiz for editing."),
@@ -799,7 +839,7 @@ export function MyTasksView() {
         );
       }
     },
-    [alert],
+    [alert, populateEditState, publishedPreviewQuiz],
   );
 
   const handleSavePublishedQuiz = useCallback(async () => {
@@ -824,8 +864,10 @@ export function MyTasksView() {
         questionCount: questions.length,
         generatedContent: serializeQuizQuestions(questions),
       });
-      setEditOpen(false);
+      const refreshed = await quizService.getQuiz(editingQuiz.id);
+      setPublishedPreviewQuiz(refreshed);
       setEditingQuiz(null);
+      setQuizViewMode("detail");
       await loadQuizzes();
       void alert("Quiz updated successfully.", {
         title: "Saved",
@@ -934,6 +976,200 @@ export function MyTasksView() {
           void loadQuizzes();
         }}
       />
+    );
+  }
+
+  const canEditCurrentQuiz =
+    publishedPreviewQuiz != null &&
+    (publishedPreviewQuiz.submittedCount ?? 0) === 0 &&
+    (publishedPreviewQuiz.failedCount ?? 0) === 0;
+
+  if (quizViewMode === "detail" || quizViewMode === "edit") {
+    const activeQuizDetail = publishedPreviewQuiz ?? editingQuiz;
+    return (
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+        <div className="shrink-0 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (quizViewMode === "edit") {
+                setQuizViewMode("detail");
+                setEditingQuiz(null);
+              } else {
+                closeQuizDetail();
+              }
+            }}
+            className={cn(glassBtnSubtleClass, "h-8 px-3 text-xs font-semibold gap-1.5")}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {quizViewMode === "edit" ? "Back to quiz" : "Back to Quizzes"}
+          </button>
+          {quizViewMode === "detail" && activeQuizDetail && isTeacher && canEditCurrentQuiz && (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs rounded-xl"
+              onClick={() => void handleEditPublishedQuiz(activeQuizDetail)}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Edit quiz
+            </Button>
+          )}
+          {quizViewMode === "edit" && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs rounded-xl"
+                onClick={() => {
+                  setQuizViewMode("detail");
+                  setEditingQuiz(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs rounded-xl"
+                disabled={editSaving || !editTitle.trim()}
+                onClick={() => void handleSavePublishedQuiz()}
+              >
+                {editSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Save changes
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+          {publishedPreviewLoading && !activeQuizDetail ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : quizViewMode === "detail" && activeQuizDetail ? (
+            <div
+              className="rounded-2xl overflow-hidden flex flex-col min-h-full"
+              style={{
+                background: "var(--glass-bg)",
+                backdropFilter: "var(--glass-blur)",
+                WebkitBackdropFilter: "var(--glass-blur)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div className="shrink-0 px-5 py-4 border-b border-black/6 dark:border-white/8">
+                <h2 className="text-base font-extrabold text-foreground">
+                  {activeQuizDetail.title}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {activeQuizDetail.className}
+                  {" · "}
+                  {activeQuizDetail.questionCount} questions
+                  {activeQuizDetail.durationMinutes
+                    ? ` · ${activeQuizDetail.durationMinutes} min`
+                    : ""}
+                </p>
+                {activeQuizDetail.description ? (
+                  <p className="text-sm text-muted-foreground/90 mt-2 leading-relaxed">
+                    {activeQuizDetail.description}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex-1 px-5 py-4">
+                {activeQuizDetail.questions?.length ? (
+                  <QuizPreviewPanel
+                    questions={activeQuizDetail.questions.map((q) => ({
+                      question: q.question,
+                      options: q.options,
+                      correctIndex: q.correctIndex ?? 0,
+                      explanation: q.explanation ?? undefined,
+                    }))}
+                  />
+                ) : (
+                  <QuizPreviewPanel content={activeQuizDetail.generatedContent ?? ""} />
+                )}
+              </div>
+            </div>
+          ) : quizViewMode === "edit" && editingQuiz ? (
+            <div
+              className="rounded-2xl p-5 space-y-4"
+              style={{
+                background: "var(--glass-bg)",
+                backdropFilter: "var(--glass-blur)",
+                WebkitBackdropFilter: "var(--glass-blur)",
+                border: "1px solid var(--glass-border-color)",
+                boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Quiz title</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(event) => setEditTitle(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Time limit (minutes)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editDuration}
+                    onChange={(event) => setEditDuration(event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Description</Label>
+                <Input
+                  value={editDescription}
+                  onChange={(event) => setEditDescription(event.target.value)}
+                  placeholder="Optional description"
+                />
+              </div>
+              {editContent ? (
+                <EditableQuizPanel
+                  content={editContent}
+                  onQuestionsChange={(questions) =>
+                    setEditContent(serializeQuizQuestions(questions))
+                  }
+                />
+              ) : (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {assignFromCardQuiz?.generatedContent && (
+          <AssignQuizDialog
+            open={assignFromCardOpen}
+            onOpenChange={(open) => {
+              setAssignFromCardOpen(open);
+              if (!open) setAssignFromCardQuiz(null);
+            }}
+            generatedQuiz={{
+              lessonId: null,
+              materialId: null,
+              sourceFileName: assignFromCardQuiz.title,
+              questionCount: assignFromCardQuiz.questionCount,
+              generatedContent: assignFromCardQuiz.generatedContent,
+            }}
+            onAssigned={() => {
+              setAssignFromCardOpen(false);
+              setAssignFromCardQuiz(null);
+              void loadQuizzes();
+            }}
+          />
+        )}
+      </div>
     );
   }
 
@@ -1085,7 +1321,7 @@ export function MyTasksView() {
                 ) : sources.length === 0 ? (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     {sourcesError ??
-                      "No materials yet. Upload PDF/DOCX/PPTX in Course Content or a lesson template."}
+                      "No materials yet. Upload PDF/DOCX/PPTX in Content Management or a lesson template."}
                   </p>
                 ) : (
                   <select
@@ -1238,25 +1474,21 @@ export function MyTasksView() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {quizzes.map((quiz) => (
-                <QuizCard
-                  key={quiz.id}
-                  quiz={quiz}
-                  isTeacher={isTeacher}
-                  onStart={() => setActiveQuiz(quiz)}
-                  onCardClick={
-                    isTeacher
-                      ? () => void handlePreviewPublishedQuiz(quiz.id)
-                      : undefined
-                  }
-                  onEdit={() => void handleEditPublishedQuiz(quiz)}
-                  onReview={() => void handleReviewResults(quiz.id)}
-                  onAssign={() => void handleAssignFromCard(quiz.id)}
-                  onDelete={() => void handleDeletePublishedQuiz(quiz)}
-                />
+                <BouncyStaggerItem key={quiz.id} enter="simple">
+                  <QuizCard
+                    quiz={quiz}
+                    isTeacher={isTeacher}
+                    onStart={() => setActiveQuiz(quiz)}
+                    onView={() => void handleViewPublishedQuiz(quiz.id)}
+                    onReview={() => void handleReviewResults(quiz.id)}
+                    onAssign={() => void handleAssignFromCard(quiz.id)}
+                    onDelete={() => void handleDeletePublishedQuiz(quiz)}
+                  />
+                </BouncyStaggerItem>
               ))}
-            </div>
+            </BouncyStagger>
           )}
         </div>
       </div>
@@ -1363,87 +1595,6 @@ export function MyTasksView() {
           }}
         />
       )}
-
-      {/* Edit published quiz dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="w-[88vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
-          <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
-            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-500" />
-              Edit Published Quiz
-            </DialogTitle>
-            <DialogDescription className="text-xs mt-1">
-              Edit is available only before students submit or fail this quiz.
-            </DialogDescription>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50 space-y-4">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Quiz title</Label>
-                <Input
-                  value={editTitle}
-                  onChange={(event) => setEditTitle(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Time limit (minutes)
-                </Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={editDuration}
-                  onChange={(event) => setEditDuration(event.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Description</Label>
-              <Input
-                value={editDescription}
-                onChange={(event) => setEditDescription(event.target.value)}
-                placeholder="Optional description"
-              />
-            </div>
-            {editContent ? (
-              <EditableQuizPanel
-                content={editContent}
-                onQuestionsChange={(questions) =>
-                  setEditContent(serializeQuizQuestions(questions))
-                }
-              />
-            ) : (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold"
-              disabled={editSaving || !editTitle.trim()}
-              onClick={() => void handleSavePublishedQuiz()}
-            >
-              {editSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Save Changes
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Teacher quiz results dialog */}
       <Dialog open={resultsOpen} onOpenChange={setResultsOpen}>
@@ -1616,70 +1767,6 @@ export function MyTasksView() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Published quiz preview dialog */}
-      <Dialog
-        open={publishedPreviewOpen}
-        onOpenChange={setPublishedPreviewOpen}
-      >
-        <DialogContent className="w-[88vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
-          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
-            <div>
-              <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-violet-500" />
-                {publishedPreviewQuiz?.title ?? "Quiz Preview"}
-              </DialogTitle>
-              {publishedPreviewQuiz && (
-                <DialogDescription className="text-xs mt-1">
-                  <span className="font-semibold text-foreground">
-                    {publishedPreviewQuiz.questionCount} questions
-                  </span>
-                  {" · "}
-                  {publishedPreviewQuiz.className}
-                  {publishedPreviewQuiz.durationMinutes
-                    ? ` · ${publishedPreviewQuiz.durationMinutes} min`
-                    : ""}
-                </DialogDescription>
-              )}
-            </div>
-            {publishedPreviewQuiz && (
-              <div className="flex items-center gap-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 px-3 py-1.5">
-                <FlaskConical className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                <span className="text-xs font-bold text-violet-700 dark:text-violet-300">
-                  {publishedPreviewQuiz.questionCount} Q&apos;s
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50">
-            {publishedPreviewLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
-              </div>
-            ) : publishedPreviewQuiz?.questions ? (
-              <QuizPreviewPanel
-                questions={publishedPreviewQuiz.questions.map((q) => ({
-                  question: q.question,
-                  options: q.options,
-                  correctIndex: q.correctIndex ?? 0,
-                  explanation: q.explanation ?? undefined,
-                }))}
-              />
-            ) : null}
-          </div>
-
-          <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPublishedPreviewOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -1688,8 +1775,7 @@ function QuizCard({
   quiz,
   isTeacher,
   onStart,
-  onCardClick,
-  onEdit,
+  onView,
   onReview,
   onAssign,
   onDelete,
@@ -1697,187 +1783,169 @@ function QuizCard({
   quiz: QuizDto;
   isTeacher: boolean;
   onStart: () => void;
-  onCardClick?: () => void;
-  onEdit?: () => void;
+  onView?: () => void;
   onReview?: () => void;
   onAssign?: () => void;
   onDelete?: () => void;
 }) {
   const isPending = quiz.status === "PUBLISHED";
   const isClosed = quiz.status === "CLOSED";
+  const statusLabel =
+    quiz.status === "PUBLISHED"
+      ? "Active"
+      : quiz.status === "DRAFT"
+        ? "Draft"
+        : "Closed";
+  const gradient = quizCardGradient(quiz.id);
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl p-5 flex flex-col transition-all duration-200",
-        isTeacher ? "cursor-pointer hover:scale-[1.01]" : "",
-      )}
-      style={{
-        background: "var(--glass-bg)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
-        border: "1px solid var(--glass-border-color)",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-      }}
-      onClick={onCardClick}
+    <Card
+      bouncy={false}
+      className="border border-slate-200/80 dark:border-zinc-800/80 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md flex flex-col overflow-hidden h-full"
     >
-      <div className="flex justify-between items-start gap-3 mb-3">
-        <span
-          className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold",
-            isPending
-              ? "bg-amber-500/10 text-amber-600"
-              : isClosed
-                ? "bg-black/6 text-muted-foreground"
-                : "bg-emerald-500/10 text-emerald-600",
-          )}
-        >
-          {quiz.status === "PUBLISHED"
-            ? "Active"
-            : quiz.status === "DRAFT"
-              ? "Draft"
-              : "Closed"}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          {quiz.durationMinutes && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {quiz.durationMinutes} min
+      <div
+        className={`h-24 bg-linear-to-br ${gradient} relative overflow-hidden flex items-center justify-center`}
+      >
+        <div className="absolute inset-0 bg-black/10" />
+        <FlaskConical className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+          <Badge
+            className={
+              isPending
+                ? "bg-emerald-500 text-white font-bold"
+                : isClosed
+                  ? "bg-zinc-600 text-white font-bold"
+                  : "bg-amber-500 text-white font-bold"
+            }
+          >
+            {statusLabel}
+          </Badge>
+          {quiz.durationMinutes ? (
+            <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {quiz.durationMinutes}m
             </span>
-          )}
-          {isTeacher && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                aria-label="Quiz options"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="w-4 h-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                {(quiz.submittedCount ?? 0) === 0 &&
-                (quiz.failedCount ?? 0) === 0 ? (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit?.();
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Edit Quiz
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReview?.();
-                  }}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Review Results
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAssign?.();
-                  }}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Assign to Class
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.();
-                  }}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          ) : null}
         </div>
+        <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md line-clamp-2">
+          {quiz.title}
+        </h3>
       </div>
-      <h3 className="text-base font-semibold text-foreground mb-1 leading-snug">
-        {quiz.title}
-      </h3>
-      {quiz.description && (
-        <p className="text-[13px] text-muted-foreground mb-1">
-          {quiz.description}
-        </p>
-      )}
-      <p className="text-xs text-muted-foreground mb-4">
-        {quiz.className} · {quiz.questionCount} questions
-      </p>
 
-      {isTeacher && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            {[
-              {
-                label: "Submitted",
-                value: `${quiz.submittedCount ?? 0}${quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}`,
-              },
-              { label: "Failed", value: String(quiz.failedCount ?? 0) },
-              {
-                label: "Pending",
-                value:
-                  quiz.enrolledStudents != null
-                    ? String(
-                        Math.max(
-                          0,
-                          quiz.enrolledStudents -
-                            (quiz.submittedCount ?? 0) -
-                            (quiz.failedCount ?? 0),
-                        ),
-                      )
-                    : "—",
-              },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-xl px-2.5 py-2"
-                style={{
-                  background: "var(--glass-bg-subtle)",
-                  border: "1px solid var(--glass-border-color)",
-                  boxShadow: "none",
-                }}
+      <CardContent className="p-4 flex-1 flex flex-col gap-3">
+        <div className="flex-1 flex flex-col gap-3">
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
+            <span className="flex items-center gap-1 min-w-0">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span className="truncate">{quiz.className}</span>
+            </span>
+            <span className="flex items-center gap-1 shrink-0">
+              <HelpCircle className="w-3.5 h-3.5 text-violet-500" />
+              {quiz.questionCount} questions
+            </span>
+          </div>
+          {quiz.description ? (
+            <p className="text-xs text-muted-foreground/90 leading-relaxed line-clamp-3">
+              {quiz.description}
+            </p>
+          ) : null}
+
+          {isTeacher && (
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {[
+                {
+                  label: "Submitted",
+                  value: `${quiz.submittedCount ?? 0}${quiz.enrolledStudents != null ? ` / ${quiz.enrolledStudents}` : ""}`,
+                },
+                { label: "Failed", value: String(quiz.failedCount ?? 0) },
+                {
+                  label: "Pending",
+                  value:
+                    quiz.enrolledStudents != null
+                      ? String(
+                          Math.max(
+                            0,
+                            quiz.enrolledStudents -
+                              (quiz.submittedCount ?? 0) -
+                              (quiz.failedCount ?? 0),
+                          ),
+                        )
+                      : "—",
+                },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-xl px-2.5 py-2"
+                  style={{
+                    background: "var(--glass-bg-subtle)",
+                    border: "1px solid var(--glass-border-color)",
+                  }}
+                >
+                  <p className="text-muted-foreground text-[10px]">{label}</p>
+                  <p className="font-black text-foreground">{value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 mt-1">
+          {isTeacher ? (
+            <>
+              <Button
+                size="sm"
+                variant="default"
+                className="flex-1 text-xs"
+                onClick={onView}
               >
-                <p className="text-muted-foreground">{label}</p>
-                <p className="font-black text-foreground">{value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Eye className="w-3.5 h-3.5" />
-            Click to preview
-          </div>
+                View quiz
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    glassBtnSubtleClass,
+                    "h-8 w-8 shrink-0 rounded-xl px-0 text-muted-foreground hover:text-foreground",
+                  )}
+                  aria-label="Quiz options"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={onReview}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Review Results
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onAssign}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Assign to Class
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : isPending ? (
+            <Button
+              size="sm"
+              variant="default"
+              className="w-full text-xs"
+              onClick={onStart}
+            >
+              Start Quiz
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold w-full justify-center py-2">
+              <CheckCircle2 className="w-4 h-4" />
+              {isClosed ? "Quiz closed" : "Completed"}
+            </div>
+          )}
         </div>
-      )}
-      {!isTeacher && isPending && (
-        <button
-          type="button"
-          className="w-full h-9 rounded-xl text-sm font-semibold text-white transition-all"
-          style={{
-            background: "#305FC9",
-            boxShadow: "0 2px 8px rgba(48,95,201,0.25)",
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onStart();
-          }}
-        >
-          Start Quiz
-        </button>
-      )}
-      {!isTeacher && !isPending && (
-        <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold">
-          <CheckCircle2 className="w-4 h-4" />
-          {isClosed ? "Quiz closed" : "Completed"}
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }

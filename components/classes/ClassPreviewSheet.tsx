@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  UserPlus,
   Users,
   User,
 } from "lucide-react";
@@ -15,16 +14,9 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ClassSummary, GradingWeightsDto } from "@/lib/types/class-api";
+import type { ClassSummary, GradingWeightsDto, ScoreComponentDto } from "@/lib/types/class-api";
 import { cn } from "@/lib/utils";
-
-const WEIGHT_ITEMS = [
-  { key: "attendance" as const, label: "Attendance", color: "bg-emerald-400" },
-  { key: "assignment" as const, label: "Assignment", color: "bg-blue-400" },
-  { key: "quiz"       as const, label: "Quiz",       color: "bg-violet-400" },
-  { key: "midterm"   as const, label: "Mid-term",   color: "bg-amber-400"  },
-  { key: "finalExam" as const, label: "Final",      color: "bg-rose-400"   },
-];
+import { ScoreBreakdownPanel } from "@/components/classes/ScoreBreakdownPanel";
 
 interface ClassPreviewSheetProps {
   open: boolean;
@@ -33,11 +25,9 @@ interface ClassPreviewSheetProps {
   description: string;
   semesterLabel: string;
   statusLabel: string;
-  canViewRoster: boolean;
-  isStudent: boolean;
-  gradingWeights?: GradingWeightsDto | null;
+  gradingWeights: GradingWeightsDto | null;
+  scoreComponents: ScoreComponentDto[];
   onEnterClass: () => void;
-  onManageRoster: () => void;
 }
 
 export function ClassPreviewSheet({
@@ -47,10 +37,9 @@ export function ClassPreviewSheet({
   description,
   semesterLabel,
   statusLabel,
-  canViewRoster,
   gradingWeights,
+  scoreComponents,
   onEnterClass,
-  onManageRoster,
 }: ClassPreviewSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -90,7 +79,6 @@ export function ClassPreviewSheet({
         </SheetHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Class meta */}
           <div className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <User className="w-3.5 h-3.5 shrink-0" />
@@ -109,71 +97,21 @@ export function ClassPreviewSheet({
             </p>
           ) : null}
 
-          {/* Grading weight breakdown */}
-          {gradingWeights ? (
-            <div className="space-y-3 border-t border-black/5 pt-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Score Breakdown
-              </p>
-
-              {/* Stacked bar */}
-              <div className="flex h-2.5 w-full rounded-full overflow-hidden gap-px">
-                {WEIGHT_ITEMS.map(({ key, color }) => (
-                  <div
-                    key={key}
-                    className={cn("h-full transition-all", color)}
-                    style={{ width: `${gradingWeights[key]}%` }}
-                  />
-                ))}
-              </div>
-
-              {/* Legend rows */}
-              <div className="space-y-2.5">
-                {WEIGHT_ITEMS.map(({ key, label, color }) => {
-                  const pct = gradingWeights[key];
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      <div className={cn("w-2.5 h-2.5 rounded-sm shrink-0", color)} />
-                      <span className="flex-1 text-xs text-foreground font-medium">{label}</span>
-                      <div className="flex items-center gap-2 min-w-[80px]">
-                        {/* mini progress bar */}
-                        <div className="flex-1 h-1.5 rounded-full bg-black/6 overflow-hidden">
-                          <div
-                            className={cn("h-full rounded-full", color)}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-bold text-foreground w-8 text-right">
-                          {pct}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Total */}
-              <div className="flex justify-between items-center pt-1 border-t border-black/5 text-xs font-bold text-foreground">
-                <span>Total</span>
-                <span>
-                  {WEIGHT_ITEMS.reduce((s, { key }) => s + gradingWeights[key], 0)}%
-                </span>
-              </div>
+          {gradingWeights && scoreComponents.length > 0 ? (
+            <div className="border-t border-black/5 pt-5">
+              <ScoreBreakdownPanel
+                scoreComponents={scoreComponents}
+                weights={gradingWeights}
+              />
             </div>
           ) : null}
         </div>
 
-        <div className="shrink-0 border-t border-black/5 px-6 py-4 space-y-2">
+        <div className="shrink-0 border-t border-black/5 px-6 py-4">
           <Button className="w-full font-bold gap-2" onClick={onEnterClass}>
             Enter class
             <ArrowRight className="h-4 w-4" />
           </Button>
-          {canViewRoster ? (
-            <Button variant="outline" className="w-full gap-2" onClick={onManageRoster}>
-              <UserPlus className="h-4 w-4" />
-              Class roster
-            </Button>
-          ) : null}
         </div>
       </SheetContent>
     </Sheet>

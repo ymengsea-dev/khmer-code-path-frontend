@@ -11,31 +11,11 @@ import {
   Building2,
   GraduationCap,
   ClipboardList,
-  Loader2,
   MessageSquare,
-  MoreVertical,
-  Pencil,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { dashboardService } from "@/lib/services/dashboard-service";
 import type {
@@ -46,10 +26,9 @@ import type {
 import { useSession } from "next-auth/react";
 import type { UserRole } from "@/lib/auth/use-user-role";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { classService } from "@/lib/services/class-service";
-import type { ClassSummary, ClassStatus } from "@/lib/types/class-api";
-import { useConfirm } from "@/components/ui/confirm-dialog";
+import type { ClassSummary } from "@/lib/types/class-api";
 import {
   BouncyLoadingCard,
   BouncyStagger,
@@ -71,6 +50,7 @@ interface CourseGridProps {
     title: string;
     module: string;
   }) => void;
+  onViewClassDetail?: (payload: { classId: string }) => void;
 }
 
 type StatCard = {
@@ -92,15 +72,12 @@ export function CourseGrid({
   onEditCourse,
   onCoursesChanged,
   onEnterClass,
+  onViewClassDetail,
 }: CourseGridProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { data: currentUser } = useCurrentUser();
-  const { confirm } = useConfirm();
-  const queryClient = useQueryClient();
   const [role, setRole] = useState<UserRole | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  const [deletingClassId, setDeletingClassId] = useState<number | null>(null);
-  const [editingClass, setEditingClass] = useState<ClassSummary | null>(null);
   const [studentDash, setStudentDash] = useState<StudentDashboard | null>(null);
   const [teacherDash, setTeacherDash] = useState<TeacherDashboard | null>(null);
   const [adminDash, setAdminDash] = useState<AdminDashboard | null>(null);
@@ -269,32 +246,6 @@ export function CourseGrid({
       : role === "teacher"
         ? teacherStats
         : adminStats;
-
-  const resolvedRoleLive =
-    currentUser?.role?.toLowerCase() ??
-    session?.user?.role?.toLowerCase() ??
-    role;
-  const canDeleteClass =
-    resolvedRoleLive === "teacher" || resolvedRoleLive === "admin";
-
-  const handleDeleteClass = async (klass: ClassSummary) => {
-    const ok = await confirm(
-      `"${klass.name}" and all its lessons will be permanently deleted.`,
-      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" },
-    );
-    if (!ok) return;
-    setDeletingClassId(klass.id);
-    try {
-      await classService.deleteClass(klass.id);
-      await queryClient.invalidateQueries({
-        queryKey: ["dashboard", "classes"],
-      });
-    } catch {
-      // silently ignore — the list will reflect the real state on next load
-    } finally {
-      setDeletingClassId(null);
-    }
-  };
 
   const canSeeClassSection =
     role === "student" || role === "teacher" || role === "admin";
@@ -495,216 +446,32 @@ export function CourseGrid({
                           <p className="text-xs text-muted-foreground/90 leading-relaxed">
                             Teacher: {klass.teacherName}
                           </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={() =>
-                                onEnterClass?.({
-                                  classId: String(klass.id),
-                                  title: klass.name,
-                                  module: klass.semesterLabel ?? "",
-                                })
-                              }
-                            >
-                              Open class
-                            </Button>
-
-                            {canDeleteClass && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  aria-label="Class options"
-                                  className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground outline-none"
-                                >
-                                  {deletingClassId === klass.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <MoreVertical className="h-4 w-4" />
-                                  )}
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-40"
-                                >
-                                  <DropdownMenuItem
-                                    onClick={() => setEditingClass(klass)}
-                                    className="gap-2 cursor-pointer"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    Edit class
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      void handleDeleteClass(klass)
-                                    }
-                                    disabled={deletingClassId === klass.id}
-                                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Delete class
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="w-full text-xs mt-1"
+                            onClick={() =>
+                              onViewClassDetail
+                                ? onViewClassDetail({ classId: String(klass.id) })
+                                : onEnterClass?.({
+                                    classId: String(klass.id),
+                                    title: klass.name,
+                                    module: klass.semesterLabel ?? "",
+                                  })
+                            }
+                          >
+                            View class detail
+                          </Button>
                         </CardContent>
                       </Card>
                     </BouncyStaggerItem>
                   ))}
                 </BouncyStagger>
-
-                {editingClass && (
-                  <EditClassDialog
-                    klass={editingClass}
-                    onOpenChange={(open) => {
-                      if (!open) setEditingClass(null);
-                    }}
-                    onSaved={async () => {
-                      setEditingClass(null);
-                      await queryClient.invalidateQueries({
-                        queryKey: ["dashboard", "classes"],
-                      });
-                    }}
-                  />
-                )}
               </>
             )}
           </div>
         )}
       </div>
     </div>
-  );
-}
-
-/* ─── Edit Class Dialog ─────────────────────────────────────────────────── */
-
-function EditClassDialog({
-  klass,
-  onOpenChange,
-  onSaved,
-}: {
-  klass: ClassSummary;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => Promise<void>;
-}) {
-  const [name, setName] = useState(klass.name);
-  const [code, setCode] = useState(klass.code);
-  const [semester, setSemester] = useState(klass.semester ?? "");
-  const [academicYear, setAcademicYear] = useState(
-    klass.academicYear != null ? String(klass.academicYear) : "",
-  );
-  const [status, setStatus] = useState<ClassStatus>(klass.status);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = async () => {
-    if (!name.trim() || !code.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await classService.updateClass(klass.id, {
-        name: name.trim(),
-        code: code.trim(),
-        semester: semester.trim() || undefined,
-        academicYear: academicYear ? Number(academicYear) : undefined,
-        status,
-      });
-      await onSaved();
-    } catch {
-      setError("Could not save changes. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
-            <Pencil className="h-4 w-4 text-violet-500" />
-            Edit Class
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Class name</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-9 text-sm"
-              placeholder="e.g. Mathematics 101"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Class code</Label>
-            <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="h-9 text-sm"
-              placeholder="e.g. MATH101"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Semester</Label>
-              <Input
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="h-9 text-sm"
-                placeholder="e.g. Semester 1"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Academic year</Label>
-              <Input
-                type="number"
-                value={academicYear}
-                onChange={(e) => setAcademicYear(e.target.value)}
-                className="h-9 text-sm"
-                placeholder="e.g. 2025"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Status</Label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ClassStatus)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="DRAFT">Draft</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            disabled={saving || !name.trim() || !code.trim()}
-            onClick={() => void handleSave()}
-          >
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-            Save changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

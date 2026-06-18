@@ -8,15 +8,59 @@ export interface UserSummary {
   email: string;
   role: string;
   isActive?: boolean;
+  avatarUrl?: string | null;
   studentId?: string | null;
   teacherId?: string | null;
   /** Teacher view: class names the student is enrolled in */
   enrolledClasses?: string;
+  enrolledClassIds?: string[];
+}
+
+export interface StudentDetail {
+  id: string;
+  name: string;
+  email: string;
+  studentId?: string | null;
+  isActive?: boolean;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  enrolledClasses?: string;
+  enrolledClassIds?: string[];
+  memberSince?: string;
 }
 
 export interface UserPage {
   items: UserSummary[];
   totalElements: number;
+}
+
+export interface UserManagementTabConfig {
+  id: string;
+  label: string;
+}
+
+export interface StatusFilterConfig {
+  value: string;
+  label: string;
+}
+
+export interface ClassFilterConfig {
+  value: string;
+  label: string;
+}
+
+export interface UserManagementConfig {
+  pageTitle: string;
+  pageDescription: string;
+  tabs: UserManagementTabConfig[];
+  statusFilters: StatusFilterConfig[];
+  classFilters: ClassFilterConfig[];
+  cardGradients: string[];
+  actions: {
+    canAdd: boolean;
+    canImport: boolean;
+    canEditStatus: boolean;
+  };
 }
 
 export interface CreateUserPayload {
@@ -32,23 +76,68 @@ function mapUser(item: {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role?: string;
   isActive?: boolean;
+  avatarUrl?: string | null;
   studentId?: string | null;
   teacherId?: string | null;
+  enrolledClasses?: string;
+  enrolledClassIds?: string[];
 }): UserSummary {
   return {
     id: item.id,
     name: item.name,
     email: item.email,
-    role: item.role,
+    role: item.role ?? "STUDENT",
     isActive: item.isActive ?? true,
+    avatarUrl: item.avatarUrl,
     studentId: item.studentId,
     teacherId: item.teacherId,
+    enrolledClasses: item.enrolledClasses,
+    enrolledClassIds: item.enrolledClassIds,
   };
 }
 
 export const userService = {
+  async getManagementConfig(): Promise<UserManagementConfig> {
+    const response = await apiClient.get<{ data: UserManagementConfig }>(
+      "/student-management/config",
+    );
+    return response.data.data;
+  },
+
+  async listStudents(params: {
+    classId?: string;
+    search?: string;
+    isActive?: boolean;
+  } = {}): Promise<UserPage> {
+    const response = await apiClient.get<{ data: UserPage }>(
+      "/student-management/students",
+      {
+        params: {
+          classId:
+            params.classId && params.classId !== "all"
+              ? params.classId
+              : undefined,
+          search: params.search?.trim() || undefined,
+          isActive: params.isActive,
+        },
+      },
+    );
+    const data = response.data.data;
+    return {
+      ...data,
+      items: (data.items ?? []).map(mapUser),
+    };
+  },
+
+  async getStudent(id: string): Promise<StudentDetail> {
+    const response = await apiClient.get<{ data: StudentDetail }>(
+      `/student-management/students/${id}`,
+    );
+    return response.data.data;
+  },
+
   async listUsers(params: {
     name?: string;
     email?: string;
@@ -101,6 +190,7 @@ export const userService = {
             email: student.email,
             role: "STUDENT",
             isActive: true,
+            avatarUrl: student.avatarUrl,
             studentId: student.studentId ?? null,
             classNames: new Set([cls.name]),
           });
@@ -114,6 +204,7 @@ export const userService = {
       email: row.email,
       role: row.role,
       isActive: row.isActive,
+      avatarUrl: row.avatarUrl,
       studentId: row.studentId,
       enrolledClasses: Array.from(row.classNames).join(", "),
     }));

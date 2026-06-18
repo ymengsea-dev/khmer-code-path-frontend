@@ -13,6 +13,7 @@ import {
   Building2,
   Wrench,
   Layers,
+  CalendarCheck,
   GraduationCap,
 } from "lucide-react";
 import {
@@ -31,6 +32,7 @@ import { AppLogoMark } from "@/components/brand/AppLogo";
 import { useSession } from "next-auth/react";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { classGradientDotColor } from "@/lib/class-display";
 
 interface AppSidebarProps {
   activeNav: string;
@@ -166,11 +168,11 @@ export function Sidebar({
             {showUserManagement && (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={activeNav === "users"}
-                  onClick={() => onNavChange("users")}
+                  isActive={activeNav === "student-management"}
+                  onClick={() => onNavChange("student-management")}
                   className={cn(
                     "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                    activeNav === "users"
+                    activeNav === "student-management"
                       ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
                       : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
                   )}
@@ -179,28 +181,30 @@ export function Sidebar({
                     <Users className="w-4 h-4" />
                   </span>
                   {open && (
-                    <span className="flex-1 text-left">User Management</span>
+                    <span className="flex-1 text-left">Student Management</span>
                   )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
 
-            {isTeacher && (
+            {(isTeacher || isAdmin) && (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={activeNav === "gradebook"}
-                  onClick={() => onNavChange("gradebook")}
+                  isActive={activeNav === "attendance-management"}
+                  onClick={() => onNavChange("attendance-management")}
                   className={cn(
                     "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                    activeNav === "gradebook"
+                    activeNav === "attendance-management"
                       ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
                       : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
                   )}
                 >
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                    <GraduationCap className="w-4 h-4" />
+                    <CalendarCheck className="w-4 h-4" />
                   </span>
-                  {open && <span className="flex-1 text-left">Gradebook</span>}
+                  {open && (
+                    <span className="flex-1 text-left">Attendance</span>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -322,7 +326,7 @@ export function Sidebar({
                     <Layers className="w-4 h-4" />
                   </span>
                   {open && (
-                    <span className="flex-1 text-left">Course Content</span>
+                    <span className="flex-1 text-left">Content Management</span>
                   )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -400,11 +404,9 @@ export function Sidebar({
                 >
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <span
-                      className={cn(
-                        "size-2.5 rounded-sm shrink-0",
-                        // Use only the "from-*" color as a solid bg (e.g. "from-indigo-500 to-purple-600" → "bg-indigo-500")
-                        klass.cardGradient.split(" ")[0].replace(/^from-/, "bg-")
-                      )}
+                      className="size-2.5 rounded-sm shrink-0"
+                      style={{ backgroundColor: classGradientDotColor(klass.cardGradient) }}
+                      aria-hidden
                     />
                   </span>
                   {open && (

@@ -1,8 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Layers, Plus, Loader2, FileUp } from "lucide-react";
-import { GlassSearchInput } from "@/components/ui/glass-field";
+import { FileUp, Layers, Loader2, Plus, FileText, Presentation } from "lucide-react";
+import {
+  GlassSearchInput,
+  glassBtnPrimaryClass,
+  glassBtnSubtleClass,
+} from "@/components/ui/glass-field";
+import { GlassButton } from "@/components/ui/glass-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +43,15 @@ import { TemplateLibraryCard } from "@/components/course-content/TemplateLibrary
 import { FileAttachmentCard } from "@/components/course-content/FileAttachmentCard";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { BouncyStagger, BouncyStaggerItem } from "@/components/motion";
+
+const glassPanelStyle = {
+  background: "var(--glass-bg)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
+  border: "1px solid var(--glass-border-color)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+} as const;
 
 export function CourseContentView() {
   const { get, setParams } = useQueryParams();
@@ -261,27 +275,60 @@ export function CourseContentView() {
 
   const headerActions = (
     <>
-      <Button
-        size="sm"
-        variant="outline"
+      <GlassButton
+        subtle
+        className={cn(glassBtnSubtleClass, "h-9 px-4 text-xs font-semibold gap-1.5")}
         onClick={() => setUploadDialogOpen(true)}
       >
-        <FileUp className="h-4 w-4 mr-1.5" />
+        <FileUp className="h-3.5 w-3.5" />
         Upload files
-      </Button>
-      <Button
-        size="sm"
+      </GlassButton>
+      <GlassButton
+        primary
+        className={cn(glassBtnPrimaryClass, "h-9 px-4 text-xs font-semibold gap-1.5")}
         disabled={creating}
         onClick={() => void handleCreateTemplate()}
       >
         {creating ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Plus className="h-4 w-4 mr-1.5" />
+          <Plus className="h-3.5 w-3.5" />
         )}
         New template
-      </Button>
+      </GlassButton>
     </>
+  );
+
+  const totalAttachedFiles = useMemo(
+    () => templates.reduce((sum, t) => sum + (t.assetCount ?? 0), 0),
+    [templates],
+  );
+
+  const summaryStats = useMemo(
+    () => [
+      {
+        label: "Templates",
+        value: String(templates.length),
+        sub: "lesson builds",
+        color: "#7c3aed",
+        bg: "rgba(124,58,237,0.08)",
+      },
+      {
+        label: filePoolLabel,
+        value: String(poolFiles.length),
+        sub: "in library pool",
+        color: "#305FC9",
+        bg: "rgba(48,95,201,0.08)",
+      },
+      {
+        label: "Attached",
+        value: String(totalAttachedFiles),
+        sub: "on templates",
+        color: "#16a34a",
+        bg: "rgba(22,163,74,0.08)",
+      },
+    ],
+    [templates.length, poolFiles.length, totalAttachedFiles, filePoolLabel],
   );
 
   const renderTemplatesGrid = (
@@ -290,49 +337,59 @@ export function CourseContentView() {
   ) => {
     if (items.length === 0) {
       return (
-        <p className="text-sm text-muted-foreground text-center py-10">
-          {empty}
-        </p>
+        <div
+          className="rounded-2xl px-6 py-12 text-center"
+          style={glassPanelStyle}
+        >
+          <Presentation className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        </div>
       );
     }
     return (
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <BouncyStagger className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((template) => (
-          <TemplateLibraryCard
-            key={template.id}
-            template={template}
-            deleting={deletingTemplateId === template.id}
-            onAssign={() => void openAssignDialog(template)}
-            onEdit={() => openEditor(template.id)}
-            onDelete={() => void handleDeleteTemplate(template)}
-          />
+          <BouncyStaggerItem key={template.id} enter="simple">
+            <TemplateLibraryCard
+              template={template}
+              deleting={deletingTemplateId === template.id}
+              onAssign={() => void openAssignDialog(template)}
+              onEdit={() => openEditor(template.id)}
+              onDelete={() => void handleDeleteTemplate(template)}
+            />
+          </BouncyStaggerItem>
         ))}
-      </div>
+      </BouncyStagger>
     );
   };
 
   const renderFilesGrid = (items: LibraryAttachmentRow[], empty: string) => {
     if (items.length === 0) {
       return (
-        <p className="text-sm text-muted-foreground text-center py-10">
-          {empty}
-        </p>
+        <div
+          className="rounded-2xl px-6 py-12 text-center"
+          style={glassPanelStyle}
+        >
+          <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        </div>
       );
     }
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <BouncyStagger className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((file) => (
-          <FileAttachmentCard
-            key={`${file.templateId}-${file.id}`}
-            file={file}
-            deleting={deletingFileKey === `${file.templateId}-${file.id}`}
-            onOpenTemplate={
-              file.poolFile ? undefined : () => openEditor(file.templateId)
-            }
-            onDelete={() => void handleDeleteFile(file)}
-          />
+          <BouncyStaggerItem key={`${file.templateId}-${file.id}`} enter="simple">
+            <FileAttachmentCard
+              file={file}
+              deleting={deletingFileKey === `${file.templateId}-${file.id}`}
+              onOpenTemplate={
+                file.poolFile ? undefined : () => openEditor(file.templateId)
+              }
+              onDelete={() => void handleDeleteFile(file)}
+            />
+          </BouncyStaggerItem>
         ))}
-      </div>
+      </BouncyStagger>
     );
   };
 
@@ -346,7 +403,10 @@ export function CourseContentView() {
 
   if (role !== "teacher" && role !== "admin") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-12 text-center">
+      <div
+        className="flex flex-1 flex-col items-center justify-center gap-3 p-12 text-center rounded-2xl mx-auto max-w-md"
+        style={glassPanelStyle}
+      >
         <Layers className="h-10 w-10 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           This workspace is for teachers only. Open a class from Classes to view
@@ -384,66 +444,86 @@ export function CourseContentView() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-      <header className="shrink-0 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Course Content Library
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Upload files to your library, build lesson templates in the editor,
-            attach files to templates, then assign to a class.
+    <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col gap-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 shrink-0">
+          <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            Upload files, build lesson templates in the editor, attach materials,
+            then assign templates to your classes.
           </p>
+          <div className="flex flex-wrap gap-2 shrink-0">{headerActions}</div>
         </div>
-        <div className="flex flex-wrap gap-2">{headerActions}</div>
-      </header>
 
-      <div className="shrink-0 px-6 py-3 border-b border-slate-200/60 dark:border-zinc-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <GlassSearchInput
-          containerClassName="max-w-md"
-          className="h-11"
-          placeholder={searchPlaceholder}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <div className="flex gap-1 -mb-px overflow-x-auto shrink-0 sm:ml-auto">
-          {libraryConfig.views.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setContentTab(tab.id)}
-              className={cn(
-                "px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors",
-                contentTab === tab.id
-                  ? "border-violet-500 text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab.label}
-              {tab.id === templatesTabId && templates.length > 0 ? (
-                <span className="ml-1.5 text-[11px] font-bold text-muted-foreground">
-                  ({templates.length})
-                </span>
-              ) : null}
-              {tab.id === filesTabId && poolFiles.length > 0 ? (
-                <span className="ml-1.5 text-[11px] font-bold text-muted-foreground">
-                  ({poolFiles.length})
-                </span>
-              ) : null}
-            </button>
-          ))}
+        {!loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 shrink-0">
+            {summaryStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-2xl p-4 flex flex-col gap-2"
+                style={glassPanelStyle}
+              >
+                <div
+                  className="h-8 w-8 rounded-xl flex items-center justify-center text-xs font-black"
+                  style={{ background: stat.bg, color: stat.color }}
+                >
+                  {stat.value}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{stat.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{stat.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-center shrink-0">
+          <GlassSearchInput
+            containerClassName="flex-1 max-w-none lg:max-w-md"
+            className="h-11"
+            placeholder={searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <div
+            className="flex gap-1 p-1 rounded-2xl overflow-x-auto shrink-0 lg:ml-auto"
+            style={glassPanelStyle}
+          >
+            {libraryConfig.views.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setContentTab(tab.id)}
+                className={cn(
+                  "px-4 py-2 text-xs font-semibold whitespace-nowrap rounded-xl transition-colors",
+                  contentTab === tab.id
+                    ? "bg-violet-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5",
+                )}
+              >
+                {tab.label}
+                {tab.id === templatesTabId && templates.length > 0 ? (
+                  <span className="ml-1.5 opacity-80">({templates.length})</span>
+                ) : null}
+                {tab.id === filesTabId && poolFiles.length > 0 ? (
+                  <span className="ml-1.5 opacity-80">({poolFiles.length})</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
         {message && (
-          <p className="text-sm text-muted-foreground rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40 px-4 py-2">
+          <p
+            className="text-sm text-muted-foreground rounded-2xl px-4 py-3 shrink-0"
+            style={glassPanelStyle}
+          >
             {message}
           </p>
         )}
 
         {loading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : contentTab === templatesTabId ? (
@@ -457,11 +537,9 @@ export function CourseContentView() {
             "No stored files yet. Use Upload files to add PDF, DOCX, or PPTX to your library.",
           )
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-8">
             <section>
-              <h2 className="text-sm font-extrabold text-foreground mb-1">
-                Templates
-              </h2>
+              <h2 className="text-sm font-extrabold text-foreground mb-1">Templates</h2>
               <p className="text-xs text-muted-foreground mb-4">
                 Reusable lesson builds — notes, structure, and metadata.
               </p>
@@ -515,7 +593,10 @@ export function CourseContentView() {
                   <button
                     type="button"
                     disabled={assigning}
-                    className="w-full text-left rounded-lg border border-slate-200/80 dark:border-zinc-800 px-3 py-2.5 text-sm font-medium hover:bg-slate-100/80 dark:hover:bg-zinc-900/50 transition-colors disabled:opacity-50"
+                    className={cn(
+                      glassBtnSubtleClass,
+                      "w-full text-left h-auto min-h-10 px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
+                    )}
                     onClick={() => void handleAssign(cls.id, cls.name)}
                   >
                     {cls.name}

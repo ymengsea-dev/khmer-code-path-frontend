@@ -7,9 +7,7 @@ import {
   MessageSquare,
   Save,
   Sparkles,
-  Trash2,
   Upload,
-  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,10 +31,10 @@ import { SelectionNotePopup } from "@/components/lessons/SelectionNotePopup";
 import { LessonAskPanel } from "@/components/lessons/LessonAskPanel";
 import { LessonRichContent } from "@/components/lessons/LessonRichContent";
 import { ClassCommentsPanel } from "@/components/classes/ClassCommentsPanel";
-import { ClassStudentsDialog } from "@/components/classes/ClassStudentsDialog";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { useNotifications } from "@/components/notifications/notification-context";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { glassBtnSubtleClass } from "@/components/ui/glass-field";
 
 type UserRole = "student" | "teacher" | "admin";
 
@@ -177,6 +175,7 @@ interface LessonsViewProps {
   /** Stable callback ref assigned by parent so parent can trigger clearLesson */
   clearLessonRef?: React.MutableRefObject<(() => void) | null>;
   onBackToClasses?: () => void;
+  onBackToClassDetail?: () => void;
 }
 
 export function LessonsView({
@@ -188,6 +187,7 @@ export function LessonsView({
   onLessonClose,
   clearLessonRef,
   onBackToClasses,
+  onBackToClassDetail,
 }: LessonsViewProps) {
   const { get, setParams } = useQueryParams();
   const { alert: showAlert, confirm } = useConfirm();
@@ -216,10 +216,6 @@ export function LessonsView({
   );
   const [improvingLesson, setImprovingLesson] = useState(false);
   const [improvedContent, setImprovedContent] = useState<string | null>(null);
-
-  const [rosterOpen, setRosterOpen] = useState(false);
-  const [deletingLessonId, setDeletingLessonId] = useState<number | null>(null);
-  const [deletingClass, setDeletingClass] = useState(false);
 
   const parsedClassId = classId ? Number(classId) : NaN;
   const isTeacher = role === "teacher" || role === "admin";
@@ -484,49 +480,6 @@ export function LessonsView({
     }
   };
 
-  const handleDeleteClass = async () => {
-    if (!Number.isFinite(parsedClassId)) return;
-    const ok = await confirm(
-      `"${displayTitle}" and all its lessons will be permanently deleted. This cannot be undone.`,
-      { title: "Delete Class", confirmLabel: "Delete", variant: "destructive" },
-    );
-    if (!ok) return;
-    setDeletingClass(true);
-    try {
-      await classService.deleteClass(parsedClassId);
-      onBackToClasses?.();
-    } catch {
-      setError("Could not delete the class. Please try again.");
-    } finally {
-      setDeletingClass(false);
-    }
-  };
-
-  const handleDeleteLesson = async (lessonId: number) => {
-    const target = lessons.find((l) => l.id === lessonId);
-    const ok = await confirm(
-      `"${target?.title ?? "This lesson"}" will be permanently removed from the class.`,
-      {
-        title: "Delete Lesson",
-        confirmLabel: "Delete",
-        variant: "destructive",
-      },
-    );
-    if (!ok) return;
-    setDeletingLessonId(lessonId);
-    try {
-      await lessonService.deleteLesson(lessonId);
-      if (lesson?.id === lessonId) clearLesson();
-      await loadLessons();
-    } catch {
-      setError("Could not delete the lesson. Please try again.");
-    } finally {
-      setDeletingLessonId(null);
-    }
-  };
-
-  const displayTitle =
-    classTitle ?? lesson?.className ?? lessons[0]?.className ?? "Class";
   const [bottomPanel, setBottomPanel] = useState<"comments" | "materials">(
     "comments",
   );
@@ -615,43 +568,18 @@ export function LessonsView({
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-clip">
       {/* Teacher action bar */}
-      {canManage && Number.isFinite(parsedClassId) && (
-        <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-black/6 flex items-center gap-2 justify-end">
-          <Button
+      {canManage && Number.isFinite(parsedClassId) && onBackToClassDetail && (
+        <div className="shrink-0 py-2.5">
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs font-semibold"
-            onClick={() => setRosterOpen(true)}
+            onClick={onBackToClassDetail}
+            className={cn(glassBtnSubtleClass, "h-8 px-3 text-xs font-semibold gap-1.5")}
           >
-            <Users className="h-3.5 w-3.5" />
-            Manage Students
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-            disabled={deletingClass}
-            onClick={() => void handleDeleteClass()}
-          >
-            {deletingClass ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
-            Delete Class
-          </Button>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Class details
+          </button>
         </div>
       )}
-
-      <ClassStudentsDialog
-        open={rosterOpen}
-        onOpenChange={setRosterOpen}
-        classId={Number.isFinite(parsedClassId) ? parsedClassId : null}
-        className={displayTitle}
-        canManage={canManage}
-      />
 
       {error && (
         <p className="px-6 py-2 text-sm text-zinc-600 shrink-0">{error}</p>
@@ -662,7 +590,7 @@ export function LessonsView({
         (lesson ? (
           /* ── 3-panel lesson reader ── */
           <div
-            className="flex-1 flex min-h-0 overflow-hidden p-1 gap-0"
+            className="flex-1 flex min-h-0 overflow-hidden pt-1 pb-1 pr-1 gap-0"
             style={{ userSelect: dragging ? "none" : undefined }}
           >
             <SelectionNotePopup
@@ -671,7 +599,7 @@ export function LessonsView({
               lessonId={lesson.id}
             />
             {/* LEFT column */}
-            <div className="relative flex-1 flex flex-col min-h-0 min-w-0 gap-1.5 overflow-hidden pr-1.5">
+            <div className="relative flex-1 flex flex-col min-h-0 min-w-0 gap-0 overflow-hidden">
               {/* ── Floating toolbar — absolutely positioned over the lesson content ── */}
               <div className="absolute top-2 left-2 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
                 {/* Left: back + lesson title pill */}
@@ -792,7 +720,7 @@ export function LessonsView({
                   html={lesson.description}
                   emptyMessage={
                     canManage
-                      ? "No notes yet. Write content in Course Content, then assign it to this class."
+                      ? "No notes yet. Write content in Content Management, then assign it to this class."
                       : "Your teacher has not published notes for this lesson yet."
                   }
                 />
@@ -801,9 +729,9 @@ export function LessonsView({
               {/* Vertical drag strip */}
               <div
                 onMouseDown={startBottomDrag}
-                className="shrink-0 h-2 flex items-center justify-center cursor-row-resize group"
+                className="shrink-0 flex items-center justify-center cursor-row-resize group py-[3px]"
               >
-                <div className="w-10 h-1 rounded-full bg-white/40 group-hover:bg-white/70 transition-colors" />
+                <div className="w-10 h-1 rounded-full bg-zinc-400/90 dark:bg-zinc-500 group-hover:bg-zinc-500 dark:group-hover:bg-zinc-400 transition-colors" />
               </div>
 
               {/* Bottom panel — always in DOM, height 0 when collapsed */}
@@ -944,12 +872,12 @@ export function LessonsView({
               </div>
             </div>
 
-            {/* Horizontal drag strip */}
+            {/* Horizontal drag strip — 3px gap to course content and AI panel */}
             <div
               onMouseDown={startAiDrag}
-              className="shrink-0 w-2 flex items-center justify-center cursor-col-resize self-stretch group"
+              className="shrink-0 flex items-center justify-center cursor-col-resize self-stretch group px-[3px] py-[3px]"
             >
-              <div className="w-1 h-10 rounded-full bg-white/40 group-hover:bg-white/70 transition-colors" />
+              <div className="w-1 min-h-[2.5rem] h-10 rounded-full bg-zinc-400/90 dark:bg-zinc-500 group-hover:bg-zinc-500 dark:group-hover:bg-zinc-400 transition-colors" />
             </div>
 
             {/* RIGHT: AI panel — always in DOM, width 0 when collapsed */}
@@ -1009,88 +937,91 @@ export function LessonsView({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pt-3 pb-4 space-y-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="text-xs font-bold text-foreground">
-                        AI Tools
-                      </span>
-                    </div>
-                    <textarea
-                      value={improveGoal}
-                      onChange={(e) => setImproveGoal(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      placeholder="Tell AI how to improve this lesson…"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
-                        disabled={improvingLesson}
-                        onClick={() => void handleImproveLesson(false)}
-                      >
-                        {improvingLesson ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        Preview
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
-                        disabled={improvingLesson}
-                        onClick={() => void handleImproveLesson(true)}
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        Save
-                      </Button>
-                    </div>
-                    {improvedContent && (
-                      <div
-                        className="rounded-xl p-3"
-                        style={{
-                          background: "var(--glass-bg-subtle)",
-                          border: "1px solid var(--glass-border-color-subtle)",
-                        }}
-                      >
-                        <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
-                          Preview
-                        </p>
-                        <div
-                          className="prose prose-sm max-w-none dark:prose-invert text-xs"
-                          dangerouslySetInnerHTML={{ __html: improvedContent }}
-                        />
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pt-3 pb-3 space-y-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="text-xs font-bold text-foreground">
+                          AI Tools
+                        </span>
                       </div>
-                    )}
-                    <LessonAskPanel
-                      lessonId={lesson.id}
-                      lessonTitle={lesson.title}
-                      aiReady={lesson.aiReady}
-                      hasLessonContent={Boolean(lesson.description?.trim())}
-                      materialId={
-                        lesson.materials.length > 0
-                          ? Number(summaryMaterialId || lesson.materials[0].id)
-                          : null
-                      }
-                    />
+                      <textarea
+                        value={improveGoal}
+                        onChange={(e) => setImproveGoal(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-xl border border-input bg-background/60 px-3 py-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        placeholder="Tell AI how to improve this lesson…"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
+                          disabled={improvingLesson}
+                          onClick={() => void handleImproveLesson(false)}
+                        >
+                          {improvingLesson ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 h-8 gap-1.5 text-xs rounded-xl"
+                          disabled={improvingLesson}
+                          onClick={() => void handleImproveLesson(true)}
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          Save
+                        </Button>
+                      </div>
+                      {improvedContent && (
+                        <div
+                          className="rounded-xl p-3"
+                          style={{
+                            background: "var(--glass-bg-subtle)",
+                            border: "1px solid var(--glass-border-color-subtle)",
+                          }}
+                        >
+                          <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
+                            Preview
+                          </p>
+                          <div
+                            className="prose prose-sm max-w-none dark:prose-invert text-xs"
+                            dangerouslySetInnerHTML={{ __html: improvedContent }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 border-t border-border/40">
+                      <LessonAskPanel
+                        compactFooter
+                        lessonId={lesson.id}
+                        lessonTitle={lesson.title}
+                        aiReady={lesson.aiReady}
+                        hasLessonContent={Boolean(lesson.description?.trim())}
+                        materialId={
+                          lesson.materials.length > 0
+                            ? Number(summaryMaterialId || lesson.materials[0].id)
+                            : null
+                        }
+                      />
+                    </div>
                   </div>
                 ))}
             </div>
           </div>
         ) : (
           /* ── Lesson cards list ── */
-          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-6 py-6">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide py-6">
             <ClassCourseContent
               lessons={lessons}
               lesson={null}
               canManage={canManage}
               onSelectLesson={openLesson}
               onBackToList={clearLesson}
-              onDeleteLesson={canManage ? handleDeleteLesson : undefined}
-              deletingLessonId={deletingLessonId}
             />
           </div>
         ))}

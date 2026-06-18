@@ -2,6 +2,7 @@
 
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
 function PermissionRow({
@@ -27,7 +28,7 @@ const ROLES = [
   {
     title: "System Admin",
     description:
-      "Full access to system operations and user management.",
+      "Full access to system operations and student management.",
     permissions: [
       { allowed: true, label: "Manage Users" },
       { allowed: true, label: "School Operations" },
@@ -52,34 +53,38 @@ const ROLES = [
       { allowed: true, label: "View Classes" },
       { allowed: true, label: "Submit Assignments" },
       { allowed: true, label: "AI Chat & Notebook" },
-      { allowed: false, label: "User Management" },
+      { allowed: false, label: "Student Management" },
     ],
   },
 ] as const;
 
 export function UserPermissionsTab() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <BouncyStagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {ROLES.map((role) => (
-        <Card
-          key={role.title}
-          className="border-slate-200/80 dark:border-zinc-800 shadow-2xs"
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{role.title}</CardTitle>
-            <p className="text-xs text-muted-foreground">{role.description}</p>
-          </CardHeader>
-          <CardContent className={cn("grid gap-2 pt-0")}>
-            {role.permissions.map((p) => (
-              <PermissionRow
-                key={p.label}
-                allowed={p.allowed}
-                label={p.label}
-              />
-            ))}
-          </CardContent>
-        </Card>
+        <BouncyStaggerItem key={role.title} enter="simple">
+          <Card
+            bouncy={false}
+            className="border-slate-200/80 dark:border-zinc-800/80 h-full"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-extrabold">
+                {role.title}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">{role.description}</p>
+            </CardHeader>
+            <CardContent className={cn("grid gap-2 pt-0")}>
+              {role.permissions.map((p) => (
+                <PermissionRow
+                  key={p.label}
+                  allowed={p.allowed}
+                  label={p.label}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </BouncyStaggerItem>
       ))}
-    </div>
+    </BouncyStagger>
   );
 }
