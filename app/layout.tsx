@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SIDEBAR_PINNED_BOOTSTRAP_SCRIPT } from "@/lib/sidebar-preference";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { AppQueryProvider } from "@/components/providers/query-provider";
 import { ThemeBootstrap } from "@/components/providers/theme-bootstrap";
@@ -32,7 +33,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
+    <html lang="en" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: SIDEBAR_PINNED_BOOTSTRAP_SCRIPT }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

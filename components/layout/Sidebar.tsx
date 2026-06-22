@@ -4,7 +4,6 @@ import React from "react";
 import {
   LayoutGrid,
   BookOpen,
-  PanelLeft,
   Search,
   Sparkles,
   ClipboardList,
@@ -14,7 +13,6 @@ import {
   Wrench,
   Layers,
   CalendarCheck,
-  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar as SidebarRoot,
@@ -25,7 +23,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { AppLogoMark } from "@/components/brand/AppLogo";
@@ -51,7 +48,6 @@ export function Sidebar({
   onOpenSearch,
   className,
 }: AppSidebarProps) {
-  const { open, setOpen } = useSidebar();
   const { data: session } = useSession();
   const { data: currentUser } = useCurrentUser();
   const roleRaw = (currentUser?.role ?? session?.user?.role ?? "student").toLowerCase();
@@ -67,75 +63,37 @@ export function Sidebar({
   const isTeacher = appRole === "teacher";
 
   return (
-    <SidebarRoot side="left" className={cn("shrink-0", className)}>
+    <SidebarRoot side="left" className={className}>
       
-      <SidebarHeader className="px-2 pb-3 pt-3 relative">
-        <div className={cn("relative flex flex-col gap-2.5 transition-all duration-300 w-full", !open && "items-center")}>
-          <div className={cn("flex items-center justify-between gap-2", !open && "justify-center")}>
+      <SidebarHeader className="px-3 pb-3 pt-3 relative border-b border-zinc-200/70 dark:border-white/8">
+        <div className="relative flex w-full flex-col gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => (open ? onNavChange("courses") : setOpen(true))}
-              className={cn(
-                "flex min-w-0 items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left",
-                !open && "justify-center px-0"
-              )}
-              aria-label={open ? "Go to dashboard" : "Expand sidebar"}
+              onClick={() => onNavChange("courses")}
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left"
+              aria-label="Go to dashboard"
             >
               <AppLogoMark className="size-8" />
-              {open ? (
-                <span className="truncate text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  AI-LMS
-                </span>
-              ) : null}
+              <span className="truncate text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                AI-LMS
+              </span>
             </button>
-            {open ? (
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-zinc-400 hover:text-zinc-700 transition-colors p-1.5 rounded-lg hover:bg-zinc-100/70 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/8 shrink-0"
-                title="Minimize Sidebar"
-              >
-                <PanelLeft className="w-4 h-4" />
-              </button>
-            ) : null}
           </div>
 
-          {/* Search Bar */}
-          {open ? (
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="h-10 w-full rounded-2xl px-3 flex items-center justify-between text-sm text-zinc-500 cursor-pointer hover:text-zinc-700 liquid-glass-btn"
-              style={{
-                background: "var(--glass-bg)",
-                border: "1px solid var(--glass-border-color)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <span className="flex items-center gap-2.5 min-w-0">
-                <Search className="w-4 h-4 shrink-0" />
-                <span className="font-medium text-sm">Search</span>
-              </span>
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0"
-                style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border-color)" }}>
-                <span>⌘</span><span>/</span>
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="h-10 w-full rounded-2xl flex items-center justify-center text-zinc-500 cursor-pointer hover:text-zinc-700 liquid-glass-btn"
-              style={{
-                background: "var(--glass-bg)",
-                border: "1px solid var(--glass-border-color)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-              }}
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="h-10 w-full rounded-xl px-3 flex items-center justify-between text-sm text-zinc-500 cursor-pointer hover:text-zinc-700 bg-zinc-100/70 dark:bg-white/6 border border-zinc-200/80 dark:border-white/10"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <Search className="w-4 h-4 shrink-0" />
+              <span className="font-medium text-sm">Search</span>
+            </span>
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shrink-0 bg-white/80 dark:bg-white/8 border border-zinc-200/80 dark:border-white/10">
+              <span>⌘</span><span>/</span>
+            </span>
+          </button>
         </div>
       </SidebarHeader>
 
@@ -161,7 +119,7 @@ export function Sidebar({
                 <span className="flex h-5 w-5 items-center justify-center shrink-0">
                   <LayoutGrid className="w-4 h-4" />
                 </span>
-                {open && <span className="flex-1 text-left">Dashboard</span>}
+                <span className="flex-1 text-left">Dashboard</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -180,9 +138,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Users className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Student Management</span>
-                  )}
+                  <span className="flex-1 text-left">Student Management</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -202,9 +158,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <CalendarCheck className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Attendance</span>
-                  )}
+                  <span className="flex-1 text-left">Attendance</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -224,9 +178,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Building2 className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Departments</span>
-                  )}
+                  <span className="flex-1 text-left">Departments</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -246,9 +198,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Wrench className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Operations</span>
-                  )}
+                  <span className="flex-1 text-left">Operations</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -268,7 +218,7 @@ export function Sidebar({
                 <span className="flex h-5 w-5 items-center justify-center shrink-0">
                   <BookOpen className="w-4 h-4" />
                 </span>
-                {open && <span className="flex-1 text-left">Classes</span>}
+                <span className="flex-1 text-left">Classes</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -287,9 +237,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <ClipboardList className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Quizzes</span>
-                  )}
+                  <span className="flex-1 text-left">Quizzes</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -300,12 +248,8 @@ export function Sidebar({
         {/* Section 2: Workspace Navigation */}
         {showLearnerNav && (
         <SidebarGroup className="space-y-1">
-          <SidebarGroupLabel className={cn("px-2 h-6", !open && "justify-center px-0")}>
-            {open ? (
-              <span className="text-xs font-bold text-zinc-500">Workspace</span>
-            ) : (
-              <span className="h-px w-5 bg-white/50 dark:bg-white/12" />
-            )}
+          <SidebarGroupLabel className="px-2 h-6">
+            <span className="text-xs font-bold text-zinc-500">Workspace</span>
           </SidebarGroupLabel>
           
           <SidebarMenu className="gap-0.5">
@@ -325,9 +269,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Layers className="w-4 h-4" />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left">Content Management</span>
-                  )}
+                  <span className="flex-1 text-left">Content Management</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -347,9 +289,7 @@ export function Sidebar({
                 <span className="flex h-5 w-5 items-center justify-center shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </span>
-                {open && (
-                  <span className="flex-1 text-left">AI Chat</span>
-                )}
+                <span className="flex-1 text-left">AI Chat</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -368,9 +308,7 @@ export function Sidebar({
                 <span className="flex h-5 w-5 items-center justify-center shrink-0">
                   <Notebook className="w-4 h-4" />
                 </span>
-                {open && (
-                  <span className="flex-1 text-left">Notebook</span>
-                )}
+                <span className="flex-1 text-left">Notebook</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -381,12 +319,8 @@ export function Sidebar({
         {/* Section 3: Classes List */}
         {showLearnerNav && (
         <SidebarGroup className="space-y-1">
-          <SidebarGroupLabel className={cn("px-2 h-6", !open && "justify-center px-0")}>
-            {open ? (
-              <span className="text-xs font-bold text-zinc-500">Classes</span>
-            ) : (
-              <span className="h-px w-5 bg-white/50 dark:bg-white/12" />
-            )}
+          <SidebarGroupLabel className="px-2 h-6">
+            <span className="text-xs font-bold text-zinc-500">Classes</span>
           </SidebarGroupLabel>
           
           <SidebarMenu className="gap-0.5">
@@ -409,9 +343,7 @@ export function Sidebar({
                       aria-hidden
                     />
                   </span>
-                  {open && (
-                    <span className="flex-1 text-left truncate">{klass.name}</span>
-                  )}
+                  <span className="flex-1 text-left truncate">{klass.name}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}

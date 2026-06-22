@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CourseGrid } from "@/components/course/CourseGrid";
 import { EmbeddedIDE } from "@/components/code/EmbeddedIDE";
@@ -249,22 +249,20 @@ export function HomePage() {
   }, [courseParam, setParams]);
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full bg-transparent text-foreground overflow-hidden font-sans">
+    <SidebarProvider className="h-screen w-full overflow-hidden bg-transparent text-foreground font-sans">
         <Sidebar
           activeNav={activeNav === "class-detail" ? "classes" : activeNav}
           activeCourseId={activeCourseId}
           lessonClasses={lessonClasses}
           onNavChange={handleNavChange}
           onOpenSearch={() => setCommandOpen(true)}
-          className="shrink-0"
         />
 
         <SidebarInset>
           {/* Shared top header — Apple liquid glass floating pills */}
           <header className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-1">
-
-            {/* Left — page title */}
+            <div className="flex min-w-0 items-center gap-2.5">
+              <SidebarTrigger />
             {activeNav === "lessons" ? (
               <GlassPageTitle className="gap-2">
                 <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
@@ -289,6 +287,8 @@ export function HomePage() {
                 </h1>
               </GlassPageTitle>
             )}
+
+            </div>
 
             {/* Right — action pills */}
             <div className="flex items-center gap-2.5">
@@ -388,7 +388,6 @@ export function HomePage() {
           onOpenChange={setCommandOpen}
           onNavigate={handleSearchNavigate}
         />
-      </div>
     </SidebarProvider>
   );
 }

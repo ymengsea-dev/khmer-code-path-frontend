@@ -1,37 +1,163 @@
 "use client";
 
 import * as React from "react";
+import { PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import {
+  readPinnedPreference,
+  writePinnedPreference,
+  syncPinnedDataset,
+  markSidebarHydrated,
+} from "@/lib/sidebar-preference";
 
 const SIDEBAR_WIDTH = "17rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
-const SIDEBAR_WIDTH_ICON = "4rem";
+const SIDEBAR_EDGE_ZONE_PX = 14;
+const SIDEBAR_PEEK_LEAVE_MS = 320;
+const SIDEBAR_DOCK_DURATION_MS = 380;
 
-const SidebarContext = React.createContext<{
+type SidebarContextValue = {
+  /** Sidebar is docked open and pushes main content */
+  pinned: boolean;
+  setPinned: (open: boolean) => void;
+  /** Temporary in-flow reveal while collapsed (hover edge) */
+  peekOpen: boolean;
+  setPeekOpen: (open: boolean) => void;
+  /** Panel is visible with full labels */
+  expanded: boolean;
+  togglePinned: () => void;
+  openPeek: () => void;
+  schedulePeekClose: () => void;
+  clearPeekClose: () => void;
+  /** @deprecated use pinned */
   open: boolean;
+  /** @deprecated use setPinned */
   setOpen: (open: boolean) => void;
-}>({ open: true, setOpen: () => {} });
+  /** Animations enabled after localStorage preference is applied */
+  hydrated: boolean;
+};
+
+const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
 function SidebarProvider({
   children,
-  defaultOpen = true,
+  defaultOpen = false,
+  className,
+  style,
   ...props
 }: React.ComponentProps<"div"> & { defaultOpen?: boolean }) {
-  const [open, setOpen] = React.useState(defaultOpen);
+  const [pinned, setPinnedState] = React.useState(defaultOpen);
+  const [peekOpen, setPeekOpen] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
+  const peekLeaveTimer = React.useRef<number | null>(null);
+  const peekBlockedUntil = React.useRef(0);
+
+  React.useLayoutEffect(() => {
+    const stored = readPinnedPreference(defaultOpen);
+    setPinnedState(stored);
+    syncPinnedDataset(stored);
+    markSidebarHydrated();
+    setHydrated(true);
+  }, [defaultOpen]);
+
+  const clearPeekLeaveTimer = React.useCallback(() => {
+    if (peekLeaveTimer.current != null) {
+      window.clearTimeout(peekLeaveTimer.current);
+      peekLeaveTimer.current = null;
+    }
+  }, []);
+
+  const setPinned = React.useCallback(
+    (open: boolean) => {
+      clearPeekLeaveTimer();
+      setPinnedState(open);
+      if (!open) setPeekOpen(false);
+      writePinnedPreference(open);
+    },
+    [clearPeekLeaveTimer],
+  );
+
+  const schedulePeekClose = React.useCallback(() => {
+    clearPeekLeaveTimer();
+    peekLeaveTimer.current = window.setTimeout(() => {
+      setPeekOpen(false);
+      peekBlockedUntil.current = Date.now() + SIDEBAR_DOCK_DURATION_MS + 100;
+      peekLeaveTimer.current = null;
+    }, SIDEBAR_PEEK_LEAVE_MS);
+  }, [clearPeekLeaveTimer]);
+
+  const openPeek = React.useCallback(() => {
+    if (pinned || Date.now() < peekBlockedUntil.current) return;
+    clearPeekLeaveTimer();
+    setPeekOpen(true);
+  }, [pinned, clearPeekLeaveTimer]);
+
+  const togglePinned = React.useCallback(() => {
+    clearPeekLeaveTimer();
+    setPinnedState((current) => {
+      const next = !current;
+      if (!next) setPeekOpen(false);
+      writePinnedPreference(next);
+      return next;
+    });
+  }, [clearPeekLeaveTimer]);
+
+  React.useEffect(() => () => clearPeekLeaveTimer(), [clearPeekLeaveTimer]);
+
+  const expanded = pinned || peekOpen;
+
+  const value = React.useMemo<SidebarContextValue>(
+    () => ({
+      pinned,
+      setPinned,
+      peekOpen,
+      setPeekOpen,
+      expanded,
+      togglePinned,
+      openPeek,
+      schedulePeekClose,
+      clearPeekClose: clearPeekLeaveTimer,
+      open: pinned,
+      setOpen: setPinned,
+      hydrated,
+    }),
+    [
+      pinned,
+      peekOpen,
+      expanded,
+      setPinned,
+      togglePinned,
+      openPeek,
+      schedulePeekClose,
+      clearPeekLeaveTimer,
+      hydrated,
+    ],
+  );
+
   return (
-    <SidebarContext.Provider value={{ open, setOpen }}>
+    <SidebarContext.Provider value={value}>
       <div
         data-sidebar="provider"
+        className={cn("flex h-full w-full min-h-0 overflow-hidden", className)}
         style={
           {
+            ...style,
             "--sidebar-width": SIDEBAR_WIDTH,
             "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE,
-            "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+            "--sidebar-edge-zone": `${SIDEBAR_EDGE_ZONE_PX}px`,
+            "--sidebar-dock-duration": `${SIDEBAR_DOCK_DURATION_MS}ms`,
           } as React.CSSProperties
         }
         {...props}
       >
+        {!pinned && !peekOpen ? (
+          <div
+            aria-hidden
+            className="fixed inset-y-0 left-0 z-50"
+            style={{ width: SIDEBAR_EDGE_ZONE_PX }}
+            onMouseEnter={openPeek}
+          />
+        ) : null}
         {children}
       </div>
     </SidebarContext.Provider>
@@ -40,34 +166,69 @@ function SidebarProvider({
 
 function useSidebar() {
   const context = React.useContext(SidebarContext);
-  return context ?? { open: true, setOpen: () => {} };
+  if (!context) {
+    return {
+      pinned: true,
+      setPinned: () => {},
+      peekOpen: false,
+      setPeekOpen: () => {},
+      expanded: true,
+      togglePinned: () => {},
+      openPeek: () => {},
+      schedulePeekClose: () => {},
+      clearPeekClose: () => {},
+      open: true,
+      setOpen: () => {},
+      hydrated: true,
+    };
+  }
+  return context;
 }
+
+const sidebarPanelClass =
+  "flex h-full min-h-0 w-full flex-col overflow-hidden border-zinc-200/90 bg-white text-sidebar-foreground dark:border-white/10 dark:bg-[rgb(28,28,36)]";
 
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { side?: "left" | "right" }
 >(({ className, side = "left", ...props }, ref) => {
-  const { open } = useSidebar();
+  const { pinned, peekOpen, openPeek, schedulePeekClose, clearPeekClose, hydrated } =
+    useSidebar();
+  const dockOpen = pinned || peekOpen;
+
   return (
     <div
-      ref={ref}
-      data-sidebar="root"
-      data-state={open ? "expanded" : "collapsed"}
-      style={{
-        background: "var(--glass-bg)",
-        backdropFilter: "blur(32px) saturate(1.8)",
-        WebkitBackdropFilter: "blur(32px) saturate(1.8)",
-        border: "1px solid var(--glass-border-color)",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-      }}
+      data-sidebar="dock"
+      data-open={dockOpen ? "true" : "false"}
       className={cn(
-        "flex h-[calc(100%-1.5rem)] flex-col text-sidebar-foreground overflow-hidden transition-all duration-300 ease-in-out my-3 ml-3 rounded-[28px]",
-        open ? "w-(--sidebar-width)" : "w-(--sidebar-width-icon)",
-        side === "right" && "mr-3 ml-0",
-        className
+        "sidebar-dock h-full min-h-0 shrink-0 overflow-hidden",
+        !hydrated && "sidebar-dock-instant",
       )}
-      {...props}
-    />
+      onMouseEnter={() => {
+        if (!pinned) {
+          clearPeekClose();
+          openPeek();
+        }
+      }}
+      onMouseLeave={() => {
+        if (!pinned) schedulePeekClose();
+      }}
+    >
+      <aside
+        ref={ref}
+        data-sidebar="root"
+        data-state={pinned ? "pinned" : peekOpen ? "peek" : "hidden"}
+        data-open={dockOpen ? "true" : "false"}
+        data-side={side}
+        className={cn(
+          sidebarPanelClass,
+          "sidebar-dock-panel h-full w-[var(--sidebar-width)] border-r",
+          !pinned && peekOpen && "shadow-lg shadow-black/5 dark:shadow-black/30",
+          className,
+        )}
+        {...props}
+      />
+    </div>
   );
 });
 Sidebar.displayName = "Sidebar";
@@ -92,7 +253,7 @@ const SidebarContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="content"
-    className={cn("flex flex-1 flex-col gap-2 overflow-auto px-2 py-4", className)}
+    className={cn("flex flex-1 flex-col gap-2 overflow-auto px-2 py-4 scrollbar-hide", className)}
     {...props}
   />
 ));
@@ -133,7 +294,7 @@ const SidebarGroupLabel = React.forwardRef<
     data-sidebar="group-label"
     className={cn(
       "px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
-      className
+      className,
     )}
     {...props}
   />
@@ -173,20 +334,18 @@ const SidebarMenuButton = React.forwardRef<
     tooltip?: string;
   }
 >(({ className, isActive, tooltip, ...props }, ref) => {
-  const { open } = useSidebar();
   return (
     <button
       ref={ref}
       title={tooltip}
       style={isActive ? { backgroundColor: "rgba(208, 212, 218, 0.45)" } : undefined}
       className={cn(
-        "w-full flex items-center gap-3.5 rounded-xl px-3 h-10 text-sm font-medium overflow-hidden transition-all duration-150 outline-none",
-        !open && "justify-center px-0",
+        "flex h-10 w-full items-center gap-3.5 overflow-hidden rounded-xl px-3 text-sm font-medium outline-none transition-all duration-150",
         isActive
           ? "text-zinc-900 dark:bg-white/14 dark:text-white"
           : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/8 dark:hover:text-white",
         !isActive && "sidebar-nav-hover",
-        className
+        className,
       )}
       {...props}
     />
@@ -196,19 +355,30 @@ SidebarMenuButton.displayName = "SidebarMenuButton";
 
 const SidebarTrigger = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<typeof Button>
+  React.ButtonHTMLAttributes<HTMLButtonElement>
 >(({ className, ...props }, ref) => {
-  const { open, setOpen } = useSidebar();
+  const { togglePinned, pinned, hydrated } = useSidebar();
   return (
-    <Button
+    <button
       ref={ref}
-      variant="ghost"
-      size="icon"
-      onClick={() => setOpen(!open)}
-      className={cn("shrink-0", className)}
-      aria-label="Toggle sidebar"
+      type="button"
+      onClick={togglePinned}
+      className={cn(
+        "topbar-pill inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white",
+        className,
+      )}
+      aria-label={pinned ? "Hide sidebar" : "Show sidebar"}
+      aria-pressed={pinned}
       {...props}
-    />
+    >
+      <PanelLeft
+        className={cn(
+          "sidebar-trigger-icon h-4 w-4",
+          !hydrated && "sidebar-dock-instant",
+        )}
+        data-pinned={pinned ? "true" : "false"}
+      />
+    </button>
   );
 });
 SidebarTrigger.displayName = "SidebarTrigger";
@@ -216,14 +386,21 @@ SidebarTrigger.displayName = "SidebarTrigger";
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <main
-    ref={ref}
-    data-sidebar="inset"
-    className={cn("relative flex flex-col h-full flex-1 min-w-0 overflow-hidden", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const { hydrated } = useSidebar();
+  return (
+    <main
+      ref={ref}
+      data-sidebar="inset"
+      className={cn(
+        "sidebar-inset relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+        !hydrated && "sidebar-inset-instant",
+        className,
+      )}
+      {...props}
+    />
+  );
+});
 SidebarInset.displayName = "SidebarInset";
 
 export {

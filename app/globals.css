@@ -330,6 +330,73 @@
     background-color: rgba(208, 212, 218, 0.28);
   }
 
+  .sidebar-dock {
+    width: 0;
+    transition: width var(--sidebar-dock-duration, 380ms) var(--bouncy-ease-snappy);
+    will-change: width;
+  }
+
+  .sidebar-dock[data-open="true"] {
+    width: var(--sidebar-width);
+  }
+
+  /* Pre-hydration sidebar state (see layout bootstrap script) */
+  html[data-sidebar-pinned="false"]:not([data-sidebar-hydrated]) [data-sidebar="dock"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    visibility: hidden !important;
+    transition: none !important;
+  }
+
+  html[data-sidebar-pinned="false"]:not([data-sidebar-hydrated]) [data-sidebar="dock"] .sidebar-dock-panel {
+    opacity: 0 !important;
+    transform: translateX(-12px) !important;
+    visibility: hidden !important;
+    transition: none !important;
+  }
+
+  html[data-sidebar-pinned="true"]:not([data-sidebar-hydrated]) [data-sidebar="dock"] {
+    width: var(--sidebar-width) !important;
+    transition: none !important;
+  }
+
+  html[data-sidebar-pinned="true"]:not([data-sidebar-hydrated]) [data-sidebar="dock"] .sidebar-dock-panel {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    transition: none !important;
+  }
+
+  .sidebar-dock-instant,
+  .sidebar-dock-instant .sidebar-dock-panel,
+  .sidebar-inset-instant {
+    transition: none !important;
+  }
+
+  .sidebar-dock-panel {
+    opacity: 0;
+    transform: translateX(-12px);
+    transition:
+      opacity calc(var(--sidebar-dock-duration, 380ms) * 0.85) ease,
+      transform var(--sidebar-dock-duration, 380ms) var(--bouncy-ease-snappy);
+  }
+
+  .sidebar-dock-panel[data-open="true"] {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .sidebar-inset {
+    transition: flex var(--sidebar-dock-duration, 380ms) var(--bouncy-ease-snappy);
+  }
+
+  .sidebar-trigger-icon {
+    transition: transform var(--sidebar-dock-duration, 380ms) var(--bouncy-ease-snappy);
+  }
+
+  .sidebar-trigger-icon[data-pinned="false"] {
+    transform: rotate(180deg) scaleX(-1);
+  }
+
   .topbar-pill {
     border-radius: 9999px;
     background: var(--glass-bg);
