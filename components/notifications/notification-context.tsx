@@ -199,7 +199,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             try {
               new Notification(item.title, {
                 body: item.message || undefined,
-                icon: "/favicon.ico",
+                icon: "/logo.png",
                 tag: item.id,
               });
             } catch {

@@ -13,6 +13,9 @@ import {
   Wrench,
   Layers,
   CalendarCheck,
+  GraduationCap,
+  Globe,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar as SidebarRoot,
@@ -35,6 +38,9 @@ interface AppSidebarProps {
   activeNav: string;
   activeCourseId?: string | null;
   lessonClasses?: ClassSummary[];
+  publicCoursesNavLabel?: string | null;
+  rolesPermissionsNavLabel?: string | null;
+  facultyManagementNavLabel?: string | null;
   onNavChange: (id: string, courseId?: string) => void;
   onOpenSearch?: () => void;
   className?: string;
@@ -44,6 +50,9 @@ export function Sidebar({
   activeNav,
   activeCourseId,
   lessonClasses = [],
+  publicCoursesNavLabel,
+  rolesPermissionsNavLabel,
+  facultyManagementNavLabel,
   onNavChange,
   onOpenSearch,
   className,
@@ -61,6 +70,10 @@ export function Sidebar({
   const showOperations = isAdmin;
   const showLearnerNav = !isAdmin;
   const isTeacher = appRole === "teacher";
+  const isStudent = appRole === "student";
+  const showPublicCourses = isStudent && Boolean(publicCoursesNavLabel);
+  const showRolesPermissions = isAdmin && Boolean(rolesPermissionsNavLabel);
+  const showFacultyManagement = isAdmin && Boolean(facultyManagementNavLabel);
 
   return (
     <SidebarRoot side="left" className={className}>
@@ -123,6 +136,64 @@ export function Sidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
 
+            {showFacultyManagement && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "faculty-management" || activeNav === "faculty-detail"}
+                  onClick={() => onNavChange("faculty-management")}
+                  className={cn(
+                    "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                    activeNav === "faculty-management" || activeNav === "faculty-detail"
+                      ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                      : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <GraduationCap className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-left">{facultyManagementNavLabel}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            {showDepartments && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "departments"}
+                  onClick={() => onNavChange("departments")}
+                  className={cn(
+                    "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                    activeNav === "departments"
+                      ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                      : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-left">Departments</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={activeNav === "classes" || activeNav === "class-detail"}
+                onClick={() => onNavChange("classes")}
+                className={cn(
+                  "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                  activeNav === "classes" || activeNav === "class-detail"
+                    ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                    : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                )}
+              >
+                <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                  <BookOpen className="w-4 h-4" />
+                </span>
+                <span className="flex-1 text-left">Classes</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             {showUserManagement && (
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -163,22 +234,22 @@ export function Sidebar({
               </SidebarMenuItem>
             )}
 
-            {showDepartments && (
+            {showRolesPermissions && (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={activeNav === "departments"}
-                  onClick={() => onNavChange("departments")}
+                  isActive={activeNav === "roles-permissions"}
+                  onClick={() => onNavChange("roles-permissions")}
                   className={cn(
                     "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                    activeNav === "departments"
+                    activeNav === "roles-permissions"
                       ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
                       : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
                   )}
                 >
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                    <Building2 className="w-4 h-4" />
+                    <Shield className="w-4 h-4" />
                   </span>
-                  <span className="flex-1 text-left">Departments</span>
+                  <span className="flex-1 text-left">{rolesPermissionsNavLabel}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
@@ -203,24 +274,25 @@ export function Sidebar({
               </SidebarMenuItem>
             )}
 
-            {/* Classes Nav */}
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={activeNav === "classes"}
-                onClick={() => onNavChange("classes")}
-                className={cn(
-                  "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
-                  activeNav === "classes"
-                    ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
-                    : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
-                )}
-              >
-                <span className="flex h-5 w-5 items-center justify-center shrink-0">
-                  <BookOpen className="w-4 h-4" />
-                </span>
-                <span className="flex-1 text-left">Classes</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {showPublicCourses && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "public-courses"}
+                  onClick={() => onNavChange("public-courses")}
+                  className={cn(
+                    "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                    activeNav === "public-courses"
+                      ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                      : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-left">{publicCoursesNavLabel}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
 
             {showLearnerNav && (
               <SidebarMenuItem>

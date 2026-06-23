@@ -1,8 +1,12 @@
 import { signIn, signOut } from "next-auth/react";
+import axios from "axios";
 import { apiClient } from "../api-client";
 
 const BACKEND_ORIGIN =
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ?? "http://localhost:8080";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
 export const authService = {
   async login(credentials: { email: string; password: string }) {
@@ -12,7 +16,7 @@ export const authService = {
       redirect: false,
     });
 
-    if (result?.error) {
+    if (!result?.ok || result.error) {
       throw new Error("Invalid email or password. Please try again.");
     }
 
@@ -38,8 +42,12 @@ export const authService = {
     return result;
   },
 
-  googleLogin() {
-    window.location.href = `${BACKEND_ORIGIN}/api/v1/auth/google`;
+  googleLogin(schoolSlug?: string) {
+    const url = new URL(`${BACKEND_ORIGIN}/api/v1/auth/google`);
+    if (schoolSlug?.trim()) {
+      url.searchParams.set("schoolSlug", schoolSlug.trim());
+    }
+    window.location.href = url.toString();
   },
 
   async logout() {
@@ -83,5 +91,16 @@ export const authService = {
     confirmPassword: string;
   }) {
     await apiClient.post("/auth/password-reset/confirm", payload);
+  },
+
+  async register(payload: {
+    username: string;
+    email: string;
+    password: string;
+    schoolSlug: string;
+  }) {
+    await axios.post(`${API_BASE_URL}/auth/register`, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
   },
 };

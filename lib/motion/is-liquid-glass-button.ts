@@ -25,12 +25,22 @@ function hasGlassInlineStyle(el: HTMLElement): boolean {
   return computed.backdropFilter !== "none" && computed.backdropFilter !== "";
 }
 
+function isMenuTrigger(el: HTMLElement): boolean {
+  return (
+    el.matches('[data-slot="dropdown-menu-trigger"], [data-slot="dropdown-menu-sub-trigger"]') ||
+    el.getAttribute("aria-haspopup") === "menu"
+  );
+}
+
 /** True for liquid-glass styled controls that should get press bounce feedback. */
 export function isLiquidGlassButton(el: Element | null): el is HTMLElement {
   if (!(el instanceof HTMLElement)) return false;
   if (isDisabled(el)) return false;
   if (el.dataset.noGlassBounce !== undefined) return false;
   if (el.closest("[data-no-glass-bounce]")) return false;
+
+  // Menu triggers use instant CSS :active press — not the JS keyframe bounce.
+  if (isMenuTrigger(el)) return false;
 
   // `<Button>` already uses Framer Motion press feedback.
   if (el.matches('[data-slot="button"]')) return false;

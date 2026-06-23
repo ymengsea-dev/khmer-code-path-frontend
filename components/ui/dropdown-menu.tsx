@@ -42,7 +42,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "dropdown-panel z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 overflow-x-hidden overflow-y-auto rounded-xl border border-zinc-200/90 bg-white p-1.5 text-popover-foreground shadow-xl shadow-black/10 outline-none transition-[opacity,transform] duration-100 ease-out data-starting-style:opacity-0 data-starting-style:-translate-y-0.5 data-ending-style:opacity-0 data-ending-style:-translate-y-px dark:border-zinc-700/90 dark:bg-zinc-900 dark:shadow-black/45",
+            "dropdown-panel z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 overflow-x-hidden overflow-y-auto rounded-xl border border-zinc-200/90 bg-white p-1.5 text-popover-foreground shadow-xl shadow-black/10 outline-none transition-opacity duration-150 ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 dark:border-zinc-700/90 dark:bg-zinc-900 dark:shadow-black/45",
             className,
           )}
           {...props}
@@ -139,7 +139,7 @@ function DropdownMenuSubContent({
     <DropdownMenuContent
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        "dropdown-panel z-50 w-auto min-w-[96px] rounded-md border border-zinc-200/90 bg-white p-1 text-popover-foreground shadow-xl shadow-black/10 transition-[opacity,transform] duration-100 ease-out data-starting-style:opacity-0 data-starting-style:-translate-y-0.5 data-ending-style:opacity-0 data-ending-style:-translate-y-px dark:border-zinc-700/90 dark:bg-zinc-900 dark:shadow-black/45",
+        "dropdown-panel z-50 w-auto min-w-[96px] rounded-md border border-zinc-200/90 bg-white p-1 text-popover-foreground shadow-xl shadow-black/10 transition-opacity duration-150 ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 dark:border-zinc-700/90 dark:bg-zinc-900 dark:shadow-black/45",
         className,
       )}
       align={align}

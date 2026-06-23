@@ -3,9 +3,11 @@ export type DepartmentStatus = "active" | "inactive";
 export interface Department {
   id: number;
   name: string;
-  faculty: string;
+  facultyId: number;
+  facultyName: string;
   headOfDept: string;
-  facultyCount: number;
+  teacherCount: number;
+  classCount: number;
   capacityPercent: number;
   status: DepartmentStatus;
   accent: "violet" | "blue" | "emerald" | "amber";

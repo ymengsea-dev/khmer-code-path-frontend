@@ -4,12 +4,21 @@ export type DepartmentAccentDto = "VIOLET" | "BLUE" | "EMERALD" | "AMBER";
 export interface DepartmentSummaryDto {
   id: number;
   name: string;
-  faculty: string | null;
+  facultyId: number | null;
+  facultyName: string | null;
   headOfDept: string;
-  facultyCount: number;
+  teacherCount: number;
+  classCount: number;
   capacityPercent: number;
   status: DepartmentStatusDto;
   accent: DepartmentAccentDto;
+}
+
+export interface DepartmentOptionDto {
+  id: number;
+  name: string;
+  facultyId: number;
+  facultyName: string;
 }
 
 export interface DepartmentDetailDto {
@@ -19,9 +28,8 @@ export interface DepartmentDetailDto {
 
 export interface CreateDepartmentPayload {
   name: string;
-  faculty?: string;
+  facultyId: number;
   headOfDept?: string;
-  facultyCount?: number;
   capacityPercent?: number;
   status?: DepartmentStatusDto;
   accent?: DepartmentAccentDto;
@@ -29,9 +37,8 @@ export interface CreateDepartmentPayload {
 
 export interface UpdateDepartmentPayload {
   name?: string;
-  faculty?: string;
+  facultyId?: number;
   headOfDept?: string;
-  facultyCount?: number;
   capacityPercent?: number;
   status?: DepartmentStatusDto;
   accent?: DepartmentAccentDto;

@@ -2,17 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import {
-  BookOpen,
-  Search,
-  Users,
-  User,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { classService } from "@/lib/services/class-service";
 import type { ClassConfigDto, ClassSummary, GradingWeightsDto } from "@/lib/types/class-api";
 import {
@@ -22,6 +13,7 @@ import {
 } from "@/lib/class-display";
 import { CreateClassDialog } from "./CreateClassDialog";
 import { ClassPreviewSheet } from "./ClassPreviewSheet";
+import { ClassCard } from "./ClassCard";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
@@ -248,78 +240,18 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
         )}
 
         {!loading && !loadError && classes.length > 0 && (
-          <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((displayClass) => {
-              const { summary: cls, iconBg, description, statusLabel, semesterLabel } =
-                displayClass;
-              return (
-              <BouncyStaggerItem key={cls.id} enter="simple">
-              <Card
-                bouncy={false}
-                className="border border-slate-200/80 dark:border-zinc-800/80 hover:border-violet-400/50 dark:hover:border-violet-500/40 hover:shadow-md flex flex-col overflow-hidden h-full"
-              >
-                <button
-                  type="button"
-                  className={`h-24 bg-linear-to-br ${iconBg} relative overflow-hidden flex items-center justify-center w-full text-left`}
-                  onClick={() => openClass(displayClass)}
-                >
-                  <div className="absolute inset-0 bg-black/10" />
-                  <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                    <Badge
-                      className={
-                        cls.status === "ACTIVE"
-                          ? "bg-emerald-500 text-white font-bold"
-                          : "bg-amber-500 text-white font-bold"
-                      }
-                    >
-                      {statusLabel}
-                    </Badge>
-                    <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
-                      {cls.code}
-                    </span>
-                  </div>
-                  <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md">
-                    {cls.name}
-                  </h3>
-                </button>
-
-                <CardContent className="p-4 flex-1 flex flex-col gap-3">
-                  <div
-                    className="text-left flex-1 flex flex-col gap-3 cursor-pointer"
-                    onClick={() => openClass(displayClass)}
-                  >
-                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-indigo-500" />
-                        {cls.teacherName}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-emerald-500" />
-                        {cls.enrolledCount} Students
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-medium">
-                      {semesterLabel}
-                    </p>
-                    <p className="text-xs text-muted-foreground/90 leading-relaxed line-clamp-3">
-                      {description}
-                    </p>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="w-full text-xs mt-1"
-                    onClick={() => openClass(displayClass)}
-                  >
-                    View details
-                  </Button>
-                </CardContent>
-              </Card>
+          <BouncyStagger className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {classes.map((displayClass) => (
+              <BouncyStaggerItem key={displayClass.summary.id} enter="simple">
+                <ClassCard
+                  summary={displayClass.summary}
+                  semesterLabel={displayClass.semesterLabel}
+                  gradient={displayClass.iconBg}
+                  studentsLabel="Students"
+                  onOpen={() => openClass(displayClass)}
+                />
               </BouncyStaggerItem>
-            );
-            })}
+            ))}
           </BouncyStagger>
         )}
 

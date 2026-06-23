@@ -6,6 +6,8 @@ import type {
   ClassSettingsConfigDto,
   ClassStudent,
   CreateClassPayload,
+  PublicCoursesConfigDto,
+  PublicCoursesPage,
   UpdateClassPayload,
 } from "../types/class-api";
 import type { ClassComment } from "../types/dashboard-api";
@@ -21,7 +23,35 @@ export interface ListClassesParams {
   size?: number;
 }
 
+export interface ListPublicCoursesParams {
+  search?: string;
+  page?: number;
+  size?: number;
+}
+
 export const classService = {
+  async getPublicCoursesConfig(): Promise<PublicCoursesConfigDto> {
+    const response = await apiClient.get<{ data: PublicCoursesConfigDto }>(
+      "/classes/public/config",
+    );
+    return response.data.data;
+  },
+
+  async listPublicCourses(params: ListPublicCoursesParams = {}): Promise<PublicCoursesPage> {
+    const response = await apiClient.get<{ data: PublicCoursesPage }>("/classes/public", {
+      params: {
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+        ...params,
+      },
+    });
+    return response.data.data;
+  },
+
+  async selfEnroll(classId: number): Promise<void> {
+    await apiClient.post(`/classes/${classId}/self-enroll`);
+  },
+
   async getClassConfig(): Promise<ClassConfigDto> {
     const response = await apiClient.get<{ data: ClassConfigDto }>("/classes/config");
     return response.data.data;

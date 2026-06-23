@@ -35,7 +35,6 @@ import {
   type UserStatusFilter,
 } from "@/lib/navigation/app-query";
 import { AddUserDialog } from "./AddUserDialog";
-import { UserPermissionsTab } from "./UserPermissionsTab";
 import { StudentProfileSheet } from "./StudentProfileSheet";
 import { UserAvatar } from "@/components/profile/UserAvatar";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
@@ -43,7 +42,7 @@ import { useCurrentUser } from "@/lib/hooks/use-current-user";
 type AppRole = "student" | "teacher" | "admin";
 
 function roleForTab(tab: UserManagementTab): string | undefined {
-  if (tab === "all" || tab === "permissions") return undefined;
+  if (tab === "all") return undefined;
   if (tab === "students") return "STUDENT";
   if (tab === "teachers") return "TEACHER";
   if (tab === "admins") return "ADMIN";
@@ -203,7 +202,6 @@ export function StudentManagementView() {
   const showAllUsersList = isAdmin && activeTab === "all";
   const showStaffTable =
     isAdmin && (activeTab === "teachers" || activeTab === "admins");
-  const showPermissions = isAdmin && activeTab === "permissions";
   const showFilters = showStudentList || showAllUsersList || showStaffTable;
 
   useEffect(() => {
@@ -279,8 +277,6 @@ export function StudentManagementView() {
             statusFilter === "all" ? undefined : statusFilter === "active",
         });
         setRows(page.items);
-      } else if (activeTab === "permissions") {
-        setRows([]);
       } else {
         const apiRole = roleForTab(activeTab);
         const page = await userService.listUsers({
@@ -519,9 +515,7 @@ export function StudentManagementView() {
           </p>
         )}
 
-        {showPermissions ? (
-          <UserPermissionsTab />
-        ) : loading ? (
+        {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>

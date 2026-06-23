@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Department } from "@/data/departments";
+import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 
 export interface DepartmentFormValues {
   name: string;
-  faculty: string;
+  facultyId: number;
   headOfDept: string;
-  facultyCount: number;
   capacityPercent: number;
   status: Department["status"];
 }
@@ -28,15 +28,15 @@ interface DepartmentFormDialogProps {
   onOpenChange: (open: boolean) => void;
   mode: "add" | "edit";
   initial?: Department | null;
+  faculties: FacultySummaryDto[];
   saving?: boolean;
   onSave: (values: DepartmentFormValues) => void | Promise<void>;
 }
 
 const empty: DepartmentFormValues = {
   name: "",
-  faculty: "",
+  facultyId: 0,
   headOfDept: "",
-  facultyCount: 0,
   capacityPercent: 50,
   status: "active",
 };
@@ -46,6 +46,7 @@ export function DepartmentFormDialog({
   onOpenChange,
   mode,
   initial,
+  faculties,
   saving = false,
   onSave,
 }: DepartmentFormDialogProps) {
@@ -53,22 +54,23 @@ export function DepartmentFormDialog({
 
   useEffect(() => {
     if (!open) return;
+    const defaultFacultyId = faculties[0]?.id ?? 0;
     if (mode === "edit" && initial) {
       setForm({
         name: initial.name,
-        faculty: initial.faculty,
+        facultyId: initial.facultyId || defaultFacultyId,
         headOfDept: initial.headOfDept,
-        facultyCount: initial.facultyCount,
         capacityPercent: initial.capacityPercent,
         status: initial.status,
       });
     } else {
-      setForm(empty);
+      setForm({ ...empty, facultyId: defaultFacultyId });
     }
-  }, [open, mode, initial]);
+  }, [open, mode, initial, faculties]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.facultyId) return;
     await onSave(form);
   };
 
@@ -81,7 +83,7 @@ export function DepartmentFormDialog({
           </DialogTitle>
           <DialogDescription>
             {mode === "add"
-              ? "Create a new academic unit."
+              ? "Create a department under a faculty."
               : "Update department details."}
           </DialogDescription>
         </DialogHeader>
@@ -96,14 +98,27 @@ export function DepartmentFormDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="dept-faculty">Faculty / school</Label>
-            <Input
+            <Label htmlFor="dept-faculty">Faculty</Label>
+            <select
               id="dept-faculty"
-              value={form.faculty}
-              onChange={(e) => setForm({ ...form, faculty: e.target.value })}
-              placeholder="Faculty of Engineering"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-2xs"
+              value={form.facultyId || ""}
+              onChange={(e) =>
+                setForm({ ...form, facultyId: Number(e.target.value) })
+              }
               required
-            />
+              disabled={faculties.length === 0}
+            >
+              {faculties.length === 0 ? (
+                <option value="">Add a faculty in Faculty Management first</option>
+              ) : (
+                faculties.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="dept-hod">Head of department</Label>
@@ -113,44 +128,26 @@ export function DepartmentFormDialog({
               onChange={(e) =>
                 setForm({ ...form, headOfDept: e.target.value })
               }
-              required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="dept-count">Faculty count</Label>
-              <Input
-                id="dept-count"
-                type="number"
-                min={0}
-                value={form.facultyCount}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    facultyCount: Number(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="dept-capacity">Capacity %</Label>
-              <Input
-                id="dept-capacity"
-                type="number"
-                min={0}
-                max={100}
-                value={form.capacityPercent}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    capacityPercent: Math.min(
-                      100,
-                      Math.max(0, Number(e.target.value) || 0)
-                    ),
-                  })
-                }
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="dept-capacity">Capacity %</Label>
+            <Input
+              id="dept-capacity"
+              type="number"
+              min={0}
+              max={100}
+              value={form.capacityPercent}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  capacityPercent: Math.min(
+                    100,
+                    Math.max(0, Number(e.target.value) || 0),
+                  ),
+                })
+              }
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="dept-status">Status</Label>
@@ -177,7 +174,7 @@ export function DepartmentFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !form.facultyId}>
               {saving
                 ? "Saving…"
                 : mode === "add"

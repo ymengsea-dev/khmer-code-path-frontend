@@ -48,6 +48,7 @@ export function CreateClassDialog({
   const [academicYear, setAcademicYear] = useState("");
   const [schedule, setSchedule] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
 
   const semesterOptions = useMemo(
     () =>
@@ -63,6 +64,8 @@ export function CreateClassDialog({
     const defs = classConfig.createDefaults;
     setSemester(defs.semester);
     setAcademicYear(String(defs.academicYear));
+    const firstDept = classConfig.departmentOptions?.[0];
+    if (firstDept) setDepartmentId(String(firstDept.id));
   }, [open, classConfig]);
 
   useEffect(() => {
@@ -110,11 +113,17 @@ export function CreateClassDialog({
         setError("Could not determine your teacher account. Sign in again.");
         return;
       }
+      const parsedDepartmentId = Number(departmentId);
+      if (!Number.isFinite(parsedDepartmentId) || parsedDepartmentId <= 0) {
+        setError("Select a department for this class.");
+        return;
+      }
       await classService.createClass({
         code: code.trim(),
         name: name.trim(),
         description: description.trim() || undefined,
         teacherId: assignedTeacherId,
+        departmentId: parsedDepartmentId,
         semester: semester.trim() || undefined,
         academicYear: Number(academicYear) || undefined,
         schedule: schedule.trim() || undefined,
@@ -208,6 +217,27 @@ export function CreateClassDialog({
             </div>
           ) : null}
 
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Department</Label>
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              required
+              disabled={!classConfig || (classConfig.departmentOptions?.length ?? 0) === 0}
+              className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
+            >
+              {(classConfig?.departmentOptions ?? []).length === 0 ? (
+                <option value="">No departments — ask your admin to add one</option>
+              ) : (
+                (classConfig?.departmentOptions ?? []).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.facultyName} · {opt.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Semester</Label>
@@ -272,6 +302,8 @@ export function CreateClassDialog({
             disabled={
               submitting ||
               !classConfig ||
+              (classConfig.departmentOptions?.length ?? 0) === 0 ||
+              !departmentId ||
               (!isAdmin && !currentTeacherId) ||
               (isAdmin && !teacherId)
             }

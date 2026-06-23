@@ -10,6 +10,7 @@ import { MyTasksView } from "@/components/tasks/MyTasksView";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { ClassesView } from "@/components/classes/ClassesView";
+import { PublicCoursesView } from "@/components/classes/PublicCoursesView";
 import { ClassDetailView } from "@/components/classes/ClassDetailView";
 import { NotebookView } from "@/components/notebook/NotebookView";
 import { LessonsView } from "@/components/lessons/LessonsView";
@@ -18,8 +19,13 @@ import { StudentManagementView } from "@/components/users/StudentManagementView"
 import { AttendanceManagementView } from "@/components/attendance/AttendanceManagementView";
 import { DepartmentsView } from "@/components/departments/DepartmentsView";
 import { OperationsView } from "@/components/operations/OperationsView";
+import { FacultyManagementView } from "@/components/faculties/FacultyManagementView";
+import { FacultyDetailView } from "@/components/faculties/FacultyDetailView";
+import { PermissionsManagementView } from "@/components/permissions/PermissionsManagementView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
 import { classService } from "@/lib/services/class-service";
+import { permissionService } from "@/lib/services/permission-service";
+import { facultyService } from "@/lib/services/faculty-service";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey, parseView, type AppView } from "@/lib/navigation/app-query";
@@ -58,6 +64,10 @@ const VIEW_LABELS: Record<AppView, string> = {
   "attendance-management": "Attendance Management",
   departments:    "Departments",
   operations:     "Operations",
+  "faculty-management": "Faculty Management",
+  "faculty-detail": "Faculty",
+  "roles-permissions": "Roles & Permissions",
+  "public-courses": "Public Courses",
   "course-content": "Content Management",
   "class-detail": "Class Details",
 };
@@ -80,6 +90,7 @@ export function HomePage() {
 
   const viewParam = searchParams.get(QueryKey.view);
   const courseParam = searchParams.get(QueryKey.course);
+  const facultyParam = searchParams.get(QueryKey.faculty);
   const lessonParam = searchParams.get(QueryKey.lesson);
   const moduleParam = searchParams.get(QueryKey.module);
 
@@ -107,10 +118,18 @@ export function HomePage() {
   const [lessonClasses, setLessonClasses] = useState<ClassSummary[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
   const [classDetailTitle, setClassDetailTitle] = useState<string | null>(null);
+  const [facultyDetailTitle, setFacultyDetailTitle] = useState<string | null>(null);
+  const [publicCoursesNavLabel, setPublicCoursesNavLabel] = useState<string | null>(null);
+  const [rolesPermissionsNavLabel, setRolesPermissionsNavLabel] = useState<string | null>(null);
+  const [facultyManagementNavLabel, setFacultyManagementNavLabel] = useState<string | null>(null);
   const headerName = displayName || session?.user?.name?.trim() || null;
 
   useEffect(() => {
     if (activeNav !== "class-detail") setClassDetailTitle(null);
+  }, [activeNav]);
+
+  useEffect(() => {
+    if (activeNav !== "faculty-detail") setFacultyDetailTitle(null);
   }, [activeNav]);
 
   useEffect(() => {
@@ -126,6 +145,63 @@ export function HomePage() {
       [QueryKey.tab]: null,
     });
   }, [appRole, viewParam, setParams]);
+
+  useEffect(() => {
+    if (appRole !== "admin") {
+      setRolesPermissionsNavLabel(null);
+      return;
+    }
+    let cancelled = false;
+    permissionService
+      .getConfig()
+      .then((cfg) => {
+        if (!cancelled) setRolesPermissionsNavLabel(cfg.pageTitle);
+      })
+      .catch(() => {
+        if (!cancelled) setRolesPermissionsNavLabel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appRole]);
+
+  useEffect(() => {
+    if (appRole !== "admin") {
+      setFacultyManagementNavLabel(null);
+      return;
+    }
+    let cancelled = false;
+    facultyService
+      .getConfig()
+      .then((cfg) => {
+        if (!cancelled) setFacultyManagementNavLabel(cfg.pageTitle);
+      })
+      .catch(() => {
+        if (!cancelled) setFacultyManagementNavLabel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appRole]);
+
+  useEffect(() => {
+    if (appRole !== "student") {
+      setPublicCoursesNavLabel(null);
+      return;
+    }
+    let cancelled = false;
+    classService
+      .getPublicCoursesConfig()
+      .then((cfg) => {
+        if (!cancelled) setPublicCoursesNavLabel(cfg.enabled ? cfg.navLabel : null);
+      })
+      .catch(() => {
+        if (!cancelled) setPublicCoursesNavLabel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appRole]);
 
   useEffect(() => {
     let cancelled = false;
@@ -177,6 +253,7 @@ export function HomePage() {
       }
 
       updates[QueryKey.detail] = null;
+      updates[QueryKey.faculty] = null;
 
       setParams(updates);
     },
@@ -248,12 +325,28 @@ export function HomePage() {
     });
   }, [courseParam, setParams]);
 
+  const handleBackToFaculties = useCallback(() => {
+    setParams({
+      [QueryKey.view]: "faculty-management",
+      [QueryKey.faculty]: null,
+    });
+  }, [setParams]);
+
   return (
     <SidebarProvider className="h-screen w-full overflow-hidden bg-transparent text-foreground font-sans">
         <Sidebar
-          activeNav={activeNav === "class-detail" ? "classes" : activeNav}
+          activeNav={
+            activeNav === "class-detail"
+              ? "classes"
+              : activeNav === "faculty-detail"
+                ? "faculty-management"
+                : activeNav
+          }
           activeCourseId={activeCourseId}
           lessonClasses={lessonClasses}
+          publicCoursesNavLabel={publicCoursesNavLabel}
+          rolesPermissionsNavLabel={rolesPermissionsNavLabel}
+          facultyManagementNavLabel={facultyManagementNavLabel}
           onNavChange={handleNavChange}
           onOpenSearch={() => setCommandOpen(true)}
         />
@@ -280,10 +373,22 @@ export function HomePage() {
                   {classDetailTitle ?? "Class"}
                 </h1>
               </GlassPageTitle>
+            ) : activeNav === "faculty-detail" ? (
+              <GlassPageTitle>
+                <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
+                  {facultyDetailTitle ?? "Faculty"}
+                </h1>
+              </GlassPageTitle>
             ) : (
               <GlassPageTitle>
                 <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 whitespace-nowrap">
-                  {VIEW_LABELS[activeNav] ?? "Dashboard"}
+                  {activeNav === "public-courses" && publicCoursesNavLabel
+                    ? publicCoursesNavLabel
+                    : activeNav === "roles-permissions" && rolesPermissionsNavLabel
+                      ? rolesPermissionsNavLabel
+                      : activeNav === "faculty-management" && facultyManagementNavLabel
+                        ? facultyManagementNavLabel
+                        : VIEW_LABELS[activeNav] ?? "Dashboard"}
                 </h1>
               </GlassPageTitle>
             )}
@@ -357,6 +462,9 @@ export function HomePage() {
             {activeNav === "classes" && (
               <ClassesView onEnterClass={handleEnterClass} />
             )}
+            {activeNav === "public-courses" && (
+              <PublicCoursesView onEnterClass={handleEnterClass} />
+            )}
             {activeNav === "class-detail" && (
               <ClassDetailView
                 classId={activeCourseId}
@@ -369,6 +477,15 @@ export function HomePage() {
             {activeNav === "attendance-management" && <AttendanceManagementView />}
             {activeNav === "departments" && <DepartmentsView />}
             {activeNav === "operations" && <OperationsView />}
+            {activeNav === "faculty-management" && <FacultyManagementView />}
+            {activeNav === "faculty-detail" && (
+              <FacultyDetailView
+                facultyId={facultyParam}
+                onBack={handleBackToFaculties}
+                onFacultyNameLoaded={setFacultyDetailTitle}
+              />
+            )}
+            {activeNav === "roles-permissions" && <PermissionsManagementView />}
             {activeNav === "course-content" && <CourseContentView />}
             {activeNav === "courses" && (
               <CourseGrid

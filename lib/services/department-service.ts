@@ -3,6 +3,7 @@ import type { Department } from "@/data/departments";
 import type {
   CreateDepartmentPayload,
   DepartmentDetailDto,
+  DepartmentOptionDto,
   DepartmentSummaryDto,
   DepartmentAccentDto,
   DepartmentStatusDto,
@@ -27,9 +28,11 @@ export function mapDepartmentDto(dto: DepartmentSummaryDto): Department {
   return {
     id: dto.id,
     name: dto.name,
-    faculty: dto.faculty ?? "",
+    facultyId: dto.facultyId ?? 0,
+    facultyName: dto.facultyName ?? "",
     headOfDept: dto.headOfDept,
-    facultyCount: dto.facultyCount,
+    teacherCount: dto.teacherCount,
+    classCount: dto.classCount,
     capacityPercent: dto.capacityPercent,
     status: mapStatus(dto.status),
     accent: mapAccent(dto.accent),
@@ -43,52 +46,57 @@ function toStatusDto(status: Department["status"]): DepartmentStatusDto {
 export const departmentService = {
   async listDepartments(): Promise<Department[]> {
     const response = await apiClient.get<{ data: DepartmentSummaryDto[] }>(
-      "/departments"
+      "/departments",
     );
     return (response.data.data ?? []).map(mapDepartmentDto);
   },
 
+  async listDepartmentOptions(): Promise<DepartmentOptionDto[]> {
+    const response = await apiClient.get<{ data: DepartmentOptionDto[] }>(
+      "/departments/options",
+    );
+    return response.data.data ?? [];
+  },
+
   async getDepartment(id: number): Promise<DepartmentDetailDto> {
     const response = await apiClient.get<{ data: DepartmentDetailDto }>(
-      `/departments/${id}`
+      `/departments/${id}`,
     );
     return response.data.data;
   },
 
   async createDepartment(
-    payload: CreateDepartmentPayload
+    payload: CreateDepartmentPayload,
   ): Promise<Department> {
     const response = await apiClient.post<{ data: DepartmentSummaryDto }>(
       "/departments",
-      payload
+      payload,
     );
     return mapDepartmentDto(response.data.data);
   },
 
   async updateDepartment(
     id: number,
-    payload: UpdateDepartmentPayload
+    payload: UpdateDepartmentPayload,
   ): Promise<Department> {
     const response = await apiClient.put<{ data: DepartmentSummaryDto }>(
       `/departments/${id}`,
-      payload
+      payload,
     );
     return mapDepartmentDto(response.data.data);
   },
 
   buildCreatePayload(values: {
     name: string;
-    faculty: string;
+    facultyId: number;
     headOfDept: string;
-    facultyCount: number;
     capacityPercent: number;
     status: Department["status"];
   }): CreateDepartmentPayload {
     return {
       name: values.name.trim(),
-      faculty: values.faculty.trim() || undefined,
+      facultyId: values.facultyId,
       headOfDept: values.headOfDept.trim() || undefined,
-      facultyCount: values.facultyCount,
       capacityPercent: values.capacityPercent,
       status: toStatusDto(values.status),
     };
@@ -96,17 +104,15 @@ export const departmentService = {
 
   buildUpdatePayload(values: {
     name: string;
-    faculty: string;
+    facultyId: number;
     headOfDept: string;
-    facultyCount: number;
     capacityPercent: number;
     status: Department["status"];
   }): UpdateDepartmentPayload {
     return {
       name: values.name.trim(),
-      faculty: values.faculty.trim() || undefined,
+      facultyId: values.facultyId,
       headOfDept: values.headOfDept.trim() || undefined,
-      facultyCount: values.facultyCount,
       capacityPercent: values.capacityPercent,
       status: toStatusDto(values.status),
     };

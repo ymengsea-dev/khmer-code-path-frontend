@@ -26,6 +26,8 @@ import {
 } from "@/lib/notification-preferences";
 import { BouncyEnter, BouncyPress, BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
+import { SchoolProfileSection } from "@/components/school/SchoolProfileSection";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -187,6 +189,8 @@ export function SettingsView() {
   const queryClient = useQueryClient();
   const { alert } = useConfirm();
   const { user, roleLabel, displayName, email } = useUserProfile();
+  const { data: currentUser } = useCurrentUser();
+  const isAdmin = (currentUser?.role ?? "").toLowerCase() === "admin";
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [userName, setUserName] = useState("");
@@ -440,6 +444,14 @@ export function SettingsView() {
           </GlassCard>
           </BouncyStaggerItem>
         </BouncyStagger>
+
+        {isAdmin && (
+          <BouncyEnter className="mt-6">
+            <GlassCard icon={<Shield className="h-4 w-4" />} iconColor="#305FC9" title="School registration">
+              <SchoolProfileSection />
+            </GlassCard>
+          </BouncyEnter>
+        )}
         </div>
     </div>
   );

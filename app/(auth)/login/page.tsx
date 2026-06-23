@@ -71,13 +71,19 @@ function LoginContent() {
 
   return (
     <div className="flex flex-col gap-6">
-
       <div className="flex flex-col gap-2 text-center lg:text-left">
         <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
-        <p className="text-muted-foreground">
-          Enter your credentials to access your AI-LMS account
-        </p>
       </div>
+
+      {error ? (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 dark:border-red-500/40 dark:bg-red-950/60 dark:text-red-300"
+        >
+          {error}
+        </div>
+      ) : null}
 
       <Card className="border-none shadow-2xl shadow-indigo-500/10 bg-card/60">
         <CardHeader className="space-y-1">
@@ -88,11 +94,6 @@ function LoginContent() {
         </CardHeader>
         <CardContent className="grid gap-6">
           <form className="grid gap-4" onSubmit={handleLogin}>
-            {error && (
-              <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
-                {error}
-              </div>
-            )}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -112,7 +113,7 @@ function LoginContent() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs font-medium text-primary hover:underline transition-all"
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
                   Forgot password?
                 </Link>
@@ -194,6 +195,13 @@ function LoginContent() {
               Continue with Google
             </Button>
           </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            New student?{" "}
+            <Link href="/register/default" className="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+              Create an account
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

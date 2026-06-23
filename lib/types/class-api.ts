@@ -1,5 +1,7 @@
 export type ClassStatus = "ACTIVE" | "ARCHIVED" | "DRAFT";
 
+export type ClassVisibility = "PRIVATE" | "PUBLIC";
+
 export interface ClassSummary {
   id: number;
   code: string;
@@ -11,6 +13,8 @@ export interface ClassSummary {
   semesterLabel: string;
   status: ClassStatus;
   statusLabel: string;
+  visibility?: ClassVisibility;
+  visibilityLabel?: string;
   cardGradient: string;
   enrolledCount: number;
   createdAt?: string;
@@ -35,6 +39,8 @@ export interface ClassDetail {
   schedule: string | null;
   roomNumber: string | null;
   status: ClassStatus;
+  visibility?: ClassVisibility;
+  visibilityLabel?: string;
   enrollment?: { enrolled: number };
   lessons?: { total: number };
   gradingWeights?: GradingWeightsDto;
@@ -43,6 +49,9 @@ export interface ClassDetail {
     name: string;
     email: string;
   };
+  departmentId?: number | null;
+  departmentName?: string | null;
+  facultyName?: string | null;
 }
 
 export interface SemesterFilterDto {
@@ -79,12 +88,29 @@ export interface ClassStatusOptionDto {
   label: string;
 }
 
+export interface ClassVisibilityOptionDto {
+  value: ClassVisibility;
+  label: string;
+  description?: string;
+}
+
 export interface ClassSettingsConfigDto {
   classId: number;
   className: string;
   tabs: LessonTabDto[];
   scoreComponents: ScoreComponentDto[];
   statusOptions: ClassStatusOptionDto[];
+  visibilityOptions: ClassVisibilityOptionDto[];
+  publicCoursesEnabled: boolean;
+  publicCoursesDisabledHint?: string | null;
+  departmentOptions?: DepartmentOptionDto[];
+}
+
+export interface DepartmentOptionDto {
+  id: number;
+  name: string;
+  facultyId: number;
+  facultyName: string;
 }
 
 export interface ClassConfigDto {
@@ -98,6 +124,7 @@ export interface ClassConfigDto {
   };
   gradingWeights?: GradingWeightsDto;
   scoreComponents?: ScoreComponentDto[];
+  departmentOptions?: DepartmentOptionDto[];
 }
 
 export interface CreateClassPayload {
@@ -105,6 +132,7 @@ export interface CreateClassPayload {
   name: string;
   description?: string;
   teacherId: string;
+  departmentId: number;
   semester?: string;
   academicYear?: number;
   schedule?: string;
@@ -121,7 +149,45 @@ export interface UpdateClassPayload {
   schedule?: string;
   roomNumber?: string;
   status?: ClassStatus;
+  visibility?: ClassVisibility;
+  departmentId?: number;
   gradingWeights?: GradingWeightsDto;
+}
+
+export interface PublicCourseSummary {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  teacherId: string;
+  teacherName: string;
+  semester: string | null;
+  academicYear: number | null;
+  semesterLabel: string;
+  status: ClassStatus;
+  visibility: ClassVisibility;
+  cardGradient: string;
+  enrolledCount: number;
+  enrolled: boolean;
+}
+
+export interface PublicCoursesPage {
+  items: PublicCourseSummary[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export interface PublicCoursesConfigDto {
+  pageTitle: string;
+  pageDescription: string;
+  navLabel: string;
+  emptyMessage: string;
+  enrollButtonLabel: string;
+  enrolledLabel: string;
+  searchPlaceholder: string;
+  enabled: boolean;
 }
 
 export interface ClassStudent {

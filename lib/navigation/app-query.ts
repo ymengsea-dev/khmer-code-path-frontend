@@ -25,6 +25,9 @@ export const QueryKey = {
   contentId: "contentId",
   contentTab: "contentTab",
   quizId: "quizId",
+  schoolTab: "schoolTab",
+  permissionsTab: "permissionsTab",
+  faculty: "faculty",
 } as const;
 
 export type AppView =
@@ -42,15 +45,31 @@ export type AppView =
   | "attendance-management"
   | "departments"
   | "operations"
+  | "faculty-management"
+  | "faculty-detail"
+  | "roles-permissions"
+  | "public-courses"
   | "course-content"
   | "class-detail";
+
+export type SchoolManagementTab = "profile" | "registration-domains";
+
+export type RolesPermissionsTab = "roles" | "permissions";
+
+const VALID_PERMISSIONS_TABS = new Set<string>(["roles", "permissions"]);
+
+export function parsePermissionsTab(value: string | null): RolesPermissionsTab {
+  if (value && VALID_PERMISSIONS_TABS.has(value)) {
+    return value as RolesPermissionsTab;
+  }
+  return "roles";
+}
 
 export type UserManagementTab =
   | "all"
   | "students"
   | "teachers"
-  | "admins"
-  | "permissions";
+  | "admins";
 
 export type OperationsTab = "inventory" | "requests" | "infrastructure";
 
@@ -78,6 +97,10 @@ const VALID_VIEWS = new Set<string>([
   "attendance-management",
   "departments",
   "operations",
+  "faculty-management",
+  "faculty-detail",
+  "roles-permissions",
+  "public-courses",
   "course-content",
   "class-detail",
 ]);
@@ -87,7 +110,6 @@ const VALID_USER_TABS = new Set<string>([
   "students",
   "teachers",
   "admins",
-  "permissions",
 ]);
 
 export function parseUserTab(value: string | null): UserManagementTab {
@@ -109,10 +131,21 @@ export function parseUserClass(value: string | null): string {
   return "all";
 }
 
+const VALID_SCHOOL_TABS = new Set<string>(["profile", "registration-domains"]);
+
+export function parseSchoolTab(value: string | null): SchoolManagementTab {
+  if (value && VALID_SCHOOL_TABS.has(value)) {
+    return value as SchoolManagementTab;
+  }
+  return "profile";
+}
+
 export function parseView(value: string | null): AppView {
   if (value === "users") return "student-management";
   if (value === "gradebook") return "attendance-management";
   if (value === "class-settings") return "class-detail";
+  if (value === "permissions") return "roles-permissions";
+  if (value === "school-management") return "faculty-management";
   if (value && VALID_VIEWS.has(value)) {
     return value as AppView;
   }

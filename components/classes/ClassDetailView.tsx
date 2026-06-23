@@ -32,6 +32,7 @@ import type {
   ClassDetail,
   ClassSettingsConfigDto,
   ClassStatus,
+  ClassVisibility,
   GradingWeightKey,
   GradingWeightsDto,
 } from "@/lib/types/class-api";
@@ -163,6 +164,8 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
   const [schedule, setSchedule] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [status, setStatus] = useState<ClassStatus>("ACTIVE");
+  const [visibility, setVisibility] = useState<ClassVisibility>("PRIVATE");
+  const [departmentId, setDepartmentId] = useState("");
   const [weights, setWeights] = useState<GradingWeightsDto>({
     attendance: 10,
     assignment: 10,
@@ -203,6 +206,8 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
     setSchedule(data.schedule ?? "");
     setRoomNumber(data.roomNumber ?? "");
     setStatus(data.status);
+    setVisibility(data.visibility ?? "PRIVATE");
+    setDepartmentId(data.departmentId != null ? String(data.departmentId) : "");
     if (data.gradingWeights) setWeights(data.gradingWeights);
   }, []);
 
@@ -339,6 +344,17 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
 
   const statusLabel =
     config?.statusOptions.find((o) => o.value === detail?.status)?.label ?? detail?.status ?? "—";
+  const visibilityLabel =
+    config?.visibilityOptions.find((o) => o.value === detail?.visibility)?.label ??
+    detail?.visibilityLabel ??
+    "—";
+
+  const selectedDepartment = config?.departmentOptions?.find(
+    (o) => String(o.id) === departmentId,
+  );
+
+  const facultyLabel = selectedDepartment?.facultyName ?? detail?.facultyName ?? "—";
+  const departmentLabel = selectedDepartment?.name ?? detail?.departmentName ?? "—";
 
   const handleSaveGeneral = async () => {
     if (!Number.isFinite(parsedId) || !name.trim() || !code.trim()) return;
@@ -354,6 +370,8 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
         schedule: schedule.trim() || undefined,
         roomNumber: roomNumber.trim() || undefined,
         status,
+        visibility,
+        departmentId: departmentId ? Number(departmentId) : undefined,
       });
       applyDetail(updated);
       setEditingSection(null);
@@ -572,6 +590,62 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
                     ))}
                   </GlassSelect>
                 </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-semibold">Visibility</Label>
+                  {config?.publicCoursesEnabled ? (
+                    <>
+                      <GlassSelect
+                        value={visibility}
+                        onChange={(e) => setVisibility(e.target.value as ClassVisibility)}
+                      >
+                        {(config?.visibilityOptions ?? []).map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </GlassSelect>
+                      {(config?.visibilityOptions ?? []).find((o) => o.value === visibility)?.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {(config?.visibilityOptions ?? []).find((o) => o.value === visibility)?.description}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-foreground">{visibilityLabel}</p>
+                      {visibility === "PUBLIC" && (config?.visibilityOptions ?? []).length > 0 && (
+                        <GlassSelect
+                          value="PRIVATE"
+                          onChange={() => setVisibility("PRIVATE")}
+                        >
+                          {(config?.visibilityOptions ?? []).map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </GlassSelect>
+                      )}
+                      {config?.publicCoursesDisabledHint && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {config.publicCoursesDisabledHint}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-semibold">Department</Label>
+                  <GlassSelect
+                    value={departmentId}
+                    onChange={(e) => setDepartmentId(e.target.value)}
+                  >
+                    {(config?.departmentOptions ?? []).map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.facultyName} · {opt.name}
+                      </option>
+                    ))}
+                  </GlassSelect>
+                </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Semester</Label>
                   <GlassInput value={semester} onChange={(e) => setSemester(e.target.value)} />
@@ -607,6 +681,9 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
                 <DetailRow label="Class name" value={detail.name} />
                 <DetailRow label="Class code" value={detail.code} />
                 <DetailRow label="Status" value={statusLabel} />
+                <DetailRow label="Visibility" value={visibilityLabel} />
+                <DetailRow label="Faculty" value={facultyLabel} />
+                <DetailRow label="Department" value={departmentLabel} />
                 <DetailRow label="Teacher" value={detail.teacher?.name} />
                 <DetailRow
                   label="Students enrolled"

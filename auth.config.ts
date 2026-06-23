@@ -15,10 +15,14 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const pathname = nextUrl.pathname;
-      const isAuthPage =
-        pathname.startsWith("/login") || pathname.startsWith("/api/auth");
+      const isPublicPage =
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/register/") ||
+        pathname.startsWith("/forgot-password") ||
+        pathname.startsWith("/reset-password") ||
+        pathname.startsWith("/api/auth");
 
-      if (isAuthPage) {
+      if (isPublicPage) {
         if (isLoggedIn && pathname.startsWith("/login")) {
           return Response.redirect(new URL("/", nextUrl));
         }

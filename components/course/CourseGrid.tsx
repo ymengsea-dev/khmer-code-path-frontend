@@ -14,8 +14,6 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { dashboardService } from "@/lib/services/dashboard-service";
 import type {
@@ -29,6 +27,7 @@ import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { useQuery } from "@tanstack/react-query";
 import { classService } from "@/lib/services/class-service";
 import type { ClassSummary } from "@/lib/types/class-api";
+import { ClassCard } from "@/components/classes/ClassCard";
 import {
   BouncyLoadingCard,
   BouncyStagger,
@@ -396,74 +395,24 @@ export function CourseGrid({
               </p>
             ) : (
               <>
-                <BouncyStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                <BouncyStagger className="grid grid-cols-1 items-start gap-5 pb-4 sm:grid-cols-2 xl:grid-cols-3">
                   {classItems.map((klass: ClassSummary) => (
                   <BouncyStaggerItem key={klass.id} enter="simple">
-                  <Card
-                    bouncy={false}
-                    className="flex flex-col overflow-hidden"
-                        style={{
-                          background: "var(--glass-bg)",
-                          backdropFilter: "var(--glass-blur)",
-                          WebkitBackdropFilter: "var(--glass-blur)",
-                          border: "1px solid var(--glass-border-color)",
-                          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                        }}
-                      >
-                        <div
-                          className={`h-24 bg-linear-to-br ${klass.cardGradient} relative overflow-hidden flex items-center justify-center`}
-                        >
-                          <div className="absolute inset-0 bg-black/10" />
-                          <BookOpen className="w-12 h-12 text-white/30 absolute right-4 bottom-[-10px] rotate-12 scale-150" />
-                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                            <Badge
-                              className={
-                                klass.status === "ACTIVE"
-                                  ? "bg-emerald-500 text-white font-bold"
-                                  : "bg-amber-500 text-white font-bold"
-                              }
-                            >
-                              {klass.statusLabel}
-                            </Badge>
-                            <span className="text-[10px] font-black text-white/90 bg-black/35 px-2 py-0.5 rounded-md">
-                              {klass.code}
-                            </span>
-                          </div>
-                          <h3 className="font-extrabold text-sm text-white text-center px-4 leading-tight drop-shadow-md">
-                            {klass.name}
-                          </h3>
-                        </div>
-                        <CardContent className="p-4 flex-1 flex flex-col gap-3">
-                          <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3.5 h-3.5 text-emerald-500" />
-                              {klass.enrolledCount} Students
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            {klass.semesterLabel || "—"}
-                          </p>
-                          <p className="text-xs text-muted-foreground/90 leading-relaxed">
-                            Teacher: {klass.teacherName}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="w-full text-xs mt-1"
-                            onClick={() =>
-                              onViewClassDetail
-                                ? onViewClassDetail({ classId: String(klass.id) })
-                                : onEnterClass?.({
-                                    classId: String(klass.id),
-                                    title: klass.name,
-                                    module: klass.semesterLabel ?? "",
-                                  })
-                            }
-                          >
-                            View class detail
-                          </Button>
-                        </CardContent>
-                      </Card>
+                    <ClassCard
+                      summary={klass}
+                      semesterLabel={klass.semesterLabel || "—"}
+                      gradient={klass.cardGradient}
+                      studentsLabel="Students"
+                      onOpen={() =>
+                        onViewClassDetail
+                          ? onViewClassDetail({ classId: String(klass.id) })
+                          : onEnterClass?.({
+                              classId: String(klass.id),
+                              title: klass.name,
+                              module: klass.semesterLabel ?? "",
+                            })
+                      }
+                    />
                     </BouncyStaggerItem>
                   ))}
                 </BouncyStagger>

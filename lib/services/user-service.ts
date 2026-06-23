@@ -172,6 +172,11 @@ export const userService = {
     return mapUser(response.data.data);
   },
 
+  async updateRole(id: string, role: "STUDENT" | "TEACHER" | "ADMIN") {
+    const response = await apiClient.put<{ data: UserSummary }>(`/users/${id}`, { role });
+    return mapUser(response.data.data);
+  },
+
   /** Students enrolled in any of the current teacher's classes */
   async listTeacherStudents(): Promise<UserSummary[]> {
     const page = await classService.listClasses({ size: 100 });
