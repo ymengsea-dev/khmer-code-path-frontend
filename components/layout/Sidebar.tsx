@@ -87,7 +87,7 @@ export function Sidebar({
               className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left"
               aria-label="Go to dashboard"
             >
-              <AppLogoMark className="size-8" />
+              <AppLogoMark className="h-14 w-[5.5rem]" />
               <span className="truncate text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                 AI-LMS
               </span>
