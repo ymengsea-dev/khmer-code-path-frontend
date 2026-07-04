@@ -35,6 +35,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       );
     }
 
+    const { onDrag, onDragStart, onDragEnd, ...motionProps } = props;
+
     return (
       <motion.div
         ref={ref}
@@ -42,7 +44,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         animate="animate"
         variants={bouncyEnterVariants}
         className={cn(cardVariants({ size }), className)}
-        {...props}
+        {...(motionProps as React.ComponentProps<typeof motion.div>)}
       />
     );
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { permissionService } from "@/lib/services/permission-service";
+import { getPermissionsViewConfig } from "@/lib/permissions-view";
 import type { PermissionsConfig } from "@/lib/types/permissions-api";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import {
@@ -14,59 +14,23 @@ import { cn } from "@/lib/utils";
 import { RolesTab } from "./RolesTab";
 import { PermissionsTab } from "./PermissionsTab";
 
+const PERMISSIONS_CONFIG = getPermissionsViewConfig();
+
 export function PermissionsManagementView() {
   const { searchParams, setParams } = useQueryParams();
   const activeTab = parsePermissionsTab(searchParams.get(QueryKey.permissionsTab));
 
-  const [config, setConfig] = useState<PermissionsConfig | null>(null);
-  const [configError, setConfigError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [config] = useState<PermissionsConfig>(PERMISSIONS_CONFIG);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setConfigError(null);
-
-    void permissionService
-      .getConfig()
-      .then((data) => {
-        if (!cancelled) setConfig(data);
-      })
-      .catch(() => {
-        if (!cancelled) setConfigError("Could not load roles & permissions configuration.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const tabs = config?.tabs ?? [];
+  const tabs = config.tabs;
 
   const handleTabChange = (tab: RolesPermissionsTab) => {
     setParams({ [QueryKey.permissionsTab]: tab === "roles" ? null : tab });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pb-4">
-        {configError && (
-          <p className="text-sm text-destructive rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 mb-4">
-            {configError}
-          </p>
-        )}
-
         {tabs.length > 0 && (
           <div
             className={cn(

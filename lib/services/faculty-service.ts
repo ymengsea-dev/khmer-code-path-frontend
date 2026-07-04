@@ -2,19 +2,11 @@ import { apiClient } from "../api-client";
 import { resolveApiAssetUrl } from "./school-service";
 import type {
   CreateFacultyPayload,
-  FacultyConfigDto,
   FacultySummaryDto,
   UpdateFacultyPayload,
 } from "../types/faculty-api";
 
 export const facultyService = {
-  async getConfig(): Promise<FacultyConfigDto> {
-    const response = await apiClient.get<{ data: FacultyConfigDto }>(
-      "/schools/me/faculties/config",
-    );
-    return response.data.data;
-  },
-
   async listFaculties(): Promise<FacultySummaryDto[]> {
     const response = await apiClient.get<{ data: FacultySummaryDto[] }>(
       "/schools/me/faculties",

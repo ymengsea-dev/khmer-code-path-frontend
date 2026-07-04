@@ -61,18 +61,21 @@ function Button({
     <ButtonPrimitive
       data-slot="button"
       disabled={disabled}
-      render={(renderProps) => (
-        <motion.button
-          {...renderProps}
-          whileTap={disabled ? undefined : bouncyPressTap}
-          whileHover={
-            disabled
-              ? undefined
-              : { ...bouncyPressHover, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }
-          }
-          transition={bouncyTransitions.press}
-        />
-      )}
+      render={(renderProps) => {
+        const { onDrag, onDragStart, onDragEnd, ...motionProps } = renderProps;
+        return (
+          <motion.button
+            {...(motionProps as React.ComponentProps<typeof motion.button>)}
+            whileTap={disabled ? undefined : bouncyPressTap}
+            whileHover={
+              disabled
+                ? undefined
+                : { ...bouncyPressHover, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }
+            }
+            transition={bouncyTransitions.press}
+          />
+        );
+      }}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

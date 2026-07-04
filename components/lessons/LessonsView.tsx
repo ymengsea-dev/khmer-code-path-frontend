@@ -23,6 +23,7 @@ import {
   lessonTabLabel,
   resolveLessonTab,
 } from "@/lib/course-content/lesson-tabs";
+import { CLASSES_UI } from "@/lib/lms-ui/classes";
 import type { LessonTabDto } from "@/lib/types/class-api";
 import type { LessonDetailDto, LessonSummaryDto } from "@/lib/types/lesson-api";
 import { getValidAccessToken } from "@/lib/auth/client-session";
@@ -316,10 +317,7 @@ export function LessonsView({
   }, [parsedClassId, lessonIdParam, loadLessonDetail]);
 
   useEffect(() => {
-    classService
-      .getClassConfig()
-      .then((config) => setLessonTabs(config.lessonTabs))
-      .catch(() => setLessonTabs([]));
+    setLessonTabs([...CLASSES_UI.lessonTabs]);
   }, []);
 
   useEffect(() => {

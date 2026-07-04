@@ -5,6 +5,7 @@ import axios from "axios";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { classService } from "@/lib/services/class-service";
+import { CLASSES_UI } from "@/lib/lms-ui/classes";
 import type { ClassConfigDto, ClassSummary, GradingWeightsDto } from "@/lib/types/class-api";
 import {
   parseSemesterFilter,
@@ -48,14 +49,14 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
   const [configError, setConfigError] = useState<string | null>(null);
 
   const selectedSemester = classConfig
-    ? resolveSemesterSelection(get(QueryKey.semester), classConfig.allSemestersLabel)
+    ? resolveSemesterSelection(get(QueryKey.semester), CLASSES_UI.allSemestersLabel)
     : "";
 
   const setSelectedSemester = useCallback(
     (label: string) => {
       if (!classConfig) return;
       setParams({
-        [QueryKey.semester]: semesterToParam(label, classConfig.allSemestersLabel),
+        [QueryKey.semester]: semesterToParam(label, CLASSES_UI.allSemestersLabel),
       });
     },
     [setParams, classConfig]
@@ -303,7 +304,7 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
             classConfig?.gradingWeights ??
             null
           }
-          scoreComponents={classConfig?.scoreComponents ?? []}
+          scoreComponents={[...CLASSES_UI.scoreComponents]}
           onEnterClass={() => {
             if (!previewClass) return;
             onEnterClass?.({

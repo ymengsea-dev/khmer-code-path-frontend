@@ -23,6 +23,7 @@ import {
   type UserManagementConfig,
   type UserSummary,
 } from "@/lib/services/user-service";
+import { mergeStudentManagementConfig } from "@/lib/student-management-view";
 import { cn } from "@/lib/utils";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
@@ -216,8 +217,10 @@ export function StudentManagementView() {
     void (async () => {
       setConfigError(null);
       try {
-        const data = await userService.getManagementConfig();
-        if (!cancelled) setConfig(data);
+        const bootstrap = await userService.getManagementConfig();
+        if (!cancelled) {
+          setConfig(mergeStudentManagementConfig(isAdmin, bootstrap));
+        }
       } catch {
         if (!cancelled) {
           setConfigError("Could not load page configuration.");
@@ -228,7 +231,7 @@ export function StudentManagementView() {
     return () => {
       cancelled = true;
     };
-  }, [roleLoaded, role]);
+  }, [roleLoaded, role, isAdmin]);
 
   const setActiveTab = useCallback(
     (tab: UserManagementTab) => {

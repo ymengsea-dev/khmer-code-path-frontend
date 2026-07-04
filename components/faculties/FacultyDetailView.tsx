@@ -12,7 +12,8 @@ import {
 import { GlassButton } from "@/components/ui/glass-button";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { facultyService } from "@/lib/services/faculty-service";
-import type { FacultyConfigDto, FacultySummaryDto } from "@/lib/types/faculty-api";
+import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
+import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import { cn } from "@/lib/utils";
 import { FacultyCoverBanner } from "./FacultyCoverBanner";
 
@@ -36,7 +37,7 @@ export function FacultyDetailView({
   onBack,
   onFacultyNameLoaded,
 }: FacultyDetailViewProps) {
-  const [config, setConfig] = useState<FacultyConfigDto | null>(null);
+  const config = FACULTIES_UI;
   const [faculty, setFaculty] = useState<FacultySummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,11 +59,7 @@ export function FacultyDetailView({
     setLoading(true);
     setError(null);
     try {
-      const [cfg, list] = await Promise.all([
-        facultyService.getConfig(),
-        facultyService.listFaculties(),
-      ]);
-      setConfig(cfg);
+      const list = await facultyService.listFaculties();
       const match = list.find((item) => item.id === parsedId) ?? null;
       setFaculty(match);
       if (match) {

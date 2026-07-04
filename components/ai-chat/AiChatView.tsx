@@ -13,7 +13,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -191,6 +191,86 @@ function ConversationRow({
   );
 }
 
+const MARKDOWN_COMPONENTS: Record<
+  string,
+  React.FC<{
+    children?: React.ReactNode;
+    href?: string;
+    inline?: boolean;
+    level?: number;
+  }>
+> = {
+  p: ({ children }) => (
+    <p className="my-1.5 leading-relaxed">{children}</p>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  h1: ({ children, level: _level }) => (
+    <h1 className="text-[17px] font-semibold mt-3 mb-1">{children}</h1>
+  ),
+  h2: ({ children, level: _level }) => (
+    <h2 className="text-[15px] font-semibold mt-3 mb-1">{children}</h2>
+  ),
+  h3: ({ children, level: _level }) => (
+    <h3 className="text-[14px] font-semibold mt-2 mb-1">{children}</h3>
+  ),
+  ul: ({ children }) => (
+    <ul className="my-1.5 pl-5 list-disc space-y-0.5">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="my-1.5 pl-5 list-decimal space-y-0.5">{children}</ol>
+  ),
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  code: ({ inline, children }) =>
+    inline ? (
+      <code className="text-[13px] font-mono bg-black/6 px-1 py-0.5 rounded">
+        {children}
+      </code>
+    ) : (
+      <code>{children}</code>
+    ),
+  pre: ({ children }) => (
+    <pre className="my-2 bg-black/5 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-black/8">
+      {children}
+    </pre>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote
+      className="my-2 border-l-2 pl-3 italic text-muted-foreground"
+      style={{ borderColor: "#305FC9" }}
+    >
+      {children}
+    </blockquote>
+  ),
+  hr: () => <hr className="my-3 border-black/10" />,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-2 hover:opacity-80"
+      style={{ color: "#305FC9" }}
+    >
+      {children}
+    </a>
+  ),
+  table: ({ children }) => (
+    <div className="my-2 overflow-x-auto">
+      <table className="w-full text-[13px] border-collapse">{children}</table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th className="px-3 py-1.5 text-left font-semibold border border-black/8 bg-black/4">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="px-3 py-1.5 border border-black/8">{children}</td>
+  ),
+};
+
 function MessageBubble({
   msg,
   streaming = false,
@@ -251,99 +331,7 @@ function MessageBubble({
           <div className="min-w-0 text-[14px] leading-relaxed wrap-break-word [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              components={{
-                p: ({ children }) => (
-                  <p className="my-1.5 leading-relaxed">{children}</p>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-semibold">{children}</strong>
-                ),
-                em: ({ children }) => <em className="italic">{children}</em>,
-                h1: ({ children }) => (
-                  <h1 className="text-[17px] font-semibold mt-3 mb-1">
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-[15px] font-semibold mt-3 mb-1">
-                    {children}
-                  </h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-[14px] font-semibold mt-2 mb-1">
-                    {children}
-                  </h3>
-                ),
-                ul: ({ children }) => (
-                  <ul className="my-1.5 pl-5 list-disc space-y-0.5">
-                    {children}
-                  </ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="my-1.5 pl-5 list-decimal space-y-0.5">
-                    {children}
-                  </ol>
-                ),
-                li: ({ children }) => (
-                  <li className="leading-relaxed">{children}</li>
-                ),
-                code: ({
-                  inline,
-                  children,
-                }: {
-                  inline?: boolean;
-                  children?: React.ReactNode;
-                }) =>
-                  inline ? (
-                    <code className="text-[13px] font-mono bg-black/6 px-1 py-0.5 rounded">
-                      {children}
-                    </code>
-                  ) : (
-                    <code>{children}</code>
-                  ),
-                pre: ({ children }) => (
-                  <pre className="my-2 bg-black/5 text-[13px] font-mono rounded-lg p-3 overflow-x-auto border border-black/8">
-                    {children}
-                  </pre>
-                ),
-                blockquote: ({ children }) => (
-                  <blockquote
-                    className="my-2 border-l-2 pl-3 italic text-muted-foreground"
-                    style={{ borderColor: "#305FC9" }}
-                  >
-                    {children}
-                  </blockquote>
-                ),
-                hr: () => <hr className="my-3 border-black/10" />,
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 hover:opacity-80"
-                    style={{ color: "#305FC9" }}
-                  >
-                    {children}
-                  </a>
-                ),
-                table: ({ children }) => (
-                  <div className="my-2 overflow-x-auto">
-                    <table className="w-full text-[13px] border-collapse">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                th: ({ children }) => (
-                  <th className="px-3 py-1.5 text-left font-semibold border border-black/8 bg-black/4">
-                    {children}
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="px-3 py-1.5 border border-black/8">
-                    {children}
-                  </td>
-                ),
-              }}
+              components={MARKDOWN_COMPONENTS as Components}
             >
               {msg.content}
             </ReactMarkdown>
@@ -394,6 +382,7 @@ export function AiChatView() {
     string | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // True after the first load snaps to bottom; resets on unmount (tab switch).
@@ -423,6 +412,14 @@ export function AiChatView() {
     (async () => {
       try {
         setIsBootstrapping(true);
+        const status = await aiChatService.getStatus().catch(() => null);
+        if (cancelled) return;
+        if (status && (!status.enabled || !status.available)) {
+          setAiUnavailable(true);
+        } else {
+          setAiUnavailable(false);
+        }
+
         const list = await loadConversations();
         if (cancelled) return;
 
@@ -877,6 +874,13 @@ export function AiChatView() {
             )}
           </div>
 
+          {aiUnavailable ? (
+            <p className="px-6 py-2 text-[12px] text-center text-amber-700 bg-amber-50/80 border-y border-amber-200/80">
+              AI is offline right now. The rest of the app works normally — start Ollama
+              on your machine (or your Cloudflare tunnel) and try again.
+            </p>
+          ) : null}
+
           {error ? (
             <p className="px-6 py-1.5 text-[12px] text-center text-red-500">
               {error}
@@ -904,7 +908,7 @@ export function AiChatView() {
                   rows={1}
                   aria-label="Message"
                   disabled={
-                    isLoading || isBootstrapping || !activeConversationId
+                    isLoading || isBootstrapping || !activeConversationId || aiUnavailable
                   }
                   className={cn(
                     "ai-composer-textarea",
@@ -918,7 +922,8 @@ export function AiChatView() {
               <button
                 type="submit"
                 aria-label="Send message"
-                className="h-8 w-8 shrink-0 rounded-xl inline-flex items-center justify-center transition-all duration-150"
+                disabled={isLoading || isBootstrapping || !activeConversationId || aiUnavailable}
+                className="h-8 w-8 shrink-0 rounded-xl inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50"
                 style={{
                   background: "#305FC9",
                   color: "white",

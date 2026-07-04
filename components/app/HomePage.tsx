@@ -7,6 +7,7 @@ import { CourseGrid } from "@/components/course/CourseGrid";
 import { EmbeddedIDE } from "@/components/code/EmbeddedIDE";
 import { MyLearning } from "@/components/learning/MyLearning";
 import { MyTasksView } from "@/components/tasks/MyTasksView";
+import { AssignmentsExamsView } from "@/components/assignments-exams/AssignmentsExamsView";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { ClassesView } from "@/components/classes/ClassesView";
@@ -24,9 +25,14 @@ import { FacultyDetailView } from "@/components/faculties/FacultyDetailView";
 import { PermissionsManagementView } from "@/components/permissions/PermissionsManagementView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
 import { classService } from "@/lib/services/class-service";
-import { permissionService } from "@/lib/services/permission-service";
-import { facultyService } from "@/lib/services/faculty-service";
 import type { ClassSummary } from "@/lib/types/class-api";
+import {
+  ASSIGNMENTS_EXAMS_NAV_LABEL,
+  canAccessAssignmentsExams,
+} from "@/lib/assignments-exams-ui";
+import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
+import { PERMISSIONS_UI } from "@/lib/lms-ui/permissions";
+import { PUBLIC_COURSES_UI } from "@/lib/lms-ui/classes";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey, parseView, type AppView } from "@/lib/navigation/app-query";
 import { useUserProfile } from "@/lib/hooks/use-user-profile";
@@ -47,13 +53,14 @@ import { BouncyPage } from "@/components/motion";
 import { GlassPageTitle } from "@/components/ui/glass-field";
 import { authService } from "@/lib/services/auth-service";
 
-const ADMIN_BLOCKED_VIEWS: AppView[] = ["tasks", "code", "notebook", "learning"];
+const ADMIN_BLOCKED_VIEWS: AppView[] = ["tasks", "assignments-exams", "code", "notebook", "learning"];
 
 const VIEW_LABELS: Record<AppView, string> = {
   courses:        "Dashboard",
   classes:        "Classes",
   lessons:        "Class",
   tasks:          "Quizzes",
+  "assignments-exams": ASSIGNMENTS_EXAMS_NAV_LABEL,
   notebook:       "Notebook",
   "ai-chat":      "AI Assistant",
   code:           "Code Sandbox",
@@ -120,9 +127,12 @@ export function HomePage() {
   const [classDetailTitle, setClassDetailTitle] = useState<string | null>(null);
   const [facultyDetailTitle, setFacultyDetailTitle] = useState<string | null>(null);
   const [publicCoursesNavLabel, setPublicCoursesNavLabel] = useState<string | null>(null);
-  const [rolesPermissionsNavLabel, setRolesPermissionsNavLabel] = useState<string | null>(null);
-  const [facultyManagementNavLabel, setFacultyManagementNavLabel] = useState<string | null>(null);
   const headerName = displayName || session?.user?.name?.trim() || null;
+  const showAssignmentsExams = canAccessAssignmentsExams(appRole);
+  const rolesPermissionsNavLabel =
+    appRole === "admin" ? PERMISSIONS_UI.pageTitle : null;
+  const facultyManagementNavLabel =
+    appRole === "admin" ? FACULTIES_UI.pageTitle : null;
 
   useEffect(() => {
     if (activeNav !== "class-detail") setClassDetailTitle(null);
@@ -147,44 +157,6 @@ export function HomePage() {
   }, [appRole, viewParam, setParams]);
 
   useEffect(() => {
-    if (appRole !== "admin") {
-      setRolesPermissionsNavLabel(null);
-      return;
-    }
-    let cancelled = false;
-    permissionService
-      .getConfig()
-      .then((cfg) => {
-        if (!cancelled) setRolesPermissionsNavLabel(cfg.pageTitle);
-      })
-      .catch(() => {
-        if (!cancelled) setRolesPermissionsNavLabel(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [appRole]);
-
-  useEffect(() => {
-    if (appRole !== "admin") {
-      setFacultyManagementNavLabel(null);
-      return;
-    }
-    let cancelled = false;
-    facultyService
-      .getConfig()
-      .then((cfg) => {
-        if (!cancelled) setFacultyManagementNavLabel(cfg.pageTitle);
-      })
-      .catch(() => {
-        if (!cancelled) setFacultyManagementNavLabel(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [appRole]);
-
-  useEffect(() => {
     if (appRole !== "student") {
       setPublicCoursesNavLabel(null);
       return;
@@ -193,7 +165,11 @@ export function HomePage() {
     classService
       .getPublicCoursesConfig()
       .then((cfg) => {
-        if (!cancelled) setPublicCoursesNavLabel(cfg.enabled ? cfg.navLabel : null);
+        if (!cancelled) {
+          setPublicCoursesNavLabel(
+            cfg.enabled ? PUBLIC_COURSES_UI.navLabel : null,
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setPublicCoursesNavLabel(null);
@@ -347,6 +323,7 @@ export function HomePage() {
           publicCoursesNavLabel={publicCoursesNavLabel}
           rolesPermissionsNavLabel={rolesPermissionsNavLabel}
           facultyManagementNavLabel={facultyManagementNavLabel}
+          showAssignmentsExams={showAssignmentsExams}
           onNavChange={handleNavChange}
           onOpenSearch={() => setCommandOpen(true)}
         />
@@ -445,6 +422,7 @@ export function HomePage() {
             {activeNav === "code" && <EmbeddedIDE />}
             {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}
             {activeNav === "tasks" && <MyTasksView />}
+            {activeNav === "assignments-exams" && <AssignmentsExamsView />}
             {activeNav === "profile" && <ProfileView />}
             {activeNav === "settings" && <SettingsView />}
             {activeNav === "notebook" && <NotebookView />}

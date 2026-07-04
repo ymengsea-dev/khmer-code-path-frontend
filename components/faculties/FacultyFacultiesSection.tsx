@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/glass-field";
 import { BouncyStagger, BouncyStaggerItem } from "@/components/motion/BouncyStagger";
 import { facultyService } from "@/lib/services/faculty-service";
-import type { FacultyConfigDto, FacultySummaryDto } from "@/lib/types/faculty-api";
+import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
+import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import { cn } from "@/lib/utils";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
@@ -17,7 +18,7 @@ import { FacultyCard } from "./FacultyCard";
 
 export function FacultyFacultiesSection() {
   const { setParams } = useQueryParams();
-  const [config, setConfig] = useState<FacultyConfigDto | null>(null);
+  const config = FACULTIES_UI;
   const [faculties, setFaculties] = useState<FacultySummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +40,7 @@ export function FacultyFacultiesSection() {
     setLoading(true);
     setError(null);
     try {
-      const [cfg, list] = await Promise.all([
-        facultyService.getConfig(),
-        facultyService.listFaculties(),
-      ]);
-      setConfig(cfg);
+      const list = await facultyService.listFaculties();
       setFaculties(list);
     } catch {
       setError("Could not load faculties.");

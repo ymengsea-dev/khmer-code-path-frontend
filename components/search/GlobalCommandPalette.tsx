@@ -110,7 +110,7 @@ export function GlobalCommandPalette({
   }, [open, scopes.length]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal={false}>
       <DialogContent
         showCloseButton={false}
         data-compact={isCompact ? "true" : "false"}

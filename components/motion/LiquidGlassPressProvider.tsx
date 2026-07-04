@@ -19,7 +19,7 @@ export function LiquidGlassPressProvider({
       const target = event.target as Element | null;
       const control = target?.closest(
         'button, [role="button"], a[href], input[type="button"], input[type="submit"]'
-      );
+      ) ?? null;
 
       if (!isLiquidGlassButton(control)) return;
       triggerGlassPress(control);

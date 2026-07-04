@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { BookOpen, Loader2 } from "lucide-react";
 import { classService } from "@/lib/services/class-service";
-import type { PublicCourseSummary, PublicCoursesConfigDto } from "@/lib/types/class-api";
+import type { PublicCourseSummary } from "@/lib/types/class-api";
+import { PUBLIC_COURSES_UI } from "@/lib/lms-ui/classes";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { CLASSES_UPDATED_EVENT } from "@/components/notifications/notification-context";
@@ -18,7 +19,7 @@ interface PublicCoursesViewProps {
 
 export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
   const [searchQuery, setSearchQuery] = useDebouncedQueryState(QueryKey.q);
-  const [config, setConfig] = useState<PublicCoursesConfigDto | null>(null);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [courses, setCourses] = useState<PublicCourseSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
     classService
       .getPublicCoursesConfig()
       .then((data) => {
-        if (!cancelled) setConfig(data);
+        if (!cancelled) setEnabled(data.enabled);
       })
       .catch(() => {
         if (!cancelled) setConfigError("Could not load page configuration.");
@@ -41,7 +42,7 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
     };
   }, []);
 
-  const publicCoursesEnabled = config?.enabled ?? false;
+  const publicCoursesEnabled = enabled ?? false;
 
   const loadCourses = useCallback(async () => {
     if (!publicCoursesEnabled) {
@@ -105,11 +106,10 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
     }
   };
 
-  const emptyMessage =
-    config?.emptyMessage ?? "No public courses are available right now.";
-  const enrollLabel = config?.enrollButtonLabel ?? "Join class";
-  const enrolledLabel = config?.enrolledLabel ?? "Enrolled";
-  const searchPlaceholder = config?.searchPlaceholder ?? "Search public courses…";
+  const emptyMessage = PUBLIC_COURSES_UI.emptyMessage;
+  const enrollLabel = PUBLIC_COURSES_UI.enrollButtonLabel;
+  const enrolledLabel = PUBLIC_COURSES_UI.enrolledLabel;
+  const searchPlaceholder = PUBLIC_COURSES_UI.searchPlaceholder;
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-4">
@@ -117,7 +117,7 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
         <p className="text-sm text-destructive">{configError}</p>
       )}
 
-      {config && !publicCoursesEnabled && (
+      {enabled !== null && !publicCoursesEnabled && (
         <div className="flex flex-1 flex-col items-center justify-center py-16 text-center gap-3">
           <BookOpen className="h-10 w-10 text-muted-foreground/60" />
           <p className="text-sm text-muted-foreground max-w-md">{emptyMessage}</p>

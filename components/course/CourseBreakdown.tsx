@@ -89,6 +89,7 @@ export function CourseBreakdown() {
                   style={{ background: "var(--glass-bg-subtle)" }}
                 >
                   <th className="px-5 py-3">Course</th>
+                  <th className="px-5 py-3">Assignments</th>
                   <th className="px-5 py-3">Quizzes</th>
                   <th className="px-5 py-3">Midterm</th>
                   <th className="px-5 py-3">Final</th>
@@ -104,6 +105,9 @@ export function CourseBreakdown() {
                   >
                     <td className="px-5 py-3.5 font-semibold text-foreground">
                       {row.course}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground">
+                      {row.assignments}
                     </td>
                     <td className="px-5 py-3.5 text-muted-foreground">
                       {row.quizzes}

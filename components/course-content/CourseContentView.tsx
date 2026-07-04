@@ -20,11 +20,9 @@ import {
 import { getApiErrorMessage } from "@/lib/api-error";
 import { classService } from "@/lib/services/class-service";
 import { lessonService } from "@/lib/services/lesson-service";
+import { MATERIAL_LIBRARY_UI } from "@/lib/lms-ui/material-library";
 import type { ClassSummary } from "@/lib/types/class-api";
-import type {
-  MaterialLibraryConfigDto,
-  MaterialLibraryItemDto,
-} from "@/lib/types/lesson-api";
+import type { MaterialLibraryItemDto } from "@/lib/types/lesson-api";
 import { cn } from "@/lib/utils";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
@@ -66,26 +64,23 @@ export function CourseContentView() {
     (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ??
     "student";
   const roleLoaded = !userLoading;
-  const [libraryConfig, setLibraryConfig] =
-    useState<MaterialLibraryConfigDto | null>(null);
-  const [configError, setConfigError] = useState<string | null>(null);
+  const libraryConfig = MATERIAL_LIBRARY_UI;
   const [templates, setTemplates] = useState<MaterialLibraryItemDto[]>([]);
   const [poolFiles, setPoolFiles] = useState<LibraryMaterialSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   const viewIds = useMemo(
-    () => libraryConfig?.views.map((v) => v.id) ?? [],
-    [libraryConfig],
+    () => libraryConfig.views.map((v) => v.id),
+    [libraryConfig.views],
   );
   const contentTab = resolveContentTab(get(QueryKey.contentTab), viewIds);
   const filesTabId =
-    libraryConfig?.views.find((v) => v.id === "files")?.id ?? "files";
+    libraryConfig.views.find((v) => v.id === "files")?.id ?? "files";
   const templatesTabId =
-    libraryConfig?.views.find((v) => v.id === "templates")?.id ?? "templates";
+    libraryConfig.views.find((v) => v.id === "templates")?.id ?? "templates";
   const defaultTabId = viewIds[0] ?? "all";
-  const activeView = libraryConfig?.views.find((v) => v.id === contentTab);
-  const searchPlaceholder =
-    activeView?.searchPlaceholder ?? activeView?.label ?? "Search…";
+  const activeView = libraryConfig.views.find((v) => v.id === contentTab);
+  const searchPlaceholder = activeView?.searchPlaceholder ?? "Search…";
   const [assignTemplate, setAssignTemplate] =
     useState<MaterialLibraryItemDto | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -99,7 +94,7 @@ export function CourseContentView() {
   );
   const [deletingFileKey, setDeletingFileKey] = useState<string | null>(null);
 
-  const filePoolLabel = libraryConfig?.filePoolLabel ?? "Stored files";
+  const filePoolLabel = libraryConfig.filePoolLabel;
 
   const loadLibrary = useCallback(async () => {
     setLoading(true);
@@ -134,25 +129,13 @@ export function CourseContentView() {
     [poolAttachmentRows, searchQuery],
   );
 
-  const loadConfig = useCallback(async () => {
-    setConfigError(null);
-    try {
-      const config = await lessonService.getLibraryConfig();
-      setLibraryConfig(config);
-    } catch {
-      setLibraryConfig(null);
-      setConfigError("Could not load library settings from the server.");
-    }
-  }, []);
-
   useEffect(() => {
     if (roleLoaded && (role === "teacher" || role === "admin")) {
-      void loadConfig();
       void loadLibrary();
     } else if (roleLoaded) {
       setLoading(false);
     }
-  }, [roleLoaded, role, loadConfig, loadLibrary]);
+  }, [roleLoaded, role, loadLibrary]);
 
   const setContentTab = useCallback(
     (tabId: string) => {
@@ -188,10 +171,6 @@ export function CourseContentView() {
   };
 
   const handleCreateTemplate = async () => {
-    if (!libraryConfig?.createDefaults) {
-      setMessage("Library settings are not loaded yet.");
-      return;
-    }
     setCreating(true);
     try {
       const d = libraryConfig.createDefaults;
@@ -427,19 +406,6 @@ export function CourseContentView() {
           void loadLibrary();
         }}
       />
-    );
-  }
-
-  if (configError || !libraryConfig?.views.length) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          {configError ?? "Library configuration is unavailable."}
-        </p>
-        <Button size="sm" variant="outline" onClick={() => void loadConfig()}>
-          Retry
-        </Button>
-      </div>
     );
   }
 

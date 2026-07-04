@@ -190,8 +190,7 @@ export function LessonAskPanel({
                 } : undefined}
               >
                 {msg.role === "assistant" ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
+                  <div
                     className="prose prose-xs max-w-none wrap-break-word
                       prose-p:my-1 prose-p:leading-relaxed
                       prose-headings:font-bold prose-headings:my-1.5 prose-h1:text-sm prose-h2:text-xs prose-h3:text-xs
@@ -201,8 +200,10 @@ export function LessonAskPanel({
                       prose-code:text-[10px] prose-code:bg-black/6 prose-code:px-1 prose-code:rounded
                       prose-blockquote:border-l-2 prose-blockquote:border-zinc-300 prose-blockquote:pl-2 prose-blockquote:italic"
                   >
-                    {msg.content}
-                  </ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                 ) : (
                   <p className="whitespace-pre-wrap wrap-break-word">{msg.content}</p>
                 )}

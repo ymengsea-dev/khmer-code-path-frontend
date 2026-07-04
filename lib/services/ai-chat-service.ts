@@ -39,6 +39,13 @@ export interface ChatReplyDto {
   messages: ChatMessageDto[];
 }
 
+export interface AiStatusDto {
+  enabled: boolean;
+  available: boolean;
+  provider: string;
+  baseUrl: string | null;
+}
+
 function unwrap<T>(response: { data?: { data?: T } }): T {
   const data = response.data?.data;
   if (data === undefined) {
@@ -48,6 +55,11 @@ function unwrap<T>(response: { data?: { data?: T } }): T {
 }
 
 export const aiChatService = {
+  async getStatus() {
+    const response = await apiClient.get<{ data: AiStatusDto }>("/ai/status");
+    return unwrap(response);
+  },
+
   async listConversations(sectionType?: AiSectionType, sectionRef?: string) {
     const response = await apiClient.get<{ data: ConversationSummary[] }>(
       "/ai/conversations",
@@ -139,27 +151,37 @@ export const aiChatService = {
         buffer = lines.pop() ?? "";
 
         let isDone = false;
+        let streamError: string | null = null;
         for (const line of lines) {
-          if (line.startsWith("event:") && line.includes("done")) {
-            isDone = true;
-            break;
+          if (line.startsWith("event:")) {
+            const eventName = line.slice(6).trim();
+            if (eventName === "done") {
+              isDone = true;
+              break;
+            }
+            if (eventName === "error") {
+              streamError = "__pending__";
+            }
+            continue;
           }
           if (line.startsWith("data:")) {
-            // Per SSE spec, one optional space after "data:" is consumed as a
-            // protocol separator — strip exactly one leading space if present.
             const raw = line.slice(5);
             const encoded = raw.startsWith(" ") ? raw.slice(1) : raw;
             if (!encoded) continue;
+            if (streamError === "__pending__") {
+              streamError = encoded.replace(/^"|"$/g, "");
+              continue;
+            }
             try {
-              // Backend JSON-encodes each chunk so spaces and newlines survive
-              // the SSE wire format intact.
               const chunk: string = JSON.parse(encoded);
               if (chunk) onChunk(chunk);
             } catch {
-              // Fallback for any unencoded frames (e.g. the done event data).
               onChunk(encoded);
             }
           }
+        }
+        if (streamError && streamError !== "__pending__") {
+          throw new Error(streamError);
         }
         if (isDone) return;
       }

@@ -12,19 +12,19 @@ import {
 import { GlassInput, glassBtnPrimaryClass } from "@/components/ui/glass-field";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { facultyService } from "@/lib/services/faculty-service";
-import type { FacultyConfigDto } from "@/lib/types/faculty-api";
+import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
 import { cn } from "@/lib/utils";
 
 export function FacultyAddDialog({
   open,
   onOpenChange,
-  config,
+  config = FACULTIES_UI,
   saving,
   onAdd,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  config: FacultyConfigDto | null;
+  config?: typeof FACULTIES_UI;
   saving: boolean;
   onAdd: (name: string) => Promise<void>;
 }) {

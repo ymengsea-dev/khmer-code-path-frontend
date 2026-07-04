@@ -4,7 +4,6 @@ import type {
   CreateRegistrationDomainPayload,
   RegistrationDomain,
   RegistrationDomainConfig,
-  SchoolConfig,
   SchoolDetail,
   SchoolRegistrationInfo,
   UpdateSchoolPayload,
@@ -75,11 +74,6 @@ export const schoolService = {
 
   async removeCover(): Promise<SchoolDetail> {
     const response = await apiClient.delete<{ data: SchoolDetail }>("/schools/me/cover");
-    return response.data.data;
-  },
-
-  async getSchoolConfig(): Promise<SchoolConfig> {
-    const response = await apiClient.get<{ data: SchoolConfig }>("/schools/config");
     return response.data.data;
   },
 

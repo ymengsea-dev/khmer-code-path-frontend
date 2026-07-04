@@ -25,6 +25,7 @@ import {
   type LibraryAttachmentRow,
 } from "@/lib/course-content/library-tabs";
 import { lessonService } from "@/lib/services/lesson-service";
+import { MATERIAL_LIBRARY_UI } from "@/lib/lms-ui/material-library";
 import type { MaterialLibraryItemDto } from "@/lib/types/lesson-api";
 import {
   EMPTY_EDITOR_HTML,
@@ -74,9 +75,9 @@ export function CourseContentEditor({
   const [savedFlash, setSavedFlash] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [uploadAccept, setUploadAccept] = useState("");
+  const [uploadAccept] = useState(MATERIAL_LIBRARY_UI.uploadAccept);
   const [poolFiles, setPoolFiles] = useState<LibraryAttachmentRow[]>([]);
-  const [filePoolLabel, setFilePoolLabel] = useState("Stored files");
+  const filePoolLabel = MATERIAL_LIBRARY_UI.filePoolLabel;
   const dirtyRef = useRef(false);
 
   const loadPoolFiles = useCallback(async () => {
@@ -87,13 +88,6 @@ export function CourseContentEditor({
       setPoolFiles([]);
     }
   }, [filePoolLabel]);
-
-  useEffect(() => {
-    void lessonService.getLibraryConfig().then((c) => {
-      setUploadAccept(c.uploadAccept);
-      if (c.filePoolLabel) setFilePoolLabel(c.filePoolLabel);
-    });
-  }, []);
 
   useEffect(() => {
     void loadPoolFiles();

@@ -151,11 +151,11 @@ export const bouncyLoadingVariants = {
     scaleY: [1, 0.98, 1],
     transition: {
       duration: bouncyDurations.loading,
-      ease: BOUNCY_EASE,
+      ease: [0.17, 0.84, 0.32, 1.18] as [number, number, number, number],
       repeat: Infinity,
     },
   },
-} as const;
+};
 
 /** CSS class names (see globals.css `.bouncy-*`). */
 export const bouncyClassNames = {

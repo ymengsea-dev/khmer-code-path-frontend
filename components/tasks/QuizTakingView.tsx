@@ -18,8 +18,6 @@ import { cn } from "@/lib/utils";
 import { quizService } from "@/lib/services/quiz-service";
 import type { QuizAttemptResult, QuizDto, QuizQuestion } from "@/lib/types/quiz-api";
 
-/* ─── Question parser ─────────────────────────────────────────────────── */
-
 function parseQuestions(content: string): QuizQuestion[] {
   try {
     const parsed = JSON.parse(content) as unknown;
@@ -33,12 +31,10 @@ function parseQuestions(content: string): QuizQuestion[] {
         }));
     }
   } catch {
-    /* fallback: treat as opaque content */
+    /* ignore */
   }
   return [];
 }
-
-/* ─── Types ───────────────────────────────────────────────────────────── */
 
 type QuizStage = "confirm" | "taking" | "result" | "failed";
 
@@ -46,8 +42,6 @@ interface QuizTakingViewProps {
   quiz: QuizDto;
   onExit: () => void;
 }
-
-/* ─── Component ───────────────────────────────────────────────────────── */
 
 export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
   const [stage, setStage] = useState<QuizStage>("confirm");
@@ -59,12 +53,16 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [failReason, setFailReason] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(
-    quiz.durationMinutes ? quiz.durationMinutes * 60 : null
+    quiz.durationMinutes ? quiz.durationMinutes * 60 : null,
   );
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const violationRef = useRef(false);
+  const answersRef = useRef(answers);
 
-  /* ── Auto-fail: tab switch / window blur ── */
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
   const triggerFail = useCallback(
     async (reason: string) => {
       if (violationRef.current || stage !== "taking") return;
@@ -78,7 +76,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
         /* best-effort */
       }
     },
-    [quiz.id, stage]
+    [quiz.id, stage],
   );
 
   useEffect(() => {
@@ -101,7 +99,23 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     };
   }, [stage, triggerFail]);
 
-  /* ── Timer countdown ── */
+  const handleSubmit = useCallback(async () => {
+    clearInterval(timerRef.current ?? undefined);
+    setSubmitting(true);
+    try {
+      const res = await quizService.submit(quiz.id, answersRef.current);
+      setResult(res);
+      setStage("result");
+    } catch {
+      setFailReason(
+        "Could not submit your answers. Please check your connection and try again.",
+      );
+      setStage("failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [quiz.id]);
+
   useEffect(() => {
     if (stage !== "taking" || timeLeft === null) return;
     timerRef.current = setInterval(() => {
@@ -115,19 +129,17 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
       });
     }, 1000);
     return () => clearInterval(timerRef.current ?? undefined);
-  }, [stage]); // intentionally only re-run when stage changes
+  }, [stage, triggerFail]);
 
-  /* ── Load questions when entering quiz ── */
   const startQuiz = async () => {
     setLoadingQuiz(true);
     try {
       const detail = await quizService.getQuiz(quiz.id);
       const parsed =
-        (detail.questions && detail.questions.length > 0)
+        detail.questions && detail.questions.length > 0
           ? detail.questions
           : parseQuestions(detail.description ?? "");
       if (parsed.length === 0) {
-        // Fallback: quiz has no structured questions; show error
         setFailReason("Quiz questions could not be loaded. Contact your teacher.");
         setStage("failed");
         return;
@@ -145,22 +157,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     }
   };
 
-  /* ── Submit answers ── */
-  const handleSubmit = async () => {
-    clearInterval(timerRef.current ?? undefined);
-    setSubmitting(true);
-    try {
-      const res = await quizService.submit(quiz.id, answers);
-      setResult(res);
-      setStage("result");
-    } catch {
-      setFailReason("Could not submit your answers. Please check your connection and try again.");
-      setStage("failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const currentQuestion = questions[currentIdx];
   const answeredCount = Object.keys(answers).length;
   const allAnswered = answeredCount === questions.length;
@@ -171,9 +167,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     return `${m}:${String(s).padStart(2, "0")}`;
   };
 
-  /* ══════════════════════════════════════════════════════════════
-     STAGE: confirm
-  ══════════════════════════════════════════════════════════════ */
   if (stage === "confirm") {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -236,9 +229,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     );
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     STAGE: failed
-  ══════════════════════════════════════════════════════════════ */
   if (stage === "failed") {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -256,9 +246,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
               {failReason ?? "Quiz rules were violated."}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Your attempt has been automatically submitted as failed. Contact your teacher if you believe this was an error.
-          </p>
           <Button className="w-full font-bold" onClick={onExit}>
             Back to Quizzes
           </Button>
@@ -267,9 +254,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     );
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     STAGE: result
-  ══════════════════════════════════════════════════════════════ */
   if (stage === "result") {
     const pct =
       result?.score != null && result.totalQuestions > 0
@@ -284,18 +268,11 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
           <h1 className="text-xl font-extrabold text-foreground">Quiz Submitted!</h1>
           {pct !== null && (
             <div className="rounded-xl border border-emerald-200/60 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 px-5 py-4">
-              <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
-                {pct}%
-              </p>
+              <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">{pct}%</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {result?.score} / {result?.totalQuestions} correct
               </p>
             </div>
-          )}
-          {pct === null && (
-            <p className="text-sm text-muted-foreground">
-              Your answers have been submitted. Your teacher will review your results.
-            </p>
           )}
           <Button className="w-full font-bold" onClick={onExit}>
             Back to Quizzes
@@ -305,13 +282,9 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
     );
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     STAGE: taking
-  ══════════════════════════════════════════════════════════════ */
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#fffef8] dark:bg-[#1c1c1e]">
-      {/* Quiz header bar */}
-      <header className="shrink-0 px-5 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between gap-4 bg-white dark:bg-zinc-900/60">
+      <header className="shrink-0 px-5 py-3 border-b border-black/6 dark:border-white/8 flex items-center justify-between gap-4 bg-white dark:bg-zinc-900/60">
         <div className="flex items-center gap-3 min-w-0">
           <ShieldCheck className="w-5 h-5 text-violet-500 shrink-0" />
           <div className="min-w-0">
@@ -327,7 +300,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
             <span
               className={cn(
                 "flex items-center gap-1.5 text-sm font-bold tabular-nums",
-                timeLeft <= 60 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+                timeLeft <= 60 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
               )}
             >
               <Clock className="w-4 h-4 shrink-0" />
@@ -337,7 +310,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
         </div>
       </header>
 
-      {/* Progress bar */}
       <div className="shrink-0 h-1 bg-slate-100 dark:bg-zinc-800">
         <div
           className="h-full bg-violet-500 transition-all duration-300"
@@ -345,7 +317,6 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
         />
       </div>
 
-      {/* Question area */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-8 max-w-3xl mx-auto w-full">
         {currentQuestion && (
           <div className="space-y-6">
@@ -357,10 +328,9 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
                 {currentQuestion.question}
               </h2>
             </div>
-
             <div className="space-y-3">
               {currentQuestion.options.map((option, optIdx) => {
-                const optKey = String.fromCharCode(65 + optIdx); // A, B, C, D
+                const optKey = String.fromCharCode(65 + optIdx);
                 const selected = answers[currentQuestion.id] === optIdx;
                 return (
                   <button
@@ -373,7 +343,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
                       "w-full text-left rounded-xl border px-5 py-4 flex items-start gap-4 transition-all duration-150",
                       selected
                         ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 shadow-sm"
-                        : "border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-violet-300 dark:hover:border-violet-700"
+                        : "border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-violet-300 dark:hover:border-violet-700",
                     )}
                   >
                     <span
@@ -381,7 +351,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
                         "inline-flex items-center justify-center w-7 h-7 rounded-full border text-xs font-bold shrink-0 mt-0.5",
                         selected
                           ? "border-violet-500 bg-violet-500 text-white"
-                          : "border-slate-300 dark:border-zinc-700 text-muted-foreground"
+                          : "border-slate-300 dark:border-zinc-700 text-muted-foreground",
                       )}
                     >
                       {optKey}
@@ -395,8 +365,7 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
         )}
       </div>
 
-      {/* Navigation footer */}
-      <div className="shrink-0 px-5 py-4 border-t border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-zinc-900/60 flex items-center justify-between gap-4">
+      <div className="shrink-0 px-5 py-4 border-t border-black/6 dark:border-white/8 bg-white dark:bg-zinc-900/60 flex items-center justify-between gap-4">
         <Button
           variant="outline"
           size="sm"
@@ -407,17 +376,11 @@ export function QuizTakingView({ quiz, onExit }: QuizTakingViewProps) {
           <ChevronLeft className="w-4 h-4" />
           Previous
         </Button>
-
         <p className="text-xs text-muted-foreground">
           {answeredCount} / {questions.length} answered
         </p>
-
         {currentIdx < questions.length - 1 ? (
-          <Button
-            size="sm"
-            onClick={() => setCurrentIdx((i) => i + 1)}
-            className="gap-1.5"
-          >
+          <Button size="sm" onClick={() => setCurrentIdx((i) => i + 1)} className="gap-1.5">
             Next
             <ChevronRight className="w-4 h-4" />
           </Button>

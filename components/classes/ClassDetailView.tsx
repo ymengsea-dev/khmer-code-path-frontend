@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/glass-field";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { mergeClassSettingsConfig } from "@/lib/class-settings-view";
 import { classService } from "@/lib/services/class-service";
 import { lessonService } from "@/lib/services/lesson-service";
 import { quizService } from "@/lib/services/quiz-service";
@@ -234,7 +235,7 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
         classService.getClassSettingsConfig(parsedId),
         classService.getClass(parsedId),
       ]);
-      setConfig(settingsConfig);
+      setConfig(mergeClassSettingsConfig(settingsConfig));
       applyDetail(classDetail);
     } catch {
       setConfig(null);
@@ -343,9 +344,9 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
   };
 
   const statusLabel =
-    config?.statusOptions.find((o) => o.value === detail?.status)?.label ?? detail?.status ?? "—";
+    config?.statusOptions?.find((o) => o.value === detail?.status)?.label ?? detail?.status ?? "—";
   const visibilityLabel =
-    config?.visibilityOptions.find((o) => o.value === detail?.visibility)?.label ??
+    config?.visibilityOptions?.find((o) => o.value === detail?.visibility)?.label ??
     detail?.visibilityLabel ??
     "—";
 
@@ -505,7 +506,7 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
     }
   };
 
-  const sectionById = (id: string) => config?.tabs.find((t) => t.id === id);
+  const sectionById = (id: string) => config?.tabs?.find((t) => t.id === id);
 
   if (loading) {
     return (
@@ -527,7 +528,7 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
   }
 
   const semesterLabel = formatSemesterLabel(detail.semester, detail.academicYear);
-  const scoreComponents = config.scoreComponents;
+  const scoreComponents = config?.scoreComponents ?? [];
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -583,7 +584,7 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
                     value={status}
                     onChange={(e) => setStatus(e.target.value as ClassStatus)}
                   >
-                    {config.statusOptions.map((opt) => (
+                    {(config?.statusOptions ?? []).map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>

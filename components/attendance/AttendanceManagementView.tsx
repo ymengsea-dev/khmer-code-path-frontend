@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/glass-field";
 import { UserAvatar } from "@/components/profile/UserAvatar";
 import { attendanceService } from "@/lib/services/attendance-service";
+import { ATTENDANCE_UI } from "@/lib/lms-ui/attendance";
 import type {
   AttendanceManagementConfigDto,
   AttendanceRosterDto,
@@ -235,9 +236,9 @@ export function AttendanceManagementView() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-      {config?.pageDescription && (
+      {ATTENDANCE_UI.pageDescription && (
         <p className="shrink-0 text-sm text-muted-foreground -mt-1 mb-1">
-          {config.pageDescription}
+          {ATTENDANCE_UI.pageDescription}
         </p>
       )}
 

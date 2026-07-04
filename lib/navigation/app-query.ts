@@ -35,6 +35,7 @@ export type AppView =
   | "classes"
   | "lessons"
   | "tasks"
+  | "assignments-exams"
   | "notebook"
   | "ai-chat"
   | "code"
@@ -87,6 +88,7 @@ const VALID_VIEWS = new Set<string>([
   "classes",
   "lessons",
   "tasks",
+  "assignments-exams",
   "notebook",
   "ai-chat",
   "code",

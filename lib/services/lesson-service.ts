@@ -6,7 +6,6 @@ import type {
   LessonDetailDto,
   LessonSummaryDto,
   LibraryMaterialSummaryDto,
-  MaterialLibraryConfigDto,
   MaterialLibraryItemDto,
   UpdateLessonPayload,
   UpdateLibraryItemPayload,
@@ -67,13 +66,6 @@ export const lessonService = {
 
   materialDownloadUrl(lessonId: number, materialId: number): string {
     return `${API_BASE}/lessons/${lessonId}/materials/${materialId}/download`;
-  },
-
-  async getLibraryConfig(): Promise<MaterialLibraryConfigDto> {
-    const response = await apiClient.get<{ data: MaterialLibraryConfigDto }>(
-      "/materials/library/config"
-    );
-    return response.data.data;
   },
 
   async listLibrary(params: {

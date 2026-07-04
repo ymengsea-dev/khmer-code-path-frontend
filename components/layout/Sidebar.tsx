@@ -7,6 +7,7 @@ import {
   Search,
   Sparkles,
   ClipboardList,
+  ListChecks,
   Notebook,
   Users,
   Building2,
@@ -33,6 +34,7 @@ import { useSession } from "next-auth/react";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { classGradientDotColor } from "@/lib/class-display";
+import { ASSIGNMENTS_EXAMS_NAV_LABEL } from "@/lib/assignments-exams-ui";
 
 interface AppSidebarProps {
   activeNav: string;
@@ -41,6 +43,7 @@ interface AppSidebarProps {
   publicCoursesNavLabel?: string | null;
   rolesPermissionsNavLabel?: string | null;
   facultyManagementNavLabel?: string | null;
+  showAssignmentsExams?: boolean;
   onNavChange: (id: string, courseId?: string) => void;
   onOpenSearch?: () => void;
   className?: string;
@@ -53,6 +56,7 @@ export function Sidebar({
   publicCoursesNavLabel,
   rolesPermissionsNavLabel,
   facultyManagementNavLabel,
+  showAssignmentsExams = false,
   onNavChange,
   onOpenSearch,
   className,
@@ -310,6 +314,26 @@ export function Sidebar({
                     <ClipboardList className="w-4 h-4" />
                   </span>
                   <span className="flex-1 text-left">Quizzes</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            {showLearnerNav && showAssignmentsExams && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "assignments-exams"}
+                  onClick={() => onNavChange("assignments-exams")}
+                  className={cn(
+                    "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                    activeNav === "assignments-exams"
+                      ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                      : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <ListChecks className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-left">{ASSIGNMENTS_EXAMS_NAV_LABEL}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}

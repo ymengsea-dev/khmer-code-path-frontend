@@ -49,6 +49,15 @@ export interface ClassFilterConfig {
   label: string;
 }
 
+export interface UserManagementBootstrap {
+  classFilters: ClassFilterConfig[];
+  actions: {
+    canAdd: boolean;
+    canImport: boolean;
+    canEditStatus: boolean;
+  };
+}
+
 export interface UserManagementConfig {
   pageTitle: string;
   pageDescription: string;
@@ -99,8 +108,8 @@ function mapUser(item: {
 }
 
 export const userService = {
-  async getManagementConfig(): Promise<UserManagementConfig> {
-    const response = await apiClient.get<{ data: UserManagementConfig }>(
+  async getManagementConfig(): Promise<UserManagementBootstrap> {
+    const response = await apiClient.get<{ data: UserManagementBootstrap }>(
       "/student-management/config",
     );
     return response.data.data;

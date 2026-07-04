@@ -1,6 +1,8 @@
 import { apiClient } from "../api-client";
+import {
+  enrichRolePermissions,
+} from "../permissions-view";
 import type {
-  PermissionsConfig,
   RolePermissions,
   SchoolFeatures,
   UpdateRolePermissionsPayload,
@@ -8,18 +10,11 @@ import type {
 } from "../types/permissions-api";
 
 export const permissionService = {
-  async getConfig(): Promise<PermissionsConfig> {
-    const response = await apiClient.get<{ data: PermissionsConfig }>(
-      "/schools/me/permissions/config",
-    );
-    return response.data.data;
-  },
-
   async getTeacherPermissions(): Promise<RolePermissions> {
     const response = await apiClient.get<{ data: RolePermissions }>(
       "/schools/me/permissions/teachers",
     );
-    return response.data.data;
+    return enrichRolePermissions(response.data.data, "teacher");
   },
 
   async updateTeacherPermissions(
@@ -29,14 +24,14 @@ export const permissionService = {
       "/schools/me/permissions/teachers",
       payload,
     );
-    return response.data.data;
+    return enrichRolePermissions(response.data.data, "teacher");
   },
 
   async getStudentPermissions(): Promise<RolePermissions> {
     const response = await apiClient.get<{ data: RolePermissions }>(
       "/schools/me/permissions/students",
     );
-    return response.data.data;
+    return enrichRolePermissions(response.data.data, "student");
   },
 
   async updateStudentPermissions(
@@ -46,7 +41,7 @@ export const permissionService = {
       "/schools/me/permissions/students",
       payload,
     );
-    return response.data.data;
+    return enrichRolePermissions(response.data.data, "student");
   },
 
   async getSchoolFeatures(): Promise<SchoolFeatures> {

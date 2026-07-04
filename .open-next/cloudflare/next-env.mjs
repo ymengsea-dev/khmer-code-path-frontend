@@ -1,0 +1,3 @@
+export const production = {"AUTH_SECRET":"nQoEAmhgdU+sJJPZbjkj9EnFrm8iJLCk8ByZ7ov3s94=","AUTH_URL":"https://khmer-code-path-frontend.mrmengsea.workers.dev","API_BASE_URL":"http://localhost:8080/api/v1","NEXT_PUBLIC_API_BASE_URL":"http://localhost:8080/api/v1","NEXT_PUBLIC_BACKEND_ORIGIN":"http://localhost:8080","NEXT_PUBLIC_APP_URL":"http://localhost:3000"};
+export const development = {"AUTH_SECRET":"nQoEAmhgdU+sJJPZbjkj9EnFrm8iJLCk8ByZ7ov3s94=","AUTH_URL":"https://khmer-code-path-frontend.mrmengsea.workers.dev","API_BASE_URL":"http://localhost:8080/api/v1","NEXT_PUBLIC_API_BASE_URL":"http://localhost:8080/api/v1","NEXT_PUBLIC_BACKEND_ORIGIN":"http://localhost:8080","NEXT_PUBLIC_APP_URL":"http://localhost:3000"};
+export const test = {};

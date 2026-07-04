@@ -39,7 +39,7 @@ export const glassBtnSubtleClass = cn(
   "disabled:pointer-events-none disabled:opacity-50"
 );
 
-type GlassSearchInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+type GlassSearchInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> & {
   containerClassName?: string;
   iconClassName?: string;
   /** Smaller compact variant (notebook sidebar, etc.) */

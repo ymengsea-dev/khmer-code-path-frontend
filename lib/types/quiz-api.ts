@@ -1,5 +1,6 @@
 export type QuizStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 export type AttemptStatus = "IN_PROGRESS" | "SUBMITTED" | "FAILED";
+export type QuizKind = "ASSIGNMENT" | "EXAM";
 
 export interface QuizQuestion {
   id: number;
@@ -21,6 +22,9 @@ export interface QuizDto {
   status: QuizStatus;
   createdAt: string;
   dueAt: string | null;
+  kind: QuizKind;
+  strictProctoring: boolean;
+  pastDue: boolean;
   questions?: QuizQuestion[];
   submissionStatus?: AttemptStatus | null;
   /** Only present for teachers fetching a single quiz — used to republish to another class */
@@ -93,6 +97,18 @@ export interface QuizSummary {
   totalQuestions: number;
 }
 
+export interface QuizConfigDto {
+  navLabel: string;
+  pageTitle: string;
+  kinds: Array<{
+    value: QuizKind;
+    label: string;
+    description: string;
+  }>;
+  examProctoringHint: string;
+  assignmentHint: string;
+}
+
 export interface CreateQuizPayload {
   title: string;
   description?: string;
@@ -100,6 +116,8 @@ export interface CreateQuizPayload {
   generatedContent: string;
   questionCount: number;
   durationMinutes?: number;
+  kind?: QuizKind;
+  dueAt?: string | null;
 }
 
 export interface UpdateQuizPayload {
@@ -108,4 +126,6 @@ export interface UpdateQuizPayload {
   generatedContent: string;
   questionCount: number;
   durationMinutes?: number | null;
+  kind?: QuizKind;
+  dueAt?: string | null;
 }

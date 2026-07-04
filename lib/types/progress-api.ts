@@ -1,6 +1,7 @@
 export interface GradeBreakdownDto {
   classId: number;
   course: string;
+  assignments: string;
   quizzes: string;
   midterm: string;
   finalExam: string;

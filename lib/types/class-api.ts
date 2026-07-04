@@ -97,13 +97,15 @@ export interface ClassVisibilityOptionDto {
 export interface ClassSettingsConfigDto {
   classId: number;
   className: string;
-  tabs: LessonTabDto[];
-  scoreComponents: ScoreComponentDto[];
-  statusOptions: ClassStatusOptionDto[];
-  visibilityOptions: ClassVisibilityOptionDto[];
   publicCoursesEnabled: boolean;
-  publicCoursesDisabledHint?: string | null;
+  allowedVisibilityValues?: ClassVisibility[];
   departmentOptions?: DepartmentOptionDto[];
+  /** Populated client-side from lms-ui */
+  tabs?: LessonTabDto[];
+  scoreComponents?: ScoreComponentDto[];
+  statusOptions?: ClassStatusOptionDto[];
+  visibilityOptions?: ClassVisibilityOptionDto[];
+  publicCoursesDisabledHint?: string | null;
 }
 
 export interface DepartmentOptionDto {
@@ -114,16 +116,12 @@ export interface DepartmentOptionDto {
 }
 
 export interface ClassConfigDto {
-  allSemestersLabel: string;
   semesterFilters: SemesterFilterDto[];
-  lessonTabs: LessonTabDto[];
-  cardGradients: string[];
   createDefaults: {
     semester: string;
     academicYear: number;
   };
   gradingWeights?: GradingWeightsDto;
-  scoreComponents?: ScoreComponentDto[];
   departmentOptions?: DepartmentOptionDto[];
 }
 
@@ -180,13 +178,6 @@ export interface PublicCoursesPage {
 }
 
 export interface PublicCoursesConfigDto {
-  pageTitle: string;
-  pageDescription: string;
-  navLabel: string;
-  emptyMessage: string;
-  enrollButtonLabel: string;
-  enrolledLabel: string;
-  searchPlaceholder: string;
   enabled: boolean;
 }
 

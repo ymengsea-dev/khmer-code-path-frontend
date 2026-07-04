@@ -1,3 +1,7 @@
-ignoredBuiltDependencies:
+packages:
+  - .
+
+onlyBuiltDependencies:
   - sharp
+  - msw
   - unrs-resolver

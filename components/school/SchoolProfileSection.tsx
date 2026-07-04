@@ -14,7 +14,8 @@ import {
   schoolService,
 } from "@/lib/services/school-service";
 import { getApiErrorMessage } from "@/lib/api-error";
-import type { SchoolConfig, SchoolDetail } from "@/lib/types/school-api";
+import { SCHOOL_UI } from "@/lib/lms-ui/school";
+import type { SchoolDetail } from "@/lib/types/school-api";
 import { cn } from "@/lib/utils";
 
 function glassPanelStyle() {
@@ -28,7 +29,7 @@ function glassPanelStyle() {
 
 /** School registration settings — shown under Settings for administrators. */
 export function SchoolProfileSection() {
-  const [config, setConfig] = useState<SchoolConfig | null>(null);
+  const profileConfig = SCHOOL_UI.profile;
   const [school, setSchool] = useState<SchoolDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,33 +41,19 @@ export function SchoolProfileSection() {
     registrationOpen: true,
   });
 
-  const profileConfig = config?.profile;
-
   const loadCore = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [configResult, schoolResult] = await Promise.allSettled([
-        schoolService.getSchoolConfig(),
-        schoolService.getMySchool(),
-      ]);
-
-      if (configResult.status === "fulfilled") {
-        setConfig(configResult.value);
-      }
-      if (schoolResult.status === "fulfilled") {
-        const schoolData = schoolResult.value;
-        setSchool(schoolData);
-        setProfileForm({
-          name: schoolData.name,
-          slug: schoolData.slug,
-          registrationOpen: schoolData.registrationOpen,
-        });
-      }
-
-      if (configResult.status === "rejected" && schoolResult.status === "rejected") {
-        setError("Could not load school settings.");
-      }
+      const schoolData = await schoolService.getMySchool();
+      setSchool(schoolData);
+      setProfileForm({
+        name: schoolData.name,
+        slug: schoolData.slug,
+        registrationOpen: schoolData.registrationOpen,
+      });
+    } catch {
+      setError("Could not load school settings.");
     } finally {
       setLoading(false);
     }
@@ -104,9 +91,9 @@ export function SchoolProfileSection() {
     if (!slug) return school?.registrationUrl ?? "";
     const path =
       school?.registrationPath ??
-      `${profileConfig?.registrationPathPrefix ?? "/register/"}${slug}`;
+      `${profileConfig.registrationPathPrefix}${slug}`;
     return buildRegistrationUrl(path, school?.registrationUrl);
-  }, [school, profileForm.slug, profileConfig?.registrationPathPrefix]);
+  }, [school, profileForm.slug, profileConfig.registrationPathPrefix]);
 
   const handleCopyRegistrationUrl = async () => {
     if (!registrationUrl) return;
@@ -137,9 +124,9 @@ export function SchoolProfileSection() {
 
       <Card bouncy={false} className="rounded-2xl p-5 space-y-4 max-w-xl" style={glassPanelStyle()}>
         <h2 className="text-sm font-extrabold text-foreground">
-          {profileConfig?.profileSectionTitle ?? "School registration"}
+          {profileConfig.profileSectionTitle}
         </h2>
-        {profileConfig?.profileSectionDescription ? (
+        {profileConfig.profileSectionDescription ? (
           <p className="text-xs text-muted-foreground leading-relaxed">
             {profileConfig.profileSectionDescription}
           </p>
@@ -147,7 +134,7 @@ export function SchoolProfileSection() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold">
-            {profileConfig?.registrationUrlLabel ?? "Registration link"}
+            {profileConfig.registrationUrlLabel}
           </Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <GlassInput readOnly value={registrationUrl} className="font-mono text-xs" />
@@ -160,12 +147,12 @@ export function SchoolProfileSection() {
               {copiedUrl ? (
                 <>
                   <Check className="h-3.5 w-3.5" />
-                  {profileConfig?.copiedUrlMessage ?? "Link copied!"}
+                  {profileConfig.copiedUrlMessage}
                 </>
               ) : (
                 <>
                   <Copy className="h-3.5 w-3.5" />
-                  {profileConfig?.copyUrlLabel ?? "Copy link"}
+                  {profileConfig.copyUrlLabel}
                 </>
               )}
             </button>
@@ -175,7 +162,7 @@ export function SchoolProfileSection() {
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
-              {profileConfig?.nameLabel ?? "School name"}
+              {profileConfig.nameLabel}
             </Label>
             <GlassInput
               value={profileForm.name}
@@ -185,7 +172,7 @@ export function SchoolProfileSection() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
-              {profileConfig?.slugLabel ?? "Registration slug"}
+              {profileConfig.slugLabel}
             </Label>
             <GlassInput
               value={profileForm.slug}
@@ -202,7 +189,7 @@ export function SchoolProfileSection() {
                 setProfileForm((c) => ({ ...c, registrationOpen: e.target.checked }))
               }
             />
-            {profileConfig?.registrationOpenLabel ?? "Registration open"}
+            {profileConfig.registrationOpenLabel}
           </label>
           <button
             type="submit"
@@ -210,7 +197,7 @@ export function SchoolProfileSection() {
             className={cn(glassBtnPrimaryClass, "h-9 px-4 text-xs font-semibold gap-1.5")}
           >
             {savingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {profileConfig?.saveProfileLabel ?? "Save profile"}
+            {profileConfig.saveProfileLabel}
           </button>
         </form>
       </Card>

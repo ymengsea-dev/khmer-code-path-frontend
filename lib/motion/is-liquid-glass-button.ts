@@ -16,7 +16,8 @@ function hasGlassInlineStyle(el: HTMLElement): boolean {
   const attr = el.getAttribute("style") ?? "";
   if (attr.includes("--glass") || attr.includes("glass-bg")) return true;
 
-  const { background, backgroundColor, backdropFilter, webkitBackdropFilter } = el.style;
+  const { background, backgroundColor, backdropFilter } = el.style;
+  const webkitBackdropFilter = el.style.getPropertyValue("-webkit-backdrop-filter");
   const inline = `${background} ${backgroundColor} ${backdropFilter} ${webkitBackdropFilter}`;
   if (inline.includes("var(--glass") || inline.includes("--glass")) return true;
   if (backdropFilter || webkitBackdropFilter) return true;

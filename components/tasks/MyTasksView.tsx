@@ -53,6 +53,14 @@ import {
 } from "@/lib/quiz-material-sources";
 import type { QuizGenerateDto } from "@/lib/types/lesson-ai-api";
 import type { QuizDto, QuizResults, QuizSummary } from "@/lib/types/quiz-api";
+import {
+  formatQuizDueAt,
+  fromDatetimeLocalValue,
+  isQuizAttemptDone,
+  isQuizPastDue,
+  canStudentStartQuiz,
+  toDatetimeLocalValue,
+} from "@/lib/quiz-display";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useQueryState } from "@/lib/hooks/use-query-params";
@@ -444,11 +452,17 @@ function AssignQuizDialog({
   );
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("30");
+  const [dueAtLocal, setDueAtLocal] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setTitle(`Quiz: ${generatedQuiz.sourceFileName.replace(/\.[^.]+$/, "")}`);
+    setDescription("");
+    setDuration("30");
+    setDueAtLocal("");
+    setError(null);
     setClassesLoading(true);
     classService
       .listClasses({ size: 100 })
@@ -472,6 +486,7 @@ function AssignQuizDialog({
         generatedContent: generatedQuiz.generatedContent,
         questionCount: generatedQuiz.questionCount,
         durationMinutes: Number(duration) || 30,
+        dueAt: fromDatetimeLocalValue(dueAtLocal),
       });
       onAssigned();
       onOpenChange(false);
@@ -493,8 +508,7 @@ function AssignQuizDialog({
             Assign Quiz to Class
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Publish this AI-generated quiz so students in the selected class can
-            take it.
+            Publish this AI-generated quiz so students in the selected class can take it.
           </DialogDescription>
         </DialogHeader>
 
@@ -543,6 +557,16 @@ function AssignQuizDialog({
                 ))}
               </select>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Deadline (optional)</Label>
+            <Input
+              type="datetime-local"
+              value={dueAtLocal}
+              onChange={(e) => setDueAtLocal(e.target.value)}
+              className="h-9 text-sm"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -638,6 +662,7 @@ export function MyTasksView() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDuration, setEditDuration] = useState("30");
+  const [editDueAtLocal, setEditDueAtLocal] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const { confirm, alert } = useConfirm();
@@ -801,6 +826,7 @@ export function MyTasksView() {
     setEditTitle(full.title);
     setEditDescription(full.description ?? "");
     setEditDuration(String(full.durationMinutes ?? 30));
+    setEditDueAtLocal(toDatetimeLocalValue(full.dueAt));
     setEditContent(content);
   }, []);
 
@@ -863,6 +889,7 @@ export function MyTasksView() {
         durationMinutes: Number(editDuration) || null,
         questionCount: questions.length,
         generatedContent: serializeQuizQuestions(questions),
+        dueAt: fromDatetimeLocalValue(editDueAtLocal),
       });
       const refreshed = await quizService.getQuiz(editingQuiz.id);
       setPublishedPreviewQuiz(refreshed);
@@ -885,6 +912,7 @@ export function MyTasksView() {
     alert,
     editContent,
     editDescription,
+    editDueAtLocal,
     editDuration,
     editTitle,
     editingQuiz,
@@ -965,6 +993,18 @@ export function MyTasksView() {
     },
     [],
   );
+
+  const handleStartQuiz = useCallback(async (quiz: QuizDto) => {
+    try {
+      const full = await quizService.getQuiz(quiz.id);
+      setActiveQuiz(full);
+    } catch (err) {
+      void alert(getApiErrorMessage(err, "Could not load this item."), {
+        title: "Unable to start",
+        variant: "destructive",
+      });
+    }
+  }, [alert]);
 
   /* ── Quiz taking (student) ── */
   if (activeQuiz) {
@@ -1071,6 +1111,9 @@ export function MyTasksView() {
                   {activeQuizDetail.durationMinutes
                     ? ` · ${activeQuizDetail.durationMinutes} min`
                     : ""}
+                  {formatQuizDueAt(activeQuizDetail.dueAt)
+                    ? ` · Due ${formatQuizDueAt(activeQuizDetail.dueAt)}`
+                    : ""}
                 </p>
                 {activeQuizDetail.description ? (
                   <p className="text-sm text-muted-foreground/90 mt-2 leading-relaxed">
@@ -1124,13 +1167,23 @@ export function MyTasksView() {
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Description</Label>
-                <Input
-                  value={editDescription}
-                  onChange={(event) => setEditDescription(event.target.value)}
-                  placeholder="Optional description"
-                />
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Description</Label>
+                  <Input
+                    value={editDescription}
+                    onChange={(event) => setEditDescription(event.target.value)}
+                    placeholder="Optional description"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Deadline</Label>
+                  <Input
+                    type="datetime-local"
+                    value={editDueAtLocal}
+                    onChange={(event) => setEditDueAtLocal(event.target.value)}
+                  />
+                </div>
               </div>
               {editContent ? (
                 <EditableQuizPanel
@@ -1469,7 +1522,7 @@ export function MyTasksView() {
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">
                 {isTeacher
-                  ? "No published quizzes yet. Generate one above and assign it to a class."
+                  ? `No published items yet. Generate one above and assign it to a class.`
                   : "No quizzes assigned yet. Check back when your teacher publishes one."}
               </p>
             </div>
@@ -1480,7 +1533,7 @@ export function MyTasksView() {
                   <QuizCard
                     quiz={quiz}
                     isTeacher={isTeacher}
-                    onStart={() => setActiveQuiz(quiz)}
+                    onStart={() => void handleStartQuiz(quiz)}
                     onView={() => void handleViewPublishedQuiz(quiz.id)}
                     onReview={() => void handleReviewResults(quiz.id)}
                     onAssign={() => void handleAssignFromCard(quiz.id)}
@@ -1790,9 +1843,15 @@ function QuizCard({
 }) {
   const isPending = quiz.status === "PUBLISHED";
   const isClosed = quiz.status === "CLOSED";
+  const pastDue = isQuizPastDue(quiz);
+  const attemptDone = isQuizAttemptDone(quiz);
+  const canStart = canStudentStartQuiz(quiz);
+  const dueLabel = formatQuizDueAt(quiz.dueAt);
   const statusLabel =
     quiz.status === "PUBLISHED"
-      ? "Active"
+      ? pastDue && !attemptDone
+        ? "Past due"
+        : "Active"
       : quiz.status === "DRAFT"
         ? "Draft"
         : "Closed";
@@ -1811,9 +1870,9 @@ function QuizCard({
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
           <Badge
             className={
-              isPending
+              isPending && !pastDue
                 ? "bg-emerald-500 text-white font-bold"
-                : isClosed
+                : isClosed || pastDue
                   ? "bg-zinc-600 text-white font-bold"
                   : "bg-amber-500 text-white font-bold"
             }
@@ -1843,6 +1902,12 @@ function QuizCard({
               <HelpCircle className="w-3.5 h-3.5 text-violet-500" />
               {quiz.questionCount} questions
             </span>
+            {dueLabel ? (
+              <span className="flex items-center gap-1 shrink-0">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                Due {dueLabel}
+              </span>
+            ) : null}
           </div>
           {quiz.description ? (
             <p className="text-xs text-muted-foreground/90 leading-relaxed line-clamp-3">
@@ -1929,7 +1994,7 @@ function QuizCard({
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
-          ) : isPending ? (
+          ) : canStart ? (
             <Button
               size="sm"
               variant="default"
@@ -1938,10 +2003,29 @@ function QuizCard({
             >
               Start Quiz
             </Button>
+          ) : attemptDone ? (
+            <div className="flex items-center gap-2 text-xs font-semibold w-full justify-center py-2">
+              {quiz.submissionStatus === "FAILED" ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  <span className="text-rose-600">Failed</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-600">Submitted</span>
+                </>
+              )}
+            </div>
+          ) : pastDue ? (
+            <div className="flex items-center gap-2 text-xs text-zinc-600 font-semibold w-full justify-center py-2">
+              <Clock className="w-4 h-4" />
+              Past due
+            </div>
           ) : (
             <div className="flex items-center gap-2 text-xs text-emerald-600 font-semibold w-full justify-center py-2">
               <CheckCircle2 className="w-4 h-4" />
-              {isClosed ? "Quiz closed" : "Completed"}
+              {isClosed ? "Closed" : "Completed"}
             </div>
           )}
         </div>
