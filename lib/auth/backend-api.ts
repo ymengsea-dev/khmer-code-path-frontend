@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./constants";
+import { getApiBaseUrl } from "./constants";
 
 export type LmsRole = "STUDENT" | "TEACHER" | "ADMIN";
 
@@ -44,7 +44,8 @@ export async function backendLogin(
   email: string,
   password: string
 ): Promise<AuthData> {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  const apiBaseUrl = getApiBaseUrl();
+  const res = await fetch(`${apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -71,7 +72,7 @@ export async function backendRefresh(
 ): Promise<AuthTokens & { user?: UserProfile }> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -110,7 +111,7 @@ export async function backendRefresh(
 }
 
 export async function backendMe(accessToken: string): Promise<UserProfile> {
-  const res = await fetch(`${API_BASE_URL}/auth/me`, {
+  const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
   });
@@ -127,7 +128,7 @@ export async function backendMe(accessToken: string): Promise<UserProfile> {
 export async function backendLogout(refreshToken: string | undefined) {
   if (!refreshToken) return;
 
-  await fetch(`${API_BASE_URL}/auth/logout`, {
+  await fetch(`${getApiBaseUrl()}/auth/logout`, {
     method: "POST",
     headers: { Cookie: `ailms_refresh_token=${refreshToken}` },
     cache: "no-store",

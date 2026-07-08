@@ -20,6 +20,9 @@ export const authService = {
       throw new Error("Invalid email or password. Please try again.");
     }
 
+    // Ensure the browser session cache is updated before navigation.
+    await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+
     return result;
   },
 

@@ -24,7 +24,12 @@ export const authConfig = {
 
       if (isPublicPage) {
         if (isLoggedIn && pathname.startsWith("/login")) {
-          return Response.redirect(new URL("/", nextUrl));
+          const callbackUrl = nextUrl.searchParams.get("callbackUrl");
+          const target =
+            callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
+              ? callbackUrl
+              : "/";
+          return Response.redirect(new URL(target, nextUrl));
         }
         return true;
       }

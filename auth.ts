@@ -42,7 +42,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             refreshToken: data.refreshToken,
             accessTokenExpires: Date.now() + expiresInMs,
           };
-        } catch {
+        } catch (error) {
+          console.error(
+            "[auth] credentials authorize failed:",
+            error instanceof Error ? error.message : error,
+            "api=",
+            process.env.API_BASE_URL ?? "(unset)"
+          );
           return null;
         }
       },

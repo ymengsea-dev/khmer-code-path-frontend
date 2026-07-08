@@ -20,6 +20,12 @@ const inputClass = cn(
   "focus:outline-none focus:ring-2 focus:ring-[#305FC9]/30 focus:border-[#305FC9]/40"
 );
 
+function resolveCallbackUrl(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,7 +62,9 @@ function LoginContent() {
 
     try {
       await authService.login({ email, password });
-      router.push("/");
+      // Full navigation so middleware sees the new session cookie (required on Cloudflare Workers).
+      window.location.assign(resolveCallbackUrl(searchParams.get("callbackUrl")));
+      return;
     } catch (err: unknown) {
       console.error("Login error:", err);
       setError(
