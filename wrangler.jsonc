@@ -2,9 +2,7 @@
   "name": "khmer-code-path-frontend",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-26",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",
@@ -16,9 +14,9 @@
   // API must be HTTPS :443 — Workers cannot fetch http://IP:8080 (port is stripped).
   "vars": {
     "AUTH_URL": "https://khmer-code-path-frontend.mrmengsea.workers.dev",
-    "API_BASE_URL": "https://sources-sacred-northwest-encountered.trycloudflare.com/api/v1",
-    "NEXT_PUBLIC_API_BASE_URL": "https://sources-sacred-northwest-encountered.trycloudflare.com/api/v1",
-    "NEXT_PUBLIC_BACKEND_ORIGIN": "https://sources-sacred-northwest-encountered.trycloudflare.com",
+    "API_BASE_URL": "https://indicating-allow-twins-terrorist.trycloudflare.com/api/v1",
+    "NEXT_PUBLIC_API_BASE_URL": "https://indicating-allow-twins-terrorist.trycloudflare.com/api/v1",
+    "NEXT_PUBLIC_BACKEND_ORIGIN": "https://indicating-allow-twins-terrorist.trycloudflare.com",
     "NEXT_PUBLIC_APP_URL": "https://khmer-code-path-frontend.mrmengsea.workers.dev",
   },
 }
