@@ -30,7 +30,7 @@ export function PermissionsManagementView() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide pb-4">
         {tabs.length > 0 && (
           <div
             className={cn(

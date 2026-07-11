@@ -51,6 +51,8 @@ export type AppView =
   | "roles-permissions"
   | "public-courses"
   | "course-content"
+  | "announcements"
+  | "activity-log"
   | "class-detail";
 
 export type SchoolManagementTab = "profile" | "registration-domains";
@@ -104,6 +106,8 @@ const VALID_VIEWS = new Set<string>([
   "roles-permissions",
   "public-courses",
   "course-content",
+  "announcements",
+  "activity-log",
   "class-detail",
 ]);
 

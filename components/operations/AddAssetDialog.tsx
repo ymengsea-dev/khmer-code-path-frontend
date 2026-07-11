@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Package } from "lucide-react";
+import { glassInputClass, glassSelectClass } from "@/components/ui/glass-field";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  FormField,
+  FormSection,
+  TaskCreateDialogShell,
+} from "@/components/assignments-exams/TaskCreateDialogShell";
 import type { AssetStatus } from "@/data/operations";
+import { cn } from "@/lib/utils";
 
 export interface AssetFormValues {
   name: string;
@@ -27,6 +24,8 @@ interface AddAssetDialogProps {
   onOpenChange: (open: boolean) => void;
   saving?: boolean;
   onSave: (values: AssetFormValues) => void | Promise<void>;
+  /** When provided, the dialog opens in edit mode pre-filled with these values. */
+  initialValues?: AssetFormValues | null;
 }
 
 const empty: AssetFormValues = {
@@ -42,100 +41,93 @@ export function AddAssetDialog({
   onOpenChange,
   saving = false,
   onSave,
+  initialValues,
 }: AddAssetDialogProps) {
-  const [form, setForm] = useState<AssetFormValues>(empty);
+  const isEdit = Boolean(initialValues);
+  const [form, setForm] = useState<AssetFormValues>(initialValues ?? empty);
 
   useEffect(() => {
-    if (open) setForm(empty);
-  }, [open]);
+    if (open) setForm(initialValues ?? empty);
+  }, [open, initialValues]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSave(form);
-  };
+  const canSubmit =
+    form.name.trim().length > 0 &&
+    form.category.trim().length > 0 &&
+    form.location.trim().length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add asset</DialogTitle>
-          <DialogDescription>
-            Register a new physical asset for tracking.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="asset-name">Asset name</Label>
-            <Input
-              id="asset-name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="asset-category">Category</Label>
-            <Input
-              id="asset-category"
+    <TaskCreateDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={Package}
+      title={isEdit ? "Edit asset" : "Add asset"}
+      description={
+        isEdit
+          ? "Update this asset's details, status, or assignment."
+          : "Register a physical asset so it can be tracked and assigned."
+      }
+      headerGradient="bg-gradient-to-br from-violet-500/15 via-violet-500/8 to-transparent"
+      iconClassName="bg-violet-500/15 text-violet-600 ring-violet-500/25 dark:text-violet-400"
+      saving={saving}
+      canSubmit={canSubmit}
+      submitLabel={isEdit ? "Save changes" : "Add asset"}
+      onSubmit={() => void onSave(form)}
+    >
+      <FormSection title="Asset details" description="Name, category, and where it lives.">
+        <FormField label="Asset name">
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="e.g. Dell Latitude 5540"
+            className={cn(glassInputClass, "h-11")}
+          />
+        </FormField>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="Category">
+            <input
+              type="text"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              required
+              placeholder="Computer, Projector…"
+              className={cn(glassInputClass, "h-11")}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="asset-location">Location</Label>
-            <Input
-              id="asset-location"
+          </FormField>
+          <FormField label="Location">
+            <input
+              type="text"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
-              required
+              placeholder="Room 201"
+              className={cn(glassInputClass, "h-11")}
             />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="asset-status">Status</Label>
-              <select
-                id="asset-status"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-2xs"
-                value={form.status}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    status: e.target.value as AssetStatus,
-                  })
-                }
-              >
-                <option value="available">Available</option>
-                <option value="in-use">In Use</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="asset-assigned">Assigned to</Label>
-              <Input
-                id="asset-assigned"
-                value={form.assignedTo}
-                onChange={(e) =>
-                  setForm({ ...form, assignedTo: e.target.value })
-                }
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+          </FormField>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="Status">
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as AssetStatus })}
+              className={cn(glassSelectClass, "w-full")}
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Adding…" : "Add asset"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <option value="available">Available</option>
+              <option value="in-use">In use</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </FormField>
+          <FormField label="Assigned to" hint="Leave blank if unassigned.">
+            <input
+              type="text"
+              value={form.assignedTo}
+              onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
+              placeholder="Optional"
+              className={cn(glassInputClass, "h-11")}
+            />
+          </FormField>
+        </div>
+      </FormSection>
+    </TaskCreateDialogShell>
   );
 }

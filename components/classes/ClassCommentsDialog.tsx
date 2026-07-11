@@ -16,6 +16,8 @@ interface ClassCommentsDialogProps {
   classId: number;
   className: string;
   canPost?: boolean;
+  highlightCommentId?: number;
+  initialReplyToId?: number;
 }
 
 export function ClassCommentsDialog({
@@ -24,19 +26,28 @@ export function ClassCommentsDialog({
   classId,
   className,
   canPost = true,
+  highlightCommentId,
+  initialReplyToId,
 }: ClassCommentsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="glass-modal-solid sm:max-w-lg h-[min(85vh,40rem)] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Class discussion
           </DialogTitle>
           <DialogDescription>{className}</DialogDescription>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {open ? <ClassCommentsPanel classId={classId} canPost={canPost} /> : null}
+        <div className="flex-1 min-h-0">
+          {open ? (
+            <ClassCommentsPanel
+              classId={classId}
+              canPost={canPost}
+              highlightCommentId={highlightCommentId}
+              initialReplyToId={initialReplyToId}
+            />
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -40,6 +40,14 @@ export interface CreatePhysicalAssetPayload {
   assignedTo?: string | null;
 }
 
+export type UpdatePhysicalAssetPayload = CreatePhysicalAssetPayload;
+
+export interface CreateFacultyRequestPayload {
+  title: string;
+  icon: RequestIconDto;
+  detail?: string | null;
+}
+
 export interface UpdateFacultyRequestPayload {
   status: "APPROVED" | "REJECTED";
   adminComment?: string;

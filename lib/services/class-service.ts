@@ -8,6 +8,9 @@ import type {
   CreateClassPayload,
   PublicCoursesConfigDto,
   PublicCoursesPage,
+  ScheduleConflict,
+  ScheduleSlot,
+  ScheduleSlotInput,
   UpdateClassPayload,
 } from "../types/class-api";
 import type { ClassComment } from "../types/dashboard-api";
@@ -105,6 +108,49 @@ export const classService = {
   /** Sends class invitations; students must accept to enroll. */
   async inviteStudents(classId: number, studentIds: string[]): Promise<void> {
     await apiClient.post(`/classes/${classId}/students`, { studentIds });
+  },
+
+  async importRoster(
+    classId: number,
+    file: File,
+  ): Promise<{ invited: number; skipped: number; failed: number; errors: { row: number; message: string }[] }> {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await apiClient.post<{
+      data: { invited: number; skipped: number; failed: number; errors?: { row: number; message: string }[] };
+    }>(`/classes/${classId}/students/import`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    const d = response.data.data;
+    return { invited: d.invited, skipped: d.skipped, failed: d.failed, errors: d.errors ?? [] };
+  },
+
+  async getSchedule(classId: number): Promise<ScheduleSlot[]> {
+    const response = await apiClient.get<{ data: ScheduleSlot[] }>(`/classes/${classId}/schedule`);
+    return response.data.data;
+  },
+
+  async replaceSchedule(
+    classId: number,
+    slots: ScheduleSlotInput[],
+    force = false,
+  ): Promise<ScheduleSlot[]> {
+    const response = await apiClient.put<{ data: ScheduleSlot[] }>(
+      `/classes/${classId}/schedule`,
+      { slots, force },
+    );
+    return response.data.data;
+  },
+
+  async previewScheduleConflicts(
+    classId: number,
+    slots: ScheduleSlotInput[],
+  ): Promise<ScheduleConflict[]> {
+    const response = await apiClient.post<{ data: { conflicts: ScheduleConflict[] } }>(
+      `/classes/${classId}/schedule/conflicts`,
+      { slots, force: false },
+    );
+    return response.data.data.conflicts ?? [];
   },
 
   async listMyInvitations(): Promise<ClassInvitationDto[]> {

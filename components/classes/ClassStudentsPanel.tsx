@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Loader2, Mail, Trash2, UserPlus } from "lucide-react";
+import { Clock, Loader2, Mail, Trash2, Upload, UserPlus } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { glassBtnPrimaryClass } from "@/components/ui/glass-field";
 import { classService } from "@/lib/services/class-service";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { UserAvatar } from "@/components/profile/UserAvatar";
 import { InviteStudentsModal } from "@/components/classes/InviteStudentsModal";
+import { ImportRosterDialog } from "@/components/classes/ImportRosterDialog";
 
 const VIEW_MODE_ROW_LIMIT = 5;
 /** ~52px per row + gap — fits five roster rows in view mode */
@@ -31,6 +32,7 @@ export function ClassStudentsPanel({
   const [enrolled, setEnrolled] = useState<ClassStudent[]>([]);
   const [pending, setPending] = useState<ClassInvitationDto[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,19 +110,35 @@ export function ClassStudentsPanel({
             Invite students to this class. They must accept the invitation before
             they can open lessons and study.
           </p>
-          <button
-            type="button"
-            onClick={() => setInviteOpen(true)}
-            className={cn(glassBtnPrimaryClass, "gap-2 h-11 px-4 w-full sm:w-auto")}
-          >
-            <UserPlus className="h-4 w-4" />
-            Invite students
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={() => setInviteOpen(true)}
+              className={cn(glassBtnPrimaryClass, "gap-2 h-11 px-4 w-full sm:w-auto")}
+            >
+              <UserPlus className="h-4 w-4" />
+              Invite students
+            </button>
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className={cn(glassBtnPrimaryClass, "gap-2 h-11 px-4 w-full sm:w-auto")}
+            >
+              <Upload className="h-4 w-4" />
+              Import roster
+            </button>
+          </div>
           <InviteStudentsModal
             open={inviteOpen}
             onOpenChange={setInviteOpen}
             classId={classId}
             onInvited={() => void handleInvited()}
+          />
+          <ImportRosterDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            classId={classId}
+            onImported={() => void handleInvited()}
           />
         </div>
       )}

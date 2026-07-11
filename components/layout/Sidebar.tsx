@@ -17,6 +17,8 @@ import {
   GraduationCap,
   Globe,
   Shield,
+  Megaphone,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar as SidebarRoot,
@@ -71,9 +73,10 @@ export function Sidebar({
   const isAdmin = appRole === "admin";
   const showUserManagement = isAdmin || appRole === "teacher";
   const showDepartments = isAdmin;
-  const showOperations = isAdmin;
-  const showLearnerNav = !isAdmin;
   const isTeacher = appRole === "teacher";
+  const showOperations = isAdmin || isTeacher;
+  const operationsNavLabel = isAdmin ? "Operations" : "Requests";
+  const showLearnerNav = !isAdmin;
   const isStudent = appRole === "student";
   const showPublicCourses = isStudent && Boolean(publicCoursesNavLabel);
   const showRolesPermissions = isAdmin && Boolean(rolesPermissionsNavLabel);
@@ -198,6 +201,24 @@ export function Sidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
 
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={activeNav === "announcements"}
+                onClick={() => onNavChange("announcements")}
+                className={cn(
+                  "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                  activeNav === "announcements"
+                    ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                    : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                )}
+              >
+                <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                  <Megaphone className="w-4 h-4" />
+                </span>
+                <span className="flex-1 text-left">Announcements</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             {showUserManagement && (
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -273,7 +294,27 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Wrench className="w-4 h-4" />
                   </span>
-                  <span className="flex-1 text-left">Operations</span>
+                  <span className="flex-1 text-left">{operationsNavLabel}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            {isAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeNav === "activity-log"}
+                  onClick={() => onNavChange("activity-log")}
+                  className={cn(
+                    "rounded-2xl px-3 py-2 transition-all duration-150 border border-transparent text-sm font-medium h-10.5 group",
+                    activeNav === "activity-log"
+                      ? "bg-zinc-100/85 text-zinc-800 font-semibold dark:bg-white/10 dark:text-white"
+                      : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/70 dark:hover:bg-white/7 hover:text-zinc-900"
+                  )}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center shrink-0">
+                    <ScrollText className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-left">Activity Log</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}

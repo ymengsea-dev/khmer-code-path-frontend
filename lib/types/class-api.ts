@@ -188,3 +188,37 @@ export interface ClassStudent {
   avatarUrl?: string | null;
   studentId?: string | null;
 }
+
+export type WeekDay =
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY"
+  | "SUNDAY";
+
+export interface ScheduleSlot {
+  id: number;
+  dayOfWeek: WeekDay;
+  startTime: string; // "HH:mm[:ss]"
+  endTime: string;
+  room?: string | null;
+}
+
+export interface ScheduleSlotInput {
+  dayOfWeek: WeekDay;
+  startTime: string; // "HH:mm"
+  endTime: string;
+  room?: string | null;
+}
+
+export interface ScheduleConflict {
+  dayOfWeek: WeekDay;
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  otherClassId: number;
+  otherClassName: string;
+  reason: "ROOM" | "TEACHER";
+}

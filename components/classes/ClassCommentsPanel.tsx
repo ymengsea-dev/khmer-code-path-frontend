@@ -32,11 +32,17 @@ interface ClassCommentsPanelProps {
   classId: number;
   canPost?: boolean;
   className?: string;
+  /** Scroll to this comment and flash-highlight it once loaded. */
+  highlightCommentId?: number;
+  /** Open the compose bar in reply mode for this comment once loaded. */
+  initialReplyToId?: number;
 }
 
 export function ClassCommentsPanel({
   classId,
   canPost = true,
+  highlightCommentId,
+  initialReplyToId,
 }: ClassCommentsPanelProps) {
   const [comments, setComments] = useState<ClassComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +50,10 @@ export function ClassCommentsPanel({
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ClassComment | null>(null);
+  const [flashId, setFlashId] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const appliedTargetRef = useRef(false);
 
   const loadComments = useCallback(async () => {
     setLoading(true);
@@ -64,11 +73,27 @@ export function ClassCommentsPanel({
     void loadComments();
   }, [loadComments]);
 
-  const handleReply = (comment: ClassComment) => {
+  const handleReply = useCallback((comment: ClassComment) => {
     setReplyingTo(comment);
     setBody(`@${comment.authorName} `);
     textareaRef.current?.focus();
-  };
+  }, []);
+
+  useEffect(() => {
+    if (loading || appliedTargetRef.current) return;
+    const targetId = highlightCommentId ?? initialReplyToId;
+    if (targetId == null) return;
+    appliedTargetRef.current = true;
+
+    const target = comments.find((c) => c.id === targetId);
+    itemRefs.current.get(targetId)?.scrollIntoView({ block: "center" });
+    if (target) {
+      setFlashId(targetId);
+      const timer = setTimeout(() => setFlashId(null), 2500);
+      if (initialReplyToId != null && canPost) handleReply(target);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, comments, highlightCommentId, initialReplyToId, canPost, handleReply]);
 
   const cancelReply = () => {
     setReplyingTo(null);
@@ -109,9 +134,15 @@ export function ClassCommentsPanel({
         ) : (
           comments.map((comment) => {
             const isReply = comment.body.startsWith("@");
+            const isTarget =
+              replyingTo?.id === comment.id || flashId === comment.id;
             return (
               <div
                 key={comment.id}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(comment.id, el);
+                  else itemRefs.current.delete(comment.id);
+                }}
                 className={cn("flex gap-2 group", isReply && "ml-5")}
               >
                 {/* Avatar */}
@@ -129,15 +160,21 @@ export function ClassCommentsPanel({
                 {/* Bubble */}
                 <div className="flex-1 min-w-0">
                   <div
-                    className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs"
+                    className="relative rounded-lg px-3.5 py-2.5 text-xs backdrop-blur-md transition-all duration-500"
                     style={{
-                      background: isReply
-                        ? "rgba(237,233,254,0.7)"
-                        : "rgba(255,255,255,0.75)",
-                      border: isReply
-                        ? "1px solid rgba(196,181,253,0.5)"
-                        : "1px solid rgba(255,255,255,0.9)",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                      background: isTarget
+                        ? "linear-gradient(135deg, rgba(219,219,223,0.92), rgba(203,203,209,0.78))"
+                        : isReply
+                          ? "linear-gradient(135deg, rgba(240,236,255,0.85), rgba(232,226,254,0.6))"
+                          : "linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.55))",
+                      border: isTarget
+                        ? "1px solid rgba(161,161,170,0.55)"
+                        : isReply
+                          ? "1px solid rgba(196,181,253,0.45)"
+                          : "1px solid rgba(255,255,255,0.85)",
+                      boxShadow: isTarget
+                        ? "0 2px 6px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.06)"
+                        : "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.04)",
                     }}
                   >
                     {isReply && (

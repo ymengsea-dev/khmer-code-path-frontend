@@ -7,6 +7,7 @@ import type {
 } from "@/data/operations";
 import type {
   AssetStatusDto,
+  CreateFacultyRequestPayload,
   CreatePhysicalAssetPayload,
   FacultyRequestDto,
   InfrastructureDto,
@@ -14,6 +15,7 @@ import type {
   PhysicalAssetDto,
   RequestIconDto,
   RequestStatusDto,
+  UpdatePhysicalAssetPayload,
 } from "../types/operations-api";
 
 function mapAssetStatus(status: AssetStatusDto): AssetStatus {
@@ -32,6 +34,12 @@ function mapRequestIcon(icon: RequestIconDto): TeacherRequest["icon"] {
   if (icon === "VIDEO") return "video";
   if (icon === "LAPTOP") return "laptop";
   return "room";
+}
+
+function toRequestIconDto(icon: TeacherRequest["icon"]): RequestIconDto {
+  if (icon === "video") return "VIDEO";
+  if (icon === "laptop") return "LAPTOP";
+  return "ROOM";
 }
 
 function mapRequestStatus(
@@ -111,6 +119,34 @@ export const operationsService = {
     return mapAssetDto(response.data.data);
   },
 
+  async updateAsset(
+    id: number,
+    values: {
+      name: string;
+      category: string;
+      status: AssetStatus;
+      location: string;
+      assignedTo: string;
+    }
+  ): Promise<PhysicalAsset> {
+    const payload: UpdatePhysicalAssetPayload = {
+      name: values.name.trim(),
+      category: values.category.trim(),
+      status: toAssetStatusDto(values.status),
+      location: values.location.trim(),
+      assignedTo: values.assignedTo.trim() || null,
+    };
+    const response = await apiClient.patch<{ data: PhysicalAssetDto }>(
+      `/operations/inventory/${id}`,
+      payload
+    );
+    return mapAssetDto(response.data.data);
+  },
+
+  async deleteAsset(id: number): Promise<void> {
+    await apiClient.delete(`/operations/inventory/${id}`);
+  },
+
   async listRequests(status?: "pending"): Promise<TeacherRequest[]> {
     const response = await apiClient.get<{ data: FacultyRequestDto[] }>(
       "/operations/requests",
@@ -128,6 +164,30 @@ export const operationsService = {
     const response = await apiClient.patch<{ data: FacultyRequestDto }>(
       `/operations/requests/${id}`,
       { status }
+    );
+    return mapRequestDto(response.data.data);
+  },
+
+  async listMyRequests(): Promise<TeacherRequest[]> {
+    const response = await apiClient.get<{ data: FacultyRequestDto[] }>(
+      "/operations/requests/mine"
+    );
+    return (response.data.data ?? []).map(mapRequestDto);
+  },
+
+  async createRequest(values: {
+    title: string;
+    icon: TeacherRequest["icon"];
+    detail: string;
+  }): Promise<TeacherRequest> {
+    const payload: CreateFacultyRequestPayload = {
+      title: values.title.trim(),
+      icon: toRequestIconDto(values.icon),
+      detail: values.detail.trim() || null,
+    };
+    const response = await apiClient.post<{ data: FacultyRequestDto }>(
+      "/operations/requests",
+      payload
     );
     return mapRequestDto(response.data.data);
   },

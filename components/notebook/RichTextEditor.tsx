@@ -105,6 +105,34 @@ function hostnameFromUrl(url: string): string {
   }
 }
 
+/** Background values that are stray artifacts (not a real highlight) and should be removed. */
+const STRAY_BACKGROUNDS = new Set([
+  "",
+  "transparent",
+  "white",
+  "#fff",
+  "#ffffff",
+  "rgb(255, 255, 255)",
+  "rgba(0, 0, 0, 0)",
+  "rgba(255, 255, 255, 1)",
+]);
+
+/**
+ * Strip white/transparent inline backgrounds that contentEditable/execCommand leaves on
+ * typed text and new lines (Chrome carries a background in its typing state after backColor).
+ * Real highlight colors are preserved; only the stray white/transparent boxes are cleared.
+ */
+function stripStrayBackgrounds(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[style*="background"]').forEach((el) => {
+    const bg = el.style.backgroundColor.trim().toLowerCase();
+    if (STRAY_BACKGROUNDS.has(bg)) {
+      el.style.backgroundColor = "";
+      el.style.background = "";
+      if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
+    }
+  });
+}
+
 function ensureEditorLinks(editor: HTMLElement) {
   editor.querySelectorAll("a").forEach((anchor) => {
     if (anchor.closest(".note-embed")) return;
@@ -309,7 +337,10 @@ export function RichTextEditor({
   useEffect(() => {
     syncFromProp();
     const el = editorRef.current;
-    if (el) ensureEditorLinks(el);
+    if (el) {
+      ensureEditorLinks(el);
+      stripStrayBackgrounds(el);
+    }
   }, [syncFromProp, html]);
 
   const focusEditor = () => {
@@ -327,6 +358,7 @@ export function RichTextEditor({
     const el = editorRef.current;
     if (!el) return;
     ensureEditorLinks(el);
+    stripStrayBackgrounds(el);
     if (!readOnly) onChange(el.innerHTML);
   };
 
@@ -478,13 +510,10 @@ export function RichTextEditor({
     if (readOnly || disabled) return;
     focusEditor();
     restoreSelection();
-    if (color) {
-      document.execCommand("hiliteColor", false, color);
-      document.execCommand("backColor", false, color);
-    } else {
-      document.execCommand("hiliteColor", false, "transparent");
-      document.execCommand("backColor", false, "transparent");
-    }
+    // styleWithCSS keeps highlight as a clean inline background-color span instead of the
+    // legacy block-level backColor that leaves a stray typing-state background behind.
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("hiliteColor", false, color ?? "transparent");
     emitChange();
     setHighlightOpen(false);
   };
@@ -895,10 +924,15 @@ export function RichTextEditor({
               emitChange();
             }}
             className={cn(
-              "outline-none focus-visible:ring-0 block w-full min-h-full",
+              "outline-none focus-visible:ring-0 block w-full",
+              readOnly ? "min-h-0" : "min-h-full",
               isApple
-                ? "min-h-[280px] px-6 py-4 pb-24 text-[17px] leading-[1.6] text-foreground/90"
-                : "min-h-[280px] px-6 py-6 pb-12 text-[15px] leading-[1.75] text-foreground",
+                ? readOnly
+                  ? "px-6 py-4 text-[17px] leading-[1.6] text-foreground/90"
+                  : "min-h-70 px-6 py-4 pb-24 text-[17px] leading-[1.6] text-foreground/90"
+                : readOnly
+                  ? "px-6 py-4 text-[15px] leading-[1.75] text-foreground"
+                  : "min-h-70 px-6 py-6 pb-12 text-[15px] leading-[1.75] text-foreground",
               "[&_p]:mb-3 [&_p:last-child]:mb-0",
               "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3",
               "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3",

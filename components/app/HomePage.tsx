@@ -24,6 +24,8 @@ import { FacultyManagementView } from "@/components/faculties/FacultyManagementV
 import { FacultyDetailView } from "@/components/faculties/FacultyDetailView";
 import { PermissionsManagementView } from "@/components/permissions/PermissionsManagementView";
 import { CourseContentView } from "@/components/course-content/CourseContentView";
+import { AnnouncementsView } from "@/components/announcements/AnnouncementsView";
+import { ActivityLogView } from "@/components/audit/ActivityLogView";
 import { classService } from "@/lib/services/class-service";
 import type { ClassSummary } from "@/lib/types/class-api";
 import {
@@ -76,6 +78,8 @@ const VIEW_LABELS: Record<AppView, string> = {
   "roles-permissions": "Roles & Permissions",
   "public-courses": "Public Courses",
   "course-content": "Content Management",
+  announcements:  "Announcements",
+  "activity-log": "Activity Log",
   "class-detail": "Class Details",
 };
 
@@ -465,6 +469,8 @@ export function HomePage() {
             )}
             {activeNav === "roles-permissions" && <PermissionsManagementView />}
             {activeNav === "course-content" && <CourseContentView />}
+            {activeNav === "announcements" && <AnnouncementsView role={appRole ?? "student"} />}
+            {activeNav === "activity-log" && <ActivityLogView />}
             {activeNav === "courses" && (
               <CourseGrid
                 courses={courses}

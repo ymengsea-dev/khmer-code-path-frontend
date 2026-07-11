@@ -27,10 +27,8 @@ function DefaultAuthLayout({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-3"
           >
             <div className="relative shrink-0">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/25 ring-1 ring-white/20">
-                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white drop-shadow-sm">
-                  <path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" />
-                </svg>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20">
+                <Image src="/logo-mark.png" alt="AI-LMS logo" width={40} height={40} className="h-10 w-10 object-contain" priority />
               </div>
             </div>
             <div>
@@ -86,10 +84,8 @@ function DefaultAuthLayout({ children }: { children: React.ReactNode }) {
 
         <div className="absolute top-8 left-8 z-10 lg:hidden">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 shadow-md">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white">
-                <path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" />
-              </svg>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-md ring-1 ring-black/5">
+              <Image src="/logo-mark.png" alt="AI-LMS logo" width={32} height={32} className="h-8 w-8 object-contain" />
             </div>
             <span className="text-lg font-bold">AI-LMS</span>
           </Link>

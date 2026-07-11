@@ -18,9 +18,11 @@ import { cn } from "@/lib/utils";
 import { dashboardService } from "@/lib/services/dashboard-service";
 import type {
   AdminDashboard,
+  ClassComment,
   StudentDashboard,
   TeacherDashboard,
 } from "@/lib/types/dashboard-api";
+import { ClassCommentsDialog } from "@/components/classes/ClassCommentsDialog";
 import { useSession } from "next-auth/react";
 import type { UserRole } from "@/lib/auth/use-user-role";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
@@ -80,6 +82,10 @@ export function CourseGrid({
   const [studentDash, setStudentDash] = useState<StudentDashboard | null>(null);
   const [teacherDash, setTeacherDash] = useState<TeacherDashboard | null>(null);
   const [adminDash, setAdminDash] = useState<AdminDashboard | null>(null);
+  const [questionTarget, setQuestionTarget] = useState<{
+    comment: ClassComment;
+    reply: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (sessionStatus === "loading") {
@@ -348,7 +354,16 @@ export function CourseGrid({
                 {teacherDash.recentQuestions.map((q) => (
                   <div
                     key={q.id}
-                    className="px-5 py-4 hover:bg-black/2 transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setQuestionTarget({ comment: q, reply: false })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setQuestionTarget({ comment: q, reply: false });
+                      }
+                    }}
+                    className="px-5 py-4 hover:bg-black/2 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -363,7 +378,17 @@ export function CourseGrid({
                           {q.body}
                         </p>
                       </div>
-                      <MessageSquare className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
+                      <button
+                        type="button"
+                        title="Reply to this question"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuestionTarget({ comment: q, reply: true });
+                        }}
+                        className="shrink-0 mt-0.5 p-1.5 -m-1.5 rounded-lg text-violet-500 hover:bg-violet-500/10 hover:text-violet-600 transition-colors"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -421,6 +446,21 @@ export function CourseGrid({
           </div>
         )}
       </div>
+
+      {questionTarget && (
+        <ClassCommentsDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuestionTarget(null);
+          }}
+          classId={questionTarget.comment.classId}
+          className={questionTarget.comment.className}
+          highlightCommentId={questionTarget.comment.id}
+          initialReplyToId={
+            questionTarget.reply ? questionTarget.comment.id : undefined
+          }
+        />
+      )}
     </div>
   );
 }

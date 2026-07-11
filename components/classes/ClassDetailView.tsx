@@ -42,6 +42,7 @@ import type { QuizDto } from "@/lib/types/quiz-api";
 import { cn } from "@/lib/utils";
 import { ScoreBreakdownPanel, gradingWeightsTotal } from "@/components/classes/ScoreBreakdownPanel";
 import { ClassStudentsPanel } from "@/components/classes/ClassStudentsPanel";
+import { ClassSchedulePanel } from "@/components/classes/ClassSchedulePanel";
 import { CLASSES_UPDATED_EVENT } from "@/components/notifications/notification-context";
 
 type SectionId = string;
@@ -722,6 +723,17 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
             />
           </SectionCard>
         )}
+
+        <SectionCard
+          title="Class timetable"
+          editing={editingSection === "schedule"}
+          onEdit={() => startEdit("schedule")}
+          onCancel={cancelEdit}
+          onSave={() => setEditingSection(null)}
+          saveLabel="Done"
+        >
+          <ClassSchedulePanel classId={parsedId} editing={editingSection === "schedule"} />
+        </SectionCard>
 
         {sectionById("grading") && detail.gradingWeights && scoreComponents.length > 0 && (
           <SectionCard

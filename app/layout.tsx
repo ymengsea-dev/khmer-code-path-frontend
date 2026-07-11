@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_PINNED_BOOTSTRAP_SCRIPT } from "@/lib/sidebar-preference";
@@ -22,15 +22,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/** Editorial serif for the announcements "read as article" feed — see AnnouncementsView. */
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: "AI-LMS",
   description: "School learning management system",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/favicon-32.png?v=3", sizes: "32x32", type: "image/png" },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: "/apple-touch-icon.png?v=3",
   },
 };
 
@@ -47,7 +55,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
       >
         <AppQueryProvider>
           <AuthSessionProvider>
