@@ -14,9 +14,9 @@
   // API must be HTTPS :443 — Workers cannot fetch http://IP:8080 (port is stripped).
   "vars": {
     "AUTH_URL": "https://khmer-code-path-frontend.mrmengsea.workers.dev",
-    "API_BASE_URL": "https://indicating-allow-twins-terrorist.trycloudflare.com/api/v1",
-    "NEXT_PUBLIC_API_BASE_URL": "https://indicating-allow-twins-terrorist.trycloudflare.com/api/v1",
-    "NEXT_PUBLIC_BACKEND_ORIGIN": "https://indicating-allow-twins-terrorist.trycloudflare.com",
+    "API_BASE_URL": "https://oldest-concerns-signal-designing.trycloudflare.com/api/v1",
+    "NEXT_PUBLIC_API_BASE_URL": "https://oldest-concerns-signal-designing.trycloudflare.com/api/v1",
+    "NEXT_PUBLIC_BACKEND_ORIGIN": "https://oldest-concerns-signal-designing.trycloudflare.com",
     "NEXT_PUBLIC_APP_URL": "https://khmer-code-path-frontend.mrmengsea.workers.dev",
   },
 }

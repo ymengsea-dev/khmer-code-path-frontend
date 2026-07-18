@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Paperclip, Loader2 } from "lucide-react";
+import { Download, Paperclip, Loader2, X } from "lucide-react";
 import {
   announcementService,
   type AnnouncementAttachment,
 } from "@/lib/services/announcement-service";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 
 function isImage(att: AnnouncementAttachment): boolean {
   return Boolean(att.contentType?.toLowerCase().startsWith("image/"));
@@ -106,7 +106,18 @@ export function AttachmentTile({
 
       {/* In-page preview — no new tab/window. */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-[92vw] w-full gap-0 overflow-hidden border-none bg-zinc-950 p-0 sm:max-w-3xl">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[92vw] w-full gap-0 overflow-hidden border-none bg-zinc-950 p-0 sm:max-w-3xl"
+        >
+          {/* Default close button is transparent-until-hover — invisible on a dark image backdrop, so it gets its own always-visible glass treatment here. */}
+          <DialogClose
+            aria-label="Close"
+            className="liquid-glass-btn liquid-glass-btn-subtle absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/12 text-white hover:bg-white/20"
+          >
+            <X className="h-4 w-4" />
+          </DialogClose>
+
           {url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
