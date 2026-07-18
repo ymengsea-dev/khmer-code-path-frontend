@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "opennextjs-cloudflare build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "pnpm run build && wrangler deploy"
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "deploy": "pnpm run build:cloudflare && wrangler deploy"
+    
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
