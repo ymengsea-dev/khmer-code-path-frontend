@@ -30,7 +30,9 @@ interface DepartmentFormDialogProps {
   initial?: Department | null;
   faculties: FacultySummaryDto[];
   saving?: boolean;
+  deleting?: boolean;
   onSave: (values: DepartmentFormValues) => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
 }
 
 const empty: DepartmentFormValues = {
@@ -48,7 +50,9 @@ export function DepartmentFormDialog({
   initial,
   faculties,
   saving = false,
+  deleting = false,
   onSave,
+  onDelete,
 }: DepartmentFormDialogProps) {
   const [form, setForm] = useState<DepartmentFormValues>(empty);
 
@@ -167,6 +171,17 @@ export function DepartmentFormDialog({
             </select>
           </div>
           <DialogFooter>
+            {mode === "edit" && onDelete && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="mr-auto"
+                disabled={saving || deleting}
+                onClick={() => onDelete()}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -174,7 +189,7 @@ export function DepartmentFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || !form.facultyId}>
+            <Button type="submit" disabled={saving || deleting || !form.facultyId}>
               {saving
                 ? "Saving…"
                 : mode === "add"

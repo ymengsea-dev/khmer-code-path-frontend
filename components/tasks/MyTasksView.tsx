@@ -71,7 +71,8 @@ import {
   BouncyStagger,
   BouncyStaggerItem,
 } from "@/components/motion";
-import { glassBtnSubtleClass } from "@/components/ui/glass-field";
+import { glassBtnSubtleClass, glassSelectClass } from "@/components/ui/glass-field";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 
 type UserRole = "student" | "teacher" | "admin";
 type QuizViewMode = "list" | "detail" | "edit";
@@ -627,6 +628,7 @@ export function MyTasksView() {
     QueryKey.questions,
     "10",
   );
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [generatedQuiz, setGeneratedQuiz] = useState<QuizGenerateDto | null>(
@@ -937,12 +939,14 @@ export function MyTasksView() {
     setGenerateError(null);
     try {
       let result: QuizGenerateDto;
+      const model = selectedModel ?? undefined;
       if (selectedSource.kind === "lesson" && selectedSource.lessonId != null) {
         result = await lessonAiService.generateQuizFromLesson(
           selectedSource.lessonId,
           {
             materialId: selectedSource.materialId,
             questionCount: count,
+            model,
           },
         );
       } else if (
@@ -951,7 +955,7 @@ export function MyTasksView() {
       ) {
         result = await lessonAiService.generateQuizFromLibraryContent(
           selectedSource.libraryItemId,
-          { questionCount: count },
+          { questionCount: count, model },
         );
       } else if (
         selectedSource.kind === "library" &&
@@ -962,6 +966,7 @@ export function MyTasksView() {
           {
             materialId: selectedSource.materialId,
             questionCount: count,
+            model,
           },
         );
       } else {
@@ -1406,6 +1411,16 @@ export function MyTasksView() {
                   onChange={(e) => setQuestionCount(e.target.value)}
                   className="h-9"
                   disabled={generating}
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Model
+                </Label>
+                <ModelSelector
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                  className={cn(glassSelectClass, "h-9 w-full text-xs")}
                 />
               </div>
               <button

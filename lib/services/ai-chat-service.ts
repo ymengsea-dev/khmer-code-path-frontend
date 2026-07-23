@@ -44,6 +44,18 @@ export interface AiStatusDto {
   available: boolean;
   provider: string;
   baseUrl: string | null;
+  availableProviders: string[];
+  defaultChatModel: string;
+}
+
+export type AiProviderId = "ollama" | "google";
+
+export interface AiModelDto {
+  id: string;
+  provider: AiProviderId;
+  displayName: string;
+  kind: "CHAT" | "EMBEDDING";
+  available: boolean;
 }
 
 function unwrap<T>(response: { data?: { data?: T } }): T {
@@ -57,6 +69,11 @@ function unwrap<T>(response: { data?: { data?: T } }): T {
 export const aiChatService = {
   async getStatus() {
     const response = await apiClient.get<{ data: AiStatusDto }>("/ai/status");
+    return unwrap(response);
+  },
+
+  async getModels() {
+    const response = await apiClient.get<{ data: AiModelDto[] }>("/ai/models");
     return unwrap(response);
   },
 
@@ -91,10 +108,10 @@ export const aiChatService = {
     return unwrap(response);
   },
 
-  async sendMessage(conversationId: string, content: string) {
+  async sendMessage(conversationId: string, content: string, model?: string) {
     const response = await apiClient.post<{ data: ChatReplyDto }>(
       `/ai/conversations/${conversationId}/messages`,
-      { content }
+      { content, ...(model ? { model } : {}) }
     );
     return unwrap(response);
   },
@@ -115,7 +132,8 @@ export const aiChatService = {
   async streamMessage(
     conversationId: string,
     content: string,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    model?: string
   ): Promise<void> {
     const token = await getValidAccessToken();
     const response = await fetch(
@@ -126,7 +144,7 @@ export const aiChatService = {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, ...(model ? { model } : {}) }),
       }
     );
 

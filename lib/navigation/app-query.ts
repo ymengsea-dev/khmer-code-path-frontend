@@ -28,6 +28,7 @@ export const QueryKey = {
   schoolTab: "schoolTab",
   permissionsTab: "permissionsTab",
   faculty: "faculty",
+  department: "department",
 } as const;
 
 export type AppView =
@@ -45,6 +46,7 @@ export type AppView =
   | "student-management"
   | "attendance-management"
   | "departments"
+  | "department-detail"
   | "operations"
   | "faculty-management"
   | "faculty-detail"
@@ -100,6 +102,7 @@ const VALID_VIEWS = new Set<string>([
   "student-management",
   "attendance-management",
   "departments",
+  "department-detail",
   "operations",
   "faculty-management",
   "faculty-detail",

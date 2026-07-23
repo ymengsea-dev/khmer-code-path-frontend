@@ -2,11 +2,13 @@ export interface GenerateQuizRequest {
   materialId?: number;
   questionCount?: number;
   difficulty?: string;
+  model?: string;
 }
 
 export interface GenerateFromContentRequest {
   questionCount?: number;
   difficulty?: string;
+  model?: string;
 }
 
 export interface LessonSummaryGenerateDto {

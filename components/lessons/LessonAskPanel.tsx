@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { lessonAiService } from "@/lib/services/lesson-ai-service";
 import { noteService } from "@/lib/services/note-service";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 import type { LessonCitationDto } from "@/lib/types/lesson-ai-api";
 
 function SaveNoteButton({ content, lessonId, lessonTitle }: { content: string; lessonId: number; lessonTitle: string }) {
@@ -70,7 +71,7 @@ interface LessonAskPanelProps {
   hasLessonContent: boolean;
   materialId?: number | null;
   /** When provided, shows a "Summarize" chip that injects summary as a chat message */
-  onSummarize?: () => Promise<string>;
+  onSummarize?: (model?: string) => Promise<string>;
   /** Footer-only layout for AI Tools — input always visible, no empty message area */
   compactFooter?: boolean;
 }
@@ -88,6 +89,7 @@ export function LessonAskPanel({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const canAsk = aiReady || hasLessonContent;
@@ -106,7 +108,7 @@ export function LessonAskPanel({
     setSending(true);
     setError(null);
     try {
-      const summary = await onSummarize();
+      const summary = await onSummarize(selectedModel ?? undefined);
       setMessages((prev) => [
         ...prev,
         { id: `summary-${Date.now()}`, role: "assistant", content: summary },
@@ -127,7 +129,11 @@ export function LessonAskPanel({
     const tmpId = `tmp-${Date.now()}`;
     setMessages((prev) => [...prev, { id: tmpId, role: "user", content: text }]);
     try {
-      const reply = await lessonAiService.askLesson(lessonId, { question: text, materialId });
+      const reply = await lessonAiService.askLesson(lessonId, {
+        question: text,
+        materialId,
+        model: selectedModel ?? undefined,
+      });
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== tmpId),
         { id: `u-${Date.now()}`, role: "user", content: text },
@@ -252,6 +258,13 @@ export function LessonAskPanel({
 
       {/* Compose bar */}
       <div className={cn("shrink-0 px-3 pb-3 pt-2", !compactFooter && "mt-auto")}>
+        <div className="mb-2 flex justify-end">
+          <ModelSelector
+            value={selectedModel}
+            onChange={setSelectedModel}
+            className="text-[10px] font-medium rounded-lg border border-black/8 bg-transparent px-2 py-1 text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
+          />
+        </div>
         {onSummarize && !compactFooter && canAsk && messages.length === 0 && !sending && (
           <button
             type="button"

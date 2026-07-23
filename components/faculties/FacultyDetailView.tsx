@@ -42,6 +42,7 @@ export function FacultyDetailView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [removingCover, setRemovingCover] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -103,6 +104,27 @@ export function FacultyDetailView({
       setError(getApiErrorMessage(err, "Could not update faculty profile."));
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!faculty) return;
+    if (
+      !window.confirm(
+        `Delete faculty “${faculty.name}”? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await facultyService.deleteFaculty(faculty.id);
+      onBack();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Could not delete faculty."));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -230,6 +252,28 @@ export function FacultyDetailView({
                 {config?.saveButtonLabel ?? "Save"}
               </button>
             </form>
+
+            <div className="mt-2 border-t border-destructive/20 pt-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Danger zone
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Deleting removes this faculty. Move or delete its departments first.
+              </p>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => void handleDelete()}
+                className={cn(
+                  "mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold",
+                  "border border-destructive/40 text-destructive",
+                  "hover:bg-destructive/10 disabled:opacity-50 transition-colors",
+                )}
+              >
+                {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Delete faculty
+              </button>
+            </div>
           </Card>
 
           <Card

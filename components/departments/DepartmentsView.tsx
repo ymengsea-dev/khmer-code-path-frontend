@@ -2,13 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Plus, Loader2, GraduationCap } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { glassBtnPrimaryClass } from "@/components/ui/glass-field";
 import { BouncyStagger, BouncyStaggerItem } from "@/components/motion/BouncyStagger";
 import { departmentService } from "@/lib/services/department-service";
@@ -17,6 +10,8 @@ import { cn } from "@/lib/utils";
 import type { Department } from "@/data/departments";
 import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { useQueryParams } from "@/lib/hooks/use-query-params";
+import { QueryKey } from "@/lib/navigation/app-query";
 import {
   DepartmentFormDialog,
   type DepartmentFormValues,
@@ -24,6 +19,7 @@ import {
 import { DepartmentCard } from "./DepartmentCard";
 
 export function DepartmentsView() {
+  const { setParams } = useQueryParams();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const role =
     (currentUser?.role?.toLowerCase() as "student" | "teacher" | "admin") ?? "student";
@@ -34,13 +30,17 @@ export function DepartmentsView() {
   const [error, setError] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<"add" | "edit">("add");
-  const [editing, setEditing] = useState<Department | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [facultyDept, setFacultyDept] = useState<Department | null>(null);
-  const [facultyNames, setFacultyNames] = useState<string[]>([]);
-  const [facultyLoading, setFacultyLoading] = useState(false);
+  const openDetail = useCallback(
+    (id: number) => {
+      setParams({
+        [QueryKey.view]: "department-detail",
+        [QueryKey.department]: String(id),
+      });
+    },
+    [setParams],
+  );
 
   const loadDepartments = useCallback(async () => {
     setLoading(true);
@@ -67,59 +67,21 @@ export function DepartmentsView() {
     }
   }, [roleLoaded, role, loadDepartments]);
 
-  useEffect(() => {
-    if (!facultyDept) {
-      setFacultyNames([]);
-      return;
-    }
-    let cancelled = false;
-    async function loadFaculty() {
-      setFacultyLoading(true);
-      try {
-        const detail = await departmentService.getDepartment(facultyDept!.id);
-        if (!cancelled) {
-          setFacultyNames(detail.assignedTeachers ?? []);
-        }
-      } catch {
-        if (!cancelled) setFacultyNames([]);
-      } finally {
-        if (!cancelled) setFacultyLoading(false);
-      }
-    }
-    void loadFaculty();
-    return () => {
-      cancelled = true;
-    };
-  }, [facultyDept]);
-
-  const handleSave = async (values: DepartmentFormValues) => {
+  const handleCreateSave = async (values: DepartmentFormValues) => {
     setSaving(true);
     setError(null);
     try {
-      if (formMode === "edit" && editing) {
-        const updated = await departmentService.updateDepartment(
-          editing.id,
-          departmentService.buildUpdatePayload(values),
-        );
-        setDepartments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-      } else {
-        const created = await departmentService.createDepartment(
-          departmentService.buildCreatePayload(values),
-        );
-        setDepartments((prev) => [...prev, created]);
-      }
+      const created = await departmentService.createDepartment(
+        departmentService.buildCreatePayload(values),
+      );
+      setDepartments((prev) => [...prev, created]);
       setFormOpen(false);
+      openDetail(created.id);
     } catch {
-      setError("Failed to save department.");
+      setError("Failed to create department.");
     } finally {
       setSaving(false);
     }
-  };
-
-  const openAddForm = () => {
-    setFormMode("add");
-    setEditing(null);
-    setFormOpen(true);
   };
 
   if (!roleLoaded) {
@@ -148,7 +110,7 @@ export function DepartmentsView() {
       <div className="mb-4 flex shrink-0 justify-end">
         <button
           type="button"
-          onClick={openAddForm}
+          onClick={() => setFormOpen(true)}
           className={cn(glassBtnPrimaryClass, "h-10 shrink-0 gap-1.5 px-4 text-xs font-semibold")}
         >
           <Plus className="h-4 w-4" />
@@ -173,7 +135,7 @@ export function DepartmentsView() {
             <p className="text-sm font-semibold text-foreground">No departments yet</p>
             <button
               type="button"
-              onClick={openAddForm}
+              onClick={() => setFormOpen(true)}
               className={cn(glassBtnPrimaryClass, "mt-1 h-9 gap-1.5 px-4 text-xs font-semibold")}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -194,12 +156,8 @@ export function DepartmentsView() {
                     dept={dept}
                     teachersLabel="Teachers"
                     classesLabel="Classes"
-                    onTeachers={() => setFacultyDept(dept)}
-                    onEdit={() => {
-                      setFormMode("edit");
-                      setEditing(dept);
-                      setFormOpen(true);
-                    }}
+                    onTeachers={() => openDetail(dept.id)}
+                    onEdit={() => openDetail(dept.id)}
                   />
                 </BouncyStaggerItem>
               ))}
@@ -211,40 +169,11 @@ export function DepartmentsView() {
       <DepartmentFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        mode={formMode}
-        initial={editing}
+        mode="add"
         faculties={faculties}
         saving={saving}
-        onSave={handleSave}
+        onSave={handleCreateSave}
       />
-
-      <Dialog open={Boolean(facultyDept)} onOpenChange={(open) => !open && setFacultyDept(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Teachers — {facultyDept?.name}</DialogTitle>
-            <DialogDescription>
-              {facultyDept?.teacherCount ?? 0} teachers assigned to this department.
-            </DialogDescription>
-          </DialogHeader>
-          {facultyLoading ? (
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-          ) : facultyNames.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No teachers listed.</p>
-          ) : (
-            <ul className="space-y-1 text-sm">
-              {facultyNames.map((name) => (
-                <li key={name} className="font-medium text-foreground">
-                  {name}
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="pt-2 text-sm text-muted-foreground">
-            Head of department:{" "}
-            <span className="font-medium text-foreground">{facultyDept?.headOfDept}</span>
-          </p>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -86,6 +86,10 @@ export const departmentService = {
     return mapDepartmentDto(response.data.data);
   },
 
+  async deleteDepartment(id: number): Promise<void> {
+    await apiClient.delete(`/departments/${id}`);
+  },
+
   buildCreatePayload(values: {
     name: string;
     facultyId: number;

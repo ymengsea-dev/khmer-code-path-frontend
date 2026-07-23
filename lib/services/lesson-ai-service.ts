@@ -14,12 +14,13 @@ export const lessonAiService = {
 
   async generateSummaryFromLesson(
     lessonId: number,
-    materialId: number
+    materialId: number,
+    model?: string
   ): Promise<LessonSummaryGenerateDto> {
     const response = await apiClient.post<{ data: LessonSummaryGenerateDto }>(
       `/lessons/${lessonId}/summary`,
       null,
-      { params: { materialId } }
+      { params: { materialId, ...(model ? { model } : {}) } }
     );
     return response.data.data;
   },
@@ -34,6 +35,7 @@ export const lessonAiService = {
         materialId: request.materialId,
         questionCount: request.questionCount ?? 10,
         difficulty: request.difficulty ?? "medium",
+        ...(request.model ? { model: request.model } : {}),
       }
     );
     return response.data.data;
@@ -42,17 +44,20 @@ export const lessonAiService = {
   // ── Lesson (class) — written notes (direct LLM, no file) ─────────────────
 
   async generateSummaryFromLessonContent(
-    lessonId: number
+    lessonId: number,
+    model?: string
   ): Promise<LessonSummaryGenerateDto> {
     const response = await apiClient.post<{ data: LessonSummaryGenerateDto }>(
-      `/lessons/${lessonId}/summary/from-content`
+      `/lessons/${lessonId}/summary/from-content`,
+      undefined,
+      { params: { ...(model ? { model } : {}) } }
     );
     return response.data.data;
   },
 
   async askLesson(
     lessonId: number,
-    payload: { question: string; materialId?: number | null }
+    payload: { question: string; materialId?: number | null; model?: string }
   ): Promise<LessonAnswerDto> {
     const response = await apiClient.post<{ data: LessonAnswerDto }>(
       `/lessons/${lessonId}/ask`,
@@ -63,7 +68,7 @@ export const lessonAiService = {
 
   async improveLesson(
     lessonId: number,
-    payload: { goal: string; persist: boolean }
+    payload: { goal: string; persist: boolean; model?: string }
   ): Promise<LessonImproveDto> {
     const response = await apiClient.post<{ data: LessonImproveDto }>(
       `/lessons/${lessonId}/improve`,
@@ -93,6 +98,7 @@ export const lessonAiService = {
       difficulty: request.difficulty ?? "medium",
     };
     if (request.materialId != null) body.materialId = request.materialId;
+    if (request.model) body.model = request.model;
     const response = await apiClient.post<{ data: QuizGenerateDto }>(
       `/materials/library/${libraryItemId}/quizzes/generate`,
       body
@@ -111,16 +117,20 @@ export const lessonAiService = {
       {
         questionCount: request.questionCount ?? 10,
         difficulty: request.difficulty ?? "medium",
+        ...(request.model ? { model: request.model } : {}),
       }
     );
     return response.data.data;
   },
 
   async generateSummaryFromLibraryContent(
-    libraryItemId: number
+    libraryItemId: number,
+    model?: string
   ): Promise<LessonSummaryGenerateDto> {
     const response = await apiClient.post<{ data: LessonSummaryGenerateDto }>(
-      `/materials/library/${libraryItemId}/summary/from-content`
+      `/materials/library/${libraryItemId}/summary/from-content`,
+      undefined,
+      { params: { ...(model ? { model } : {}) } }
     );
     return response.data.data;
   },

@@ -17,6 +17,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 import {
   aiChatService,
   type ChatMessageDto,
@@ -383,6 +384,7 @@ export function AiChatView() {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [aiUnavailable, setAiUnavailable] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // True after the first load snaps to bottom; resets on unmount (tab switch).
@@ -530,6 +532,7 @@ export function AiChatView() {
             rafRef.current = requestAnimationFrame(flushStreamBuffer);
           }
         },
+        selectedModel ?? undefined,
       );
 
       // Cancel any pending frame, then do a final synchronous flush.
@@ -760,10 +763,10 @@ export function AiChatView() {
         >
           {/* Top bar */}
           <div
-            className="shrink-0 h-[48px] px-5 flex items-center justify-center"
+            className="shrink-0 h-[48px] px-5 flex items-center justify-between gap-3"
             style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
           >
-            <p className="text-[13px] font-semibold text-foreground truncate max-w-[60%] text-center tracking-tight">
+            <p className="text-[13px] font-semibold text-foreground truncate tracking-tight">
               {activeConversation?.title ?? "New Chat"}
             </p>
           </div>
@@ -891,13 +894,21 @@ export function AiChatView() {
           <div className="shrink-0 px-4 sm:px-6 pb-4 pt-2">
             <form
               onSubmit={handleSubmit}
-              className="mx-auto max-w-3xl flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all duration-200"
+              className="mx-auto max-w-3xl flex items-center gap-2 rounded-2xl pl-2 pr-2.5 py-2 transition-all duration-200"
               style={{
                 background: "var(--glass-bg)",
                 border: "1px solid var(--glass-border-color)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
               }}
             >
+              <ModelSelector
+                value={selectedModel}
+                onChange={setSelectedModel}
+                className="shrink-0"
+              />
+
+              <div className="w-px self-stretch my-1 bg-black/8 shrink-0" />
+
               <div className="flex-1 min-w-0 flex items-center">
                 <textarea
                   ref={textareaRef}
@@ -912,7 +923,7 @@ export function AiChatView() {
                   }
                   className={cn(
                     "ai-composer-textarea",
-                    "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent pt-2 pb-3 px-0 m-0 border-0",
+                    "w-full min-h-[24px] max-h-[140px] resize-none bg-transparent py-2 px-3 m-0 border-0",
                     "text-[14px] leading-normal text-foreground placeholder:text-muted-foreground/60",
                     "focus-visible:outline-none disabled:opacity-50",
                   )}

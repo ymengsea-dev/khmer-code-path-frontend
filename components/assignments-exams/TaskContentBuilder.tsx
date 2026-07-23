@@ -14,6 +14,7 @@ import {
   GlassInput,
   GlassSelect,
   glassBtnSubtleClass,
+  glassSelectClass,
 } from "@/components/ui/glass-field";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -23,6 +24,7 @@ import {
   type QuizMaterialSource,
 } from "@/lib/quiz-material-sources";
 import { lessonAiService } from "@/lib/services/lesson-ai-service";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 import { assignmentsExamsService } from "@/lib/services/assignments-exams-service";
 import type { ContentBuilderLabels } from "@/lib/assignments-exams-ui";
 import type { TaskContentDraft } from "@/lib/task-content-draft";
@@ -47,6 +49,7 @@ export function TaskContentBuilder({
   const [sourcesError, setSourcesError] = useState<string | null>(null);
   const [selectedSourceKey, setSelectedSourceKey] = useState("");
   const [questionCount, setQuestionCount] = useState("10");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [libraryPickKey, setLibraryPickKey] = useState("");
@@ -92,10 +95,11 @@ export function TaskContentBuilder({
     setGenerateError(null);
     try {
       let result;
+      const model = selectedModel ?? undefined;
       if (selectedSource.kind === "lesson" && selectedSource.lessonId != null) {
         result = await lessonAiService.generateQuizFromLesson(
           selectedSource.lessonId,
-          { materialId: selectedSource.materialId, questionCount: count },
+          { materialId: selectedSource.materialId, questionCount: count, model },
         );
       } else if (
         selectedSource.kind === "library-content" &&
@@ -103,7 +107,7 @@ export function TaskContentBuilder({
       ) {
         result = await lessonAiService.generateQuizFromLibraryContent(
           selectedSource.libraryItemId,
-          { questionCount: count },
+          { questionCount: count, model },
         );
       } else if (
         selectedSource.kind === "library" &&
@@ -114,6 +118,7 @@ export function TaskContentBuilder({
           {
             materialId: selectedSource.materialId,
             questionCount: count,
+            model,
           },
         );
       } else {
@@ -250,6 +255,11 @@ export function TaskContentBuilder({
                 </optgroup>
               ))}
             </GlassSelect>
+            <ModelSelector
+              value={selectedModel}
+              onChange={setSelectedModel}
+              className={cn(glassSelectClass, "h-11 w-full sm:w-auto text-xs")}
+            />
             <GlassInput
               type="number"
               min={1}

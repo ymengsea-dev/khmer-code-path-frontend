@@ -19,6 +19,7 @@ import { AiChatView } from "@/components/ai-chat/AiChatView";
 import { StudentManagementView } from "@/components/users/StudentManagementView";
 import { AttendanceManagementView } from "@/components/attendance/AttendanceManagementView";
 import { DepartmentsView } from "@/components/departments/DepartmentsView";
+import { DepartmentDetailView } from "@/components/departments/DepartmentDetailView";
 import { OperationsView } from "@/components/operations/OperationsView";
 import { FacultyManagementView } from "@/components/faculties/FacultyManagementView";
 import { FacultyDetailView } from "@/components/faculties/FacultyDetailView";
@@ -72,6 +73,7 @@ const VIEW_LABELS: Record<AppView, string> = {
   "student-management": "Student Management",
   "attendance-management": "Attendance Management",
   departments:    "Departments",
+  "department-detail": "Department",
   operations:     "Operations",
   "faculty-management": "Faculty Management",
   "faculty-detail": "Faculty",
@@ -102,6 +104,7 @@ export function HomePage() {
   const viewParam = searchParams.get(QueryKey.view);
   const courseParam = searchParams.get(QueryKey.course);
   const facultyParam = searchParams.get(QueryKey.faculty);
+  const departmentParam = searchParams.get(QueryKey.department);
   const lessonParam = searchParams.get(QueryKey.lesson);
   const moduleParam = searchParams.get(QueryKey.module);
 
@@ -130,6 +133,7 @@ export function HomePage() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [classDetailTitle, setClassDetailTitle] = useState<string | null>(null);
   const [facultyDetailTitle, setFacultyDetailTitle] = useState<string | null>(null);
+  const [departmentDetailTitle, setDepartmentDetailTitle] = useState<string | null>(null);
   const [publicCoursesNavLabel, setPublicCoursesNavLabel] = useState<string | null>(null);
   const headerName = displayName || session?.user?.name?.trim() || null;
   const showAssignmentsExams = canAccessAssignmentsExams(appRole);
@@ -144,6 +148,10 @@ export function HomePage() {
 
   useEffect(() => {
     if (activeNav !== "faculty-detail") setFacultyDetailTitle(null);
+  }, [activeNav]);
+
+  useEffect(() => {
+    if (activeNav !== "department-detail") setDepartmentDetailTitle(null);
   }, [activeNav]);
 
   useEffect(() => {
@@ -234,6 +242,7 @@ export function HomePage() {
 
       updates[QueryKey.detail] = null;
       updates[QueryKey.faculty] = null;
+      updates[QueryKey.department] = null;
 
       setParams(updates);
     },
@@ -312,6 +321,13 @@ export function HomePage() {
     });
   }, [setParams]);
 
+  const handleBackToDepartments = useCallback(() => {
+    setParams({
+      [QueryKey.view]: "departments",
+      [QueryKey.department]: null,
+    });
+  }, [setParams]);
+
   return (
     <SidebarProvider className="h-screen w-full overflow-hidden bg-transparent text-foreground font-sans">
         <Sidebar
@@ -320,7 +336,9 @@ export function HomePage() {
               ? "classes"
               : activeNav === "faculty-detail"
                 ? "faculty-management"
-                : activeNav
+                : activeNav === "department-detail"
+                  ? "departments"
+                  : activeNav
           }
           activeCourseId={activeCourseId}
           lessonClasses={lessonClasses}
@@ -358,6 +376,12 @@ export function HomePage() {
               <GlassPageTitle>
                 <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
                   {facultyDetailTitle ?? "Faculty"}
+                </h1>
+              </GlassPageTitle>
+            ) : activeNav === "department-detail" ? (
+              <GlassPageTitle>
+                <h1 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 truncate leading-tight">
+                  {departmentDetailTitle ?? "Department"}
                 </h1>
               </GlassPageTitle>
             ) : (
@@ -458,6 +482,13 @@ export function HomePage() {
             {activeNav === "student-management" && <StudentManagementView />}
             {activeNav === "attendance-management" && <AttendanceManagementView />}
             {activeNav === "departments" && <DepartmentsView />}
+            {activeNav === "department-detail" && (
+              <DepartmentDetailView
+                departmentId={departmentParam}
+                onBack={handleBackToDepartments}
+                onDepartmentNameLoaded={setDepartmentDetailTitle}
+              />
+            )}
             {activeNav === "operations" && <OperationsView />}
             {activeNav === "faculty-management" && <FacultyManagementView />}
             {activeNav === "faculty-detail" && (

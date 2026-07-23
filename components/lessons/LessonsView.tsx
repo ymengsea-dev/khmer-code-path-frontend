@@ -32,6 +32,7 @@ import { SelectionNotePopup } from "@/components/lessons/SelectionNotePopup";
 import { LessonAskPanel } from "@/components/lessons/LessonAskPanel";
 import { LessonRichContent } from "@/components/lessons/LessonRichContent";
 import { ClassCommentsPanel } from "@/components/classes/ClassCommentsPanel";
+import { ModelSelector } from "@/components/ai/ModelSelector";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { useNotifications } from "@/components/notifications/notification-context";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -217,6 +218,7 @@ export function LessonsView({
   );
   const [improvingLesson, setImprovingLesson] = useState(false);
   const [improvedContent, setImprovedContent] = useState<string | null>(null);
+  const [improveModel, setImproveModel] = useState<string | null>(null);
 
   const parsedClassId = classId ? Number(classId) : NaN;
   const isTeacher = role === "teacher" || role === "admin";
@@ -406,6 +408,7 @@ export function LessonsView({
       const result = await lessonAiService.improveLesson(lesson.id, {
         goal: improveGoal,
         persist,
+        model: improveModel ?? undefined,
       });
       setImprovedContent(result.improvedContent);
       if (result.persisted) {
@@ -924,10 +927,11 @@ export function LessonsView({
                               )
                             : null
                         }
-                        onSummarize={async () => {
+                        onSummarize={async (model) => {
                           const result =
                             await lessonAiService.generateSummaryFromLessonContent(
                               lesson.id,
+                              model,
                             );
                           return result.summary;
                         }}
@@ -937,11 +941,18 @@ export function LessonsView({
                 ) : (
                   <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pt-3 pb-3 space-y-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="text-xs font-bold text-foreground">
-                          AI Tools
-                        </span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                          <span className="text-xs font-bold text-foreground">
+                            AI Tools
+                          </span>
+                        </div>
+                        <ModelSelector
+                          value={improveModel}
+                          onChange={setImproveModel}
+                          className="text-[10px] font-medium rounded-lg border border-black/8 bg-transparent px-2 py-1 text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
+                        />
                       </div>
                       <textarea
                         value={improveGoal}

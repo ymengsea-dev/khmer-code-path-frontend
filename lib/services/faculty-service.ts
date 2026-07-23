@@ -51,6 +51,10 @@ export const facultyService = {
     return response.data.data;
   },
 
+  async deleteFaculty(id: number): Promise<void> {
+    await apiClient.delete(`/schools/me/faculties/${id}`);
+  },
+
   resolveCoverUrl(coverUrl: string | null | undefined): string | null {
     return resolveApiAssetUrl(coverUrl);
   },
