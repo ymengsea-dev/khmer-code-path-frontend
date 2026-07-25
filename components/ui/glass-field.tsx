@@ -12,7 +12,7 @@ export const glassSearchInputClass = cn(
 );
 
 export const glassSelectClass = cn(
-  "glass-select h-12 px-4 rounded-2xl text-sm font-semibold min-w-0",
+  "glass-select h-12 pl-4 pr-9 rounded-2xl text-sm font-semibold min-w-0",
   "text-zinc-700 dark:text-zinc-100",
   "focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50 disabled:cursor-not-allowed"
 );

@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import { getValidAccessToken } from "../auth/client-session";
 import { classService } from "./class-service";
 import type { ClassStudent } from "../types/class-api";
 
@@ -138,6 +139,50 @@ export const userService = {
       ...data,
       items: (data.items ?? []).map(mapUser),
     };
+  },
+
+  exportExcelUrl(params: {
+    classId?: string;
+    search?: string;
+    isActive?: boolean;
+  }): string {
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
+    const url = new URL(`${base}/student-management/students/export`);
+    if (params.classId && params.classId !== "all") {
+      url.searchParams.set("classId", params.classId);
+    }
+    if (params.search?.trim()) {
+      url.searchParams.set("search", params.search.trim());
+    }
+    if (params.isActive !== undefined) {
+      url.searchParams.set("isActive", String(params.isActive));
+    }
+    return url.toString();
+  },
+
+  async downloadExcel(params: {
+    classId?: string;
+    search?: string;
+    isActive?: boolean;
+  }): Promise<void> {
+    const token = await getValidAccessToken();
+    const url = this.exportExcelUrl(params);
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error("Export failed");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    const fileName = match?.[1] ?? "students.xlsx";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
   },
 
   async getStudent(id: string): Promise<StudentDetail> {

@@ -148,21 +148,34 @@ export function ClassStudentsPanel({
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Pending invitations ({pending.length})
           </p>
-          <ul className="space-y-2">
-            {pending.map((inv) => (
-              <li
-                key={inv.id}
-                className="rounded-xl px-3 py-2.5 flex items-center gap-3 border border-indigo-500/20 bg-indigo-500/5"
-              >
-                <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{inv.studentName}</p>
-                  <p className="text-[11px] text-muted-foreground">Awaiting acceptance</p>
-                </div>
-                <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[360px] text-left border-collapse text-[12px]">
+              <thead className="bg-transparent">
+                <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800">
+                  <th className="px-5 py-3">Student</th>
+                  <th className="px-5 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                {pending.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
+                        <span className="font-semibold text-foreground truncate">{inv.studentName}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        Awaiting acceptance
+                        <Mail className="h-3.5 w-3.5" />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -185,52 +198,66 @@ export function ClassStudentsPanel({
               Edit to see the full roster.
             </p>
           ) : null}
-          <ul
+          <div
             className={cn(
-              "space-y-2",
-              editing && cn(ROSTER_SCROLL_MAX_HEIGHT, "overflow-y-auto scrollbar-hide pr-1"),
+              "overflow-x-auto",
+              editing && cn(ROSTER_SCROLL_MAX_HEIGHT, "overflow-y-auto scrollbar-hide"),
             )}
           >
-            {(editing ? enrolled : enrolled.slice(0, VIEW_MODE_ROW_LIMIT)).map(
-              (student, index) => (
-            <li
-              key={student.id}
-              className="rounded-xl px-3 py-2.5 flex items-center gap-3 border border-black/5"
-            >
-              <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <UserAvatar
-                name={student.name}
-                avatarUrl={student.avatarUrl}
-                className="h-8 w-8"
-                textClassName="text-[10px]"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{student.name}</p>
-                {student.email ? (
-                  <p className="text-[11px] text-muted-foreground truncate">{student.email}</p>
-                ) : null}
-              </div>
-              {editing ? (
-                <GlassButton
-                  subtle
-                  className="h-8 w-8 p-0 rounded-lg shrink-0"
-                  disabled={removingId === student.id}
-                  onClick={() => void handleRemove(student)}
-                  aria-label={`Remove ${student.name}`}
-                >
-                  {removingId === student.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5" />
-                  )}
-                </GlassButton>
-              ) : null}
-            </li>
-              ),
-            )}
-          </ul>
+            <table className="w-full min-w-[420px] text-left border-collapse text-[12px]">
+              <thead className="bg-transparent">
+                <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800">
+                  <th className="px-5 py-3 w-12">#</th>
+                  <th className="px-5 py-3">Student</th>
+                  {editing && <th className="px-5 py-3 text-right">Action</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                {(editing ? enrolled : enrolled.slice(0, VIEW_MODE_ROW_LIMIT)).map(
+                  (student, index) => (
+                    <tr key={student.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                      <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <UserAvatar
+                            name={student.name}
+                            avatarUrl={student.avatarUrl}
+                            className="h-8 w-8"
+                            textClassName="text-[10px]"
+                          />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{student.name}</p>
+                            {student.email ? (
+                              <p className="text-[11px] text-muted-foreground truncate">{student.email}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </td>
+                      {editing && (
+                        <td className="px-5 py-3.5 text-right">
+                          <GlassButton
+                            subtle
+                            className="h-8 w-8 p-0 rounded-lg shrink-0"
+                            disabled={removingId === student.id}
+                            onClick={() => void handleRemove(student)}
+                            aria-label={`Remove ${student.name}`}
+                          >
+                            {removingId === student.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </GlassButton>
+                        </td>
+                      )}
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

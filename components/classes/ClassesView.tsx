@@ -187,19 +187,6 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      {canCreateClass && (
-        <div className="pt-3 shrink-0 flex justify-end">
-          <Button
-            size="sm"
-            className="gap-1.5 font-bold h-8.5 text-xs"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Create Class
-          </Button>
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto pt-3 space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 items-center">
           <GlassSearchInput
@@ -219,6 +206,16 @@ export function ClassesView({ onEnterClass }: ClassesViewProps) {
               </option>
             ))}
           </GlassSelect>
+          {canCreateClass && (
+            <Button
+              size="sm"
+              className="gap-1.5 font-bold h-12 text-xs w-full sm:w-auto shrink-0"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Create Class
+            </Button>
+          )}
         </div>
 
         {configError && (

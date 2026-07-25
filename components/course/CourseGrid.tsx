@@ -351,7 +351,7 @@ export function CourseGrid({
                   boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
                 }}
               >
-                {teacherDash.recentQuestions.map((q) => (
+                {teacherDash.recentQuestions.slice(0, 5).map((q) => (
                   <div
                     key={q.id}
                     role="button"

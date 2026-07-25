@@ -2,22 +2,27 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { BookOpen, Loader2 } from "lucide-react";
+import { ArrowRight, BookOpen, Loader2 } from "lucide-react";
 import { classService } from "@/lib/services/class-service";
 import type { PublicCourseSummary } from "@/lib/types/class-api";
 import { PUBLIC_COURSES_UI } from "@/lib/lms-ui/classes";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
+import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { CLASSES_UPDATED_EVENT } from "@/components/notifications/notification-context";
 import { GlassSearchInput } from "@/components/ui/glass-field";
 import { BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { PublicCourseCard } from "./PublicCourseCard";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 interface PublicCoursesViewProps {
   onEnterClass?: (payload: { classId: string; title: string; module: string }) => void;
 }
 
 export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
+  const { setParams } = useQueryParams();
+  const { data: currentUser } = useCurrentUser();
+  const isTeacher = currentUser?.role?.toLowerCase() === "teacher";
   const [searchQuery, setSearchQuery] = useDebouncedQueryState(QueryKey.q);
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -126,6 +131,22 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
 
       {publicCoursesEnabled && (
         <>
+          {isTeacher && (
+            <button
+              type="button"
+              onClick={() => setParams({ [QueryKey.view]: "classes" })}
+              className="shrink-0 flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left glass-panel hover:bg-white/40 dark:hover:bg-white/6 transition-colors"
+            >
+              <span className="text-sm text-foreground">
+                Want your class listed here? Open it from{" "}
+                <span className="font-semibold">Classes</span> and set its
+                visibility to <span className="font-semibold">Public</span> in
+                Settings.
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          )}
+
           <div className="shrink-0">
             <GlassSearchInput
               value={searchQuery}
@@ -162,6 +183,7 @@ export function PublicCoursesView({ onEnterClass }: PublicCoursesViewProps) {
                     studentsLabel="Students"
                     isLoading={enrollingId === course.id}
                     onAction={() => void handleSelfEnroll(course)}
+                    readOnly={isTeacher}
                   />
                 </BouncyStaggerItem>
               ))}

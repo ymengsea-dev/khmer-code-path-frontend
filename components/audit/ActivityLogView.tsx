@@ -3,13 +3,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, ScrollText } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { GlassSearchInput } from "@/components/ui/glass-field";
+import { GlassSearchInput, glassSelectClass } from "@/components/ui/glass-field";
 import { auditService, type AuditLogEntry } from "@/lib/services/audit-service";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { formatTimeAgo } from "@/lib/format-time-ago";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
+
+/** Mirrors AuditActions.java — grouped so the type filter reads as categories, not a flat action-code list. */
+const ACTION_GROUPS: { label: string; actions: string[] }[] = [
+  { label: "Auth", actions: ["AUTH_LOGIN", "AUTH_LOGIN_FAILED", "AUTH_LOGOUT", "USER_REGISTER", "PASSWORD_RESET_REQUEST", "PASSWORD_RESET_CONFIRM"] },
+  { label: "Classes", actions: ["CLASS_CREATE", "CLASS_UPDATE", "CLASS_DELETE"] },
+  { label: "Departments", actions: ["DEPARTMENT_CREATE", "DEPARTMENT_UPDATE", "DEPARTMENT_DELETE"] },
+  { label: "Faculties", actions: ["FACULTY_CREATE", "FACULTY_UPDATE", "FACULTY_DELETE"] },
+  { label: "Attendance", actions: ["ATTENDANCE_RECORD", "ATTENDANCE_UPDATE"] },
+  { label: "Exams", actions: ["EXAM_CREATE", "EXAM_SUBMIT", "EXAM_DELETE"] },
+  { label: "Grades", actions: ["GRADE_RECORD", "GRADE_UPDATE"] },
+  { label: "Permissions", actions: ["PERMISSION_UPDATE", "SCHOOL_FEATURES_UPDATE"] },
+];
+
+function actionLabel(action: string): string {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 /** Colour an action badge by what it signifies. */
 function actionTone(action: string): string {
@@ -39,12 +59,17 @@ export function ActivityLogView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
 
-  const load = useCallback(async (pageNum: number) => {
+  const load = useCallback(async (pageNum: number, action: string) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await auditService.list({ page: pageNum, size: PAGE_SIZE });
+      const data = await auditService.list({
+        page: pageNum,
+        size: PAGE_SIZE,
+        action: action || undefined,
+      });
       setEntries(data.items);
       setPage(data.page);
       setTotalPages(data.totalPages);
@@ -57,8 +82,9 @@ export function ActivityLogView() {
   }, []);
 
   useEffect(() => {
-    void load(0);
-  }, [load]);
+    void load(0, actionFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,7 +115,7 @@ export function ActivityLogView() {
       key={n}
       type="button"
       disabled={loading}
-      onClick={() => void load(n)}
+      onClick={() => void load(n, actionFilter)}
       aria-current={n === page ? "page" : undefined}
       className={cn(
         pagerBtnBase,
@@ -104,12 +130,29 @@ export function ActivityLogView() {
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Toolbar */}
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full sm:max-w-xs">
+        <div className="flex w-full flex-col gap-2 sm:max-w-md sm:flex-row">
           <GlassSearchInput
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter this page…"
           />
+          <select
+            className={cn(glassSelectClass, "sm:w-44")}
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            aria-label="Filter by activity type"
+          >
+            <option value="">All types</option>
+            {ACTION_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.actions.map((action) => (
+                  <option key={action} value={action}>
+                    {actionLabel(action)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
         <p className="text-xs text-muted-foreground">
           {totalElements.toLocaleString()} {totalElements === 1 ? "event" : "events"}
@@ -133,7 +176,7 @@ export function ActivityLogView() {
               <ScrollText className="h-6 w-6 text-indigo-500" />
             </div>
             <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-              {query ? "No matching events" : "No activity yet"}
+              {query || actionFilter ? "No matching events" : "No activity yet"}
             </p>
           </div>
         ) : (
@@ -218,7 +261,7 @@ export function ActivityLogView() {
               type="button"
               className={pagerBtnBase}
               disabled={loading || page <= 0}
-              onClick={() => void load(page - 1)}
+              onClick={() => void load(page - 1, actionFilter)}
               aria-label="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -248,7 +291,7 @@ export function ActivityLogView() {
               type="button"
               className={pagerBtnBase}
               disabled={loading || page >= totalPages - 1}
-              onClick={() => void load(page + 1)}
+              onClick={() => void load(page + 1, actionFilter)}
               aria-label="Next page"
             >
               <ChevronRight className="h-4 w-4" />

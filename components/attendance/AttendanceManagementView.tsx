@@ -249,6 +249,29 @@ export function AttendanceManagementView() {
           </p>
         )}
 
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard label="Students" value={roster?.rows.length ?? 0} />
+          <StatCard
+            label="Class average"
+            value={
+              roster?.classAverageRate == null
+                ? "—"
+                : `${roster.classAverageRate.toFixed(1)}%`
+            }
+            accent="text-violet-600 dark:text-violet-400"
+          />
+          <StatCard
+            label="Warned"
+            value={roster?.warnedCount ?? 0}
+            accent="text-amber-600 dark:text-amber-400"
+          />
+          <StatCard
+            label="Month"
+            value={selectedMonthLabel}
+            accent="text-sm font-bold truncate"
+          />
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
           <GlassSearchInput
             placeholder="Search students…"
@@ -283,7 +306,7 @@ export function AttendanceManagementView() {
             <button
               type="button"
               disabled={!selectedClassId || exporting}
-              className={cn(glassBtnPrimaryClass, "gap-2 text-xs h-10 px-4 shrink-0")}
+              className={cn(glassBtnPrimaryClass, "gap-2 text-xs h-12 px-4 shrink-0")}
               onClick={() => void handleExport()}
             >
               {exporting ? (
@@ -294,29 +317,6 @@ export function AttendanceManagementView() {
               Export Excel
             </button>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Students" value={roster?.rows.length ?? 0} />
-          <StatCard
-            label="Class average"
-            value={
-              roster?.classAverageRate == null
-                ? "—"
-                : `${roster.classAverageRate.toFixed(1)}%`
-            }
-            accent="text-violet-600 dark:text-violet-400"
-          />
-          <StatCard
-            label="Warned"
-            value={roster?.warnedCount ?? 0}
-            accent="text-amber-600 dark:text-amber-400"
-          />
-          <StatCard
-            label="Month"
-            value={selectedMonthLabel}
-            accent="text-sm font-bold truncate"
-          />
         </div>
 
         {loadError && (

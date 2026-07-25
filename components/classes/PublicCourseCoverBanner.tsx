@@ -10,12 +10,14 @@ export function PublicCourseCoverBanner({
   actionLabel,
   studentsLabel,
   isLoading,
+  readOnly,
 }: {
   course: PublicCourseSummary;
   enrolledLabel: string;
   actionLabel: string;
   studentsLabel: string;
   isLoading?: boolean;
+  readOnly?: boolean;
 }) {
   const semesterLabel = course.semesterLabel?.trim();
   const showSemester = Boolean(semesterLabel && semesterLabel !== "—");
@@ -71,17 +73,19 @@ export function PublicCourseCoverBanner({
           ) : null}
         </div>
 
-        <div
-          className={cn(
-            "flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/20 px-3 py-2 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-md transition-colors",
-            "group-hover:bg-white/30 group-disabled:opacity-70",
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
-          ) : null}
-          <span>{actionLabel}</span>
-        </div>
+        {!readOnly && (
+          <div
+            className={cn(
+              "flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/20 px-3 py-2 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-md transition-colors",
+              "group-hover:bg-white/30 group-disabled:opacity-70",
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+            ) : null}
+            <span>{actionLabel}</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -169,7 +169,7 @@ export function HomePage() {
   }, [appRole, viewParam, setParams]);
 
   useEffect(() => {
-    if (appRole !== "student") {
+    if (appRole !== "student" && appRole !== "teacher") {
       setPublicCoursesNavLabel(null);
       return;
     }

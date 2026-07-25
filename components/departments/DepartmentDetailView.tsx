@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   BookOpen,
   Building2,
+  ChevronRight,
   Loader2,
   Pencil,
   Save,
@@ -24,8 +25,12 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { departmentService } from "@/lib/services/department-service";
 import { facultyService } from "@/lib/services/faculty-service";
+import { classService } from "@/lib/services/class-service";
 import type { Department } from "@/data/departments";
 import type { FacultySummaryDto } from "@/lib/types/faculty-api";
+import type { ClassSummary } from "@/lib/types/class-api";
+import { useQueryParams } from "@/lib/hooks/use-query-params";
+import { QueryKey } from "@/lib/navigation/app-query";
 import { cn } from "@/lib/utils";
 
 const ACCENT_GRADIENT: Record<Department["accent"], string> = {
@@ -69,12 +74,21 @@ export function DepartmentDetailView({
   onDepartmentNameLoaded,
 }: DepartmentDetailViewProps) {
   const parsedId = departmentId ? Number(departmentId) : NaN;
+  const { setParams } = useQueryParams();
 
   const [dept, setDept] = useState<Department | null>(null);
-  const [teachers, setTeachers] = useState<string[]>([]);
   const [faculties, setFaculties] = useState<FacultySummaryDto[]>([]);
+  const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const teachers = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const cls of classes) {
+      if (cls.teacherId) byId.set(cls.teacherId, cls.teacherName);
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name }));
+  }, [classes]);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -98,9 +112,10 @@ export function DepartmentDetailView({
     setLoading(true);
     setError(null);
     try {
-      const [detail, facultyList] = await Promise.all([
+      const [detail, facultyList, classPage] = await Promise.all([
         departmentService.getDepartment(parsedId),
         facultyService.listFaculties(),
+        classService.listClasses({ departmentId: parsedId, size: 100 }),
       ]);
       const d = detail.department;
       const mapped: Department = {
@@ -119,8 +134,8 @@ export function DepartmentDetailView({
             : "violet"),
       };
       setDept(mapped);
-      setTeachers(detail.assignedTeachers ?? []);
       setFaculties(facultyList);
+      setClasses(classPage.items ?? []);
       onDepartmentNameLoaded?.(mapped.name);
     } catch {
       setError("Could not load department.");
@@ -274,7 +289,7 @@ export function DepartmentDetailView({
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/20 backdrop-blur-md">
                 <Users className="h-3.5 w-3.5 opacity-90" />
-                <span className="tabular-nums">{dept.teacherCount}</span>
+                <span className="tabular-nums">{teachers.length}</span>
                 <span className="opacity-90">teachers</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/20 backdrop-blur-md">
@@ -444,32 +459,97 @@ export function DepartmentDetailView({
           )}
         </Card>
 
-        {/* Teachers */}
-        <Card bouncy={false} className="rounded-2xl p-5 space-y-3" style={glassSectionStyle()}>
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-extrabold text-foreground">Teachers</h3>
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-              {dept.teacherCount}
-            </span>
-          </div>
-          {teachers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No teachers assigned yet.</p>
-          ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {teachers.map((name) => (
-                <li
-                  key={name}
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 glass-panel-subtle"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-[11px] font-bold text-white">
-                    {name.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="truncate text-sm font-medium text-foreground">{name}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        {/* Instructors */}
+        <h3 className="text-sm font-extrabold text-foreground">Instructors</h3>
+        {teachers.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No instructors yet — instructors show up here once a class in this department has one.
+          </p>
+        ) : (
+          <Card bouncy={false} className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[320px] text-left border-collapse text-[12px]">
+                <thead>
+                  <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800 bg-white/30 dark:bg-zinc-950/30">
+                    <th className="px-5 py-3">Instructor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                  {teachers.map((teacher) => (
+                    <tr key={teacher.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="glass-panel-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-muted-foreground">
+                            {teacher.name.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate font-medium text-foreground">{teacher.name}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {/* Classes */}
+        <h3 className="text-sm font-extrabold text-foreground">Classes</h3>
+        {classes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No classes yet.</p>
+        ) : (
+          <Card bouncy={false} className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left border-collapse text-[12px]">
+                <thead>
+                  <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800 bg-white/30 dark:bg-zinc-950/30">
+                    <th className="px-5 py-3">Class</th>
+                    <th className="px-5 py-3">Enrolled</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                  {classes.map((cls) => (
+                    <tr
+                      key={cls.id}
+                      className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors cursor-pointer"
+                      onClick={() =>
+                        setParams({
+                          [QueryKey.view]: "class-detail",
+                          [QueryKey.course]: String(cls.id),
+                        })
+                      }
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="glass-panel-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground">
+                            <BookOpen className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{cls.name}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {cls.code} · {cls.teacherName}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums">{cls.enrolledCount}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          {cls.statusLabel}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <ChevronRight className="h-4 w-4 inline-block text-muted-foreground/50" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
 
         {/* Danger zone */}
         <Card

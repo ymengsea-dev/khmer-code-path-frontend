@@ -833,61 +833,57 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
                   ? " Assign a template above to add lessons."
                   : " Click Edit to manage lessons."}
               </p>
-            ) : editingSection === "lessons" ? (
-              <ul className="space-y-2">
-                {lessons.map((lesson, index) => (
-                  <li
-                    key={lesson.id}
-                    className="rounded-xl px-3 py-2.5 flex items-center gap-3 border border-black/5"
-                  >
-                    <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <BookOpen className="h-4 w-4 text-violet-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{lesson.title}</p>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
-                      <FileText className="h-3 w-3" />
-                      {lesson.materialCount}
-                    </span>
-                    <GlassButton
-                      subtle
-                      className="h-9 w-9 rounded-xl text-destructive shrink-0"
-                      disabled={deletingLessonId === lesson.id}
-                      aria-label={`Remove ${lesson.title}`}
-                      onClick={() => void handleRemoveLesson(lesson)}
-                    >
-                      {deletingLessonId === lesson.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
-                    </GlassButton>
-                  </li>
-                ))}
-              </ul>
             ) : (
-              <ul className="space-y-2">
-                {lessons.map((lesson, index) => (
-                  <li
-                    key={lesson.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-black/5"
-                  >
-                    <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <BookOpen className="h-4 w-4 text-violet-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{lesson.title}</p>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
-                      <FileText className="h-3 w-3" />
-                      {lesson.materialCount}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[420px] text-left border-collapse text-[12px]">
+                  <thead className="bg-transparent">
+                    <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800 bg-white/30 dark:bg-zinc-950/30">
+                      <th className="px-5 py-3 w-12">#</th>
+                      <th className="px-5 py-3">Lesson</th>
+                      <th className="px-5 py-3">Materials</th>
+                        {editingSection === "lessons" && <th className="px-5 py-3 text-right">Action</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                      {lessons.map((lesson, index) => (
+                        <tr key={lesson.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                          <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
+                            {String(index + 1).padStart(2, "0")}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <BookOpen className="h-4 w-4 text-violet-500 shrink-0" />
+                              <span className="font-semibold text-foreground truncate">{lesson.title}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <FileText className="h-3 w-3" />
+                              {lesson.materialCount}
+                            </span>
+                          </td>
+                          {editingSection === "lessons" && (
+                            <td className="px-5 py-3.5 text-right">
+                              <GlassButton
+                                subtle
+                                className="h-9 w-9 rounded-xl text-destructive shrink-0"
+                                disabled={deletingLessonId === lesson.id}
+                                aria-label={`Remove ${lesson.title}`}
+                                onClick={() => void handleRemoveLesson(lesson)}
+                              >
+                                {deletingLessonId === lesson.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </GlassButton>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
             )}
             {lessonsError && <p className="text-xs text-rose-600">{lessonsError}</p>}
           </SectionCard>
@@ -954,60 +950,63 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
                   ? " Assign a quiz above to add one to this class."
                   : " Click Edit to manage quizzes."}
               </p>
-            ) : editingSection === "quizzes" ? (
-              <ul className="space-y-2">
-                {classQuizzes.map((quiz, index) => (
-                  <li
-                    key={quiz.id}
-                    className="rounded-xl px-3 py-2.5 flex items-center gap-3 border border-black/5"
-                  >
-                    <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <FlaskConical className="h-4 w-4 text-violet-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{quiz.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {quiz.questionCount} questions
-                        {quiz.durationMinutes != null ? ` · ${quiz.durationMinutes} min` : ""}
-                      </p>
-                    </div>
-                    <GlassButton
-                      subtle
-                      className="h-8 w-8 p-0 rounded-lg shrink-0"
-                      disabled={deletingQuizId === quiz.id}
-                      onClick={() => void handleRemoveQuiz(quiz)}
-                    >
-                      {deletingQuizId === quiz.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
-                    </GlassButton>
-                  </li>
-                ))}
-              </ul>
             ) : (
-              <ul className="space-y-2">
-                {classQuizzes.map((quiz, index) => (
-                  <li
-                    key={quiz.id}
-                    className="rounded-xl px-3 py-2.5 flex items-center gap-3 border border-black/5"
-                  >
-                    <span className="text-xs font-bold text-muted-foreground w-6 shrink-0">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <FlaskConical className="h-4 w-4 text-violet-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{quiz.title}</p>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
-                      <HelpCircle className="h-3 w-3" />
-                      {quiz.questionCount}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-left border-collapse text-[12px]">
+                    <thead className="bg-transparent">
+                      <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800">
+                        <th className="px-5 py-3 w-12">#</th>
+                        <th className="px-5 py-3">Quiz</th>
+                        <th className="px-5 py-3">Questions</th>
+                        {editingSection === "quizzes" && <th className="px-5 py-3 text-right">Action</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                      {classQuizzes.map((quiz, index) => (
+                        <tr key={quiz.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                          <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
+                            {String(index + 1).padStart(2, "0")}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FlaskConical className="h-4 w-4 text-violet-500 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground truncate">{quiz.title}</p>
+                                {editingSection === "quizzes" && quiz.durationMinutes != null && (
+                                  <p className="text-[11px] text-muted-foreground truncate">
+                                    {quiz.durationMinutes} min
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <HelpCircle className="h-3 w-3" />
+                              {quiz.questionCount}
+                            </span>
+                          </td>
+                          {editingSection === "quizzes" && (
+                            <td className="px-5 py-3.5 text-right">
+                              <GlassButton
+                                subtle
+                                className="h-8 w-8 p-0 rounded-lg shrink-0"
+                                disabled={deletingQuizId === quiz.id}
+                                onClick={() => void handleRemoveQuiz(quiz)}
+                              >
+                                {deletingQuizId === quiz.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </GlassButton>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
             )}
             {quizzesError && <p className="text-xs text-rose-600">{quizzesError}</p>}
           </SectionCard>

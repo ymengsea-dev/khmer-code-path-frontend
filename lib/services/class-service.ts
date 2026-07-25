@@ -22,6 +22,7 @@ export interface ListClassesParams {
   semester?: string;
   academicYear?: number;
   status?: string;
+  departmentId?: number;
   page?: number;
   size?: number;
 }

@@ -131,40 +131,41 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
     );
   }
 
-  // Read view — weekly grid grouped by day.
+  // Read view — flat table sorted by day, then start time.
   if (!editing) {
-    const byDay = DAYS.map((day) => ({
-      day,
-      items: slots
-        .filter((s) => s.dayOfWeek === day)
-        .sort((a, b) => a.startTime.localeCompare(b.startTime)),
-    }));
-    const hasAny = slots.length > 0;
+    const dayOrder = new Map(DAYS.map((day, i) => [day, i]));
+    const sorted = [...slots].sort((a, b) => {
+      const dayDiff = (dayOrder.get(a.dayOfWeek) ?? 0) - (dayOrder.get(b.dayOfWeek) ?? 0);
+      return dayDiff !== 0 ? dayDiff : a.startTime.localeCompare(b.startTime);
+    });
     return (
       <div className="space-y-3">
-        {!hasAny ? (
+        {sorted.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
             No timetable yet. Click Edit to add day/time slots.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {byDay
-              .filter((d) => d.items.length > 0)
-              .map(({ day, items }) => (
-                <div key={day} className="rounded-xl border border-black/5 dark:border-white/8 p-3 space-y-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {DAY_LABEL[day]}
-                  </p>
-                  {items.map((s) => (
-                    <div key={s.id} className="text-sm font-semibold">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left border-collapse text-[12px]">
+              <thead className="bg-transparent">
+                <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800">
+                  <th className="px-5 py-3">Day</th>
+                  <th className="px-5 py-3">Time</th>
+                  <th className="px-5 py-3">Room</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                {sorted.map((s) => (
+                  <tr key={s.id} className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors">
+                    <td className="px-5 py-3.5 font-semibold text-foreground">{DAY_LABEL[s.dayOfWeek]}</td>
+                    <td className="px-5 py-3.5 tabular-nums">
                       {toInputTime(s.startTime)}–{toInputTime(s.endTime)}
-                      {s.room ? (
-                        <span className="text-muted-foreground font-normal"> · {s.room}</span>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ))}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground">{s.room || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         {error && <p className="text-xs text-rose-600">{error}</p>}

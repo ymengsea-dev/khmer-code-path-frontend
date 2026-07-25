@@ -5,6 +5,7 @@ import axios from "axios";
 import {
   UserPlus,
   FileUp,
+  Download,
   Loader2,
   Users,
   GraduationCap,
@@ -195,6 +196,7 @@ export function StudentManagementView() {
   const [profileStudentId, setProfileStudentId] = useState<string | null>(null);
   const [statusSavingId, setStatusSavingId] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = role === "admin";
@@ -347,6 +349,22 @@ export function StudentManagementView() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setLoadError(null);
+    try {
+      await userService.downloadExcel({
+        classId: classFilter,
+        search: searchQuery,
+        isActive: statusFilter === "all" ? undefined : statusFilter === "active",
+      });
+    } catch {
+      setLoadError("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleImport = async (file: File) => {
     setImportMessage(null);
     try {
@@ -389,17 +407,19 @@ export function StudentManagementView() {
         </p>
       )}
 
-      {config?.actions.canAdd && (
+      {(config?.actions.canAdd || config?.actions.canImport) && (
         <div className="shrink-0 flex flex-wrap justify-end gap-2 pt-1">
-          <button
-            type="button"
-            className={cn(glassBtnPrimaryClass, "gap-1.5")}
-            onClick={() => setAddOpen(true)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Add User
-          </button>
-          {config.actions.canImport && (
+          {config?.actions.canAdd && (
+            <button
+              type="button"
+              className={cn(glassBtnPrimaryClass, "gap-1.5")}
+              onClick={() => setAddOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Add User
+            </button>
+          )}
+          {config?.actions.canImport && (
             <>
               <button
                 type="button"
@@ -508,6 +528,24 @@ export function StudentManagementView() {
                   </option>
                 ))}
               </GlassSelect>
+              {showStudentList && (
+                <button
+                  type="button"
+                  disabled={exporting}
+                  className={cn(
+                    glassBtnPrimaryClass,
+                    "gap-2 text-xs h-12 px-4 shrink-0",
+                  )}
+                  onClick={() => void handleExport()}
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Export Excel
+                </button>
+              )}
             </div>
           </>
         )}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  ChevronRight,
+  ImagePlus,
+  Loader2,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,8 +18,12 @@ import {
 import { GlassButton } from "@/components/ui/glass-button";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { facultyService } from "@/lib/services/faculty-service";
+import { departmentService } from "@/lib/services/department-service";
 import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
 import type { FacultySummaryDto } from "@/lib/types/faculty-api";
+import type { Department } from "@/data/departments";
+import { useQueryParams } from "@/lib/hooks/use-query-params";
+import { QueryKey } from "@/lib/navigation/app-query";
 import { cn } from "@/lib/utils";
 import { FacultyCoverBanner } from "./FacultyCoverBanner";
 
@@ -38,7 +48,9 @@ export function FacultyDetailView({
   onFacultyNameLoaded,
 }: FacultyDetailViewProps) {
   const config = FACULTIES_UI;
+  const { setParams } = useQueryParams();
   const [faculty, setFaculty] = useState<FacultySummaryDto | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -60,9 +72,13 @@ export function FacultyDetailView({
     setLoading(true);
     setError(null);
     try {
-      const list = await facultyService.listFaculties();
+      const [list, departmentList] = await Promise.all([
+        facultyService.listFaculties(),
+        departmentService.listDepartments(),
+      ]);
       const match = list.find((item) => item.id === parsedId) ?? null;
       setFaculty(match);
+      setDepartments(departmentList.filter((d) => d.facultyId === parsedId));
       if (match) {
         setProfileForm({
           name: match.name,
@@ -344,6 +360,72 @@ export function FacultyDetailView({
             </div>
           </Card>
         </div>
+
+        <h2 className="mt-4 text-sm font-extrabold text-foreground">Departments</h2>
+        {departments.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">No departments yet.</p>
+        ) : (
+          <Card bouncy={false} className="mt-2 overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left border-collapse text-[12px]">
+                <thead>
+                  <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800 bg-white/30 dark:bg-zinc-950/30">
+                    <th className="px-5 py-3">Department</th>
+                    <th className="px-5 py-3">Teachers</th>
+                    <th className="px-5 py-3">Classes</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                  {departments.map((dept) => (
+                    <tr
+                      key={dept.id}
+                      className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors cursor-pointer"
+                      onClick={() =>
+                        setParams({
+                          [QueryKey.view]: "department-detail",
+                          [QueryKey.department]: String(dept.id),
+                        })
+                      }
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="glass-panel-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground">
+                            <Building2 className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{dept.name}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              Head: {dept.headOfDept || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums">{dept.teacherCount}</td>
+                      <td className="px-5 py-3.5 tabular-nums">{dept.classCount}</td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                            dept.status === "active"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {dept.status === "active" ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <ChevronRight className="h-4 w-4 inline-block text-muted-foreground/50" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

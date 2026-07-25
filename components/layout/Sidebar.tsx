@@ -78,7 +78,7 @@ export function Sidebar({
   const operationsNavLabel = isAdmin ? "Operations" : "Requests";
   const showLearnerNav = !isAdmin;
   const isStudent = appRole === "student";
-  const showPublicCourses = isStudent && Boolean(publicCoursesNavLabel);
+  const showPublicCourses = (isStudent || isTeacher) && Boolean(publicCoursesNavLabel);
   const showRolesPermissions = isAdmin && Boolean(rolesPermissionsNavLabel);
   const showFacultyManagement = isAdmin && Boolean(facultyManagementNavLabel);
 
