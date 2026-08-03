@@ -2,6 +2,29 @@ export type AssetStatusDto = "AVAILABLE" | "IN_USE" | "MAINTENANCE";
 export type RequestStatusDto = "PENDING" | "APPROVED" | "REJECTED";
 export type RequestIconDto = "VIDEO" | "LAPTOP" | "ROOM";
 export type InfrastructureVariantDto = "SUCCESS" | "WARNING" | "DANGER";
+export type RoomPurposeDto = "CLASSROOM" | "LAB" | "SEMINAR" | "OTHER";
+
+export interface RoomDto {
+  id: number;
+  name: string;
+  purpose: RoomPurposeDto;
+  capacity: number | null;
+  notes: string | null;
+}
+
+export interface RoomOptionDto {
+  id: number;
+  name: string;
+}
+
+export interface CreateRoomPayload {
+  name: string;
+  purpose: RoomPurposeDto;
+  capacity?: number | null;
+  notes?: string | null;
+}
+
+export type UpdateRoomPayload = CreateRoomPayload;
 
 export interface PhysicalAssetDto {
   id: number;

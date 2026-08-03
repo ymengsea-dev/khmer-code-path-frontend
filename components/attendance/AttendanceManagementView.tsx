@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Check,
   Download,
+  GraduationCap,
   Loader2,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -16,17 +19,26 @@ import {
   glassBtnSubtleClass,
 } from "@/components/ui/glass-field";
 import { UserAvatar } from "@/components/profile/UserAvatar";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { attendanceService } from "@/lib/services/attendance-service";
 import { ATTENDANCE_UI } from "@/lib/lms-ui/attendance";
 import type {
   AttendanceManagementConfigDto,
   AttendanceRosterDto,
   AttendanceRosterRowDto,
+  AttendanceStatusDto,
+  TeacherAttendanceRosterDto,
 } from "@/lib/types/attendance-api";
 import { cn } from "@/lib/utils";
 import { useDebouncedQueryState } from "@/lib/hooks/use-debounced-query-state";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey, parseAttendanceMonth } from "@/lib/navigation/app-query";
+
+type AttendanceTab = "students" | "teachers";
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function qualityBadgeClass(qualityId: string) {
   switch (qualityId) {
@@ -65,10 +77,13 @@ function StatCard({
 }
 
 export function AttendanceManagementView() {
+  const { data: currentUser } = useCurrentUser();
+  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
   const { get, setParams } = useQueryParams();
   const [searchQuery, setSearchQuery] = useDebouncedQueryState(QueryKey.q);
   const classParam = get(QueryKey.attendanceClass);
   const monthParam = get(QueryKey.attendanceMonth);
+  const tabParam = get(QueryKey.attendanceTab);
 
   const [config, setConfig] = useState<AttendanceManagementConfigDto | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -80,6 +95,12 @@ export function AttendanceManagementView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [warningStudentId, setWarningStudentId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  const tab: AttendanceTab = tabParam === "teachers" ? "teachers" : "students";
+  const [teacherRoster, setTeacherRoster] = useState<TeacherAttendanceRosterDto | null>(null);
+  const [teacherLoading, setTeacherLoading] = useState(false);
+  const [teacherLoadError, setTeacherLoadError] = useState<string | null>(null);
+  const [marking, setMarking] = useState<AttendanceStatusDto | null>(null);
 
   const monthFilter = useMemo(
     () => parseAttendanceMonth(monthParam, config?.defaultMonthId),
@@ -148,8 +169,7 @@ export function AttendanceManagementView() {
   }, [config, monthParam, monthFilterIds, setParams]);
 
   const loadRoster = useCallback(async () => {
-    if (!selectedClassId) {
-      setRoster(null);
+    if (!selectedClassId || tab !== "students") {
       setLoading(false);
       return;
     }
@@ -168,11 +188,36 @@ export function AttendanceManagementView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedClassId, searchQuery, resolvedMonthFilter]);
+  }, [selectedClassId, searchQuery, resolvedMonthFilter, tab]);
 
   useEffect(() => {
     void loadRoster();
   }, [loadRoster]);
+
+  const loadTeacherRoster = useCallback(async () => {
+    if (!selectedClassId || tab !== "teachers" || !config?.canViewTeacherAttendance) {
+      setTeacherLoading(false);
+      return;
+    }
+    setTeacherLoading(true);
+    setTeacherLoadError(null);
+    try {
+      const data = await attendanceService.getTeacherRoster({
+        classId: selectedClassId,
+        month: resolvedMonthFilter,
+      });
+      setTeacherRoster(data);
+    } catch {
+      setTeacherRoster(null);
+      setTeacherLoadError("Could not load teacher attendance for this class.");
+    } finally {
+      setTeacherLoading(false);
+    }
+  }, [selectedClassId, resolvedMonthFilter, tab, config?.canViewTeacherAttendance]);
+
+  useEffect(() => {
+    void loadTeacherRoster();
+  }, [loadTeacherRoster]);
 
   const setClassFilter = useCallback(
     (classId: string) => {
@@ -194,6 +239,33 @@ export function AttendanceManagementView() {
     },
     [setParams],
   );
+
+  const setTab = useCallback(
+    (next: AttendanceTab) => {
+      setParams({
+        [QueryKey.attendanceTab]: next === "students" ? null : next,
+      });
+    },
+    [setParams],
+  );
+
+  const handleMarkTeacherAttendance = async (status: AttendanceStatusDto) => {
+    if (!selectedClassId || !config?.canManageTeacherAttendance) return;
+    setMarking(status);
+    setTeacherLoadError(null);
+    try {
+      const data = await attendanceService.recordTeacherAttendance(
+        selectedClassId,
+        todayIso(),
+        status,
+      );
+      setTeacherRoster(data);
+    } catch {
+      setTeacherLoadError("Could not record teacher attendance.");
+    } finally {
+      setMarking(null);
+    }
+  };
 
   const handleWarningToggle = async (row: AttendanceRosterRowDto) => {
     if (!selectedClassId || !config?.canManageWarnings) return;
@@ -249,35 +321,110 @@ export function AttendanceManagementView() {
           </p>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Students" value={roster?.rows.length ?? 0} />
-          <StatCard
-            label="Class average"
-            value={
-              roster?.classAverageRate == null
-                ? "—"
-                : `${roster.classAverageRate.toFixed(1)}%`
-            }
-            accent="text-violet-600 dark:text-violet-400"
-          />
-          <StatCard
-            label="Warned"
-            value={roster?.warnedCount ?? 0}
-            accent="text-amber-600 dark:text-amber-400"
-          />
-          <StatCard
-            label="Month"
-            value={selectedMonthLabel}
-            accent="text-sm font-bold truncate"
-          />
+        {config?.canViewTeacherAttendance && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTab("students")}
+              className={cn(
+                "px-4 py-2 text-sm font-semibold rounded-2xl transition-colors inline-flex items-center gap-1.5",
+                tab === "students"
+                  ? "glass-btn-primary text-white shadow-sm"
+                  : "liquid-glass-btn-subtle liquid-glass-btn text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Students
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("teachers")}
+              className={cn(
+                "px-4 py-2 text-sm font-semibold rounded-2xl transition-colors inline-flex items-center gap-1.5",
+                tab === "teachers"
+                  ? "glass-btn-primary text-white shadow-sm"
+                  : "liquid-glass-btn-subtle liquid-glass-btn text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <GraduationCap className="h-3.5 w-3.5" />
+              Teachers
+            </button>
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "grid grid-cols-2 gap-3",
+            tab === "students"
+              ? isAdmin && roster?.teacherName
+                ? "sm:grid-cols-5"
+                : "sm:grid-cols-4"
+              : "sm:grid-cols-3",
+          )}
+        >
+          {tab === "students" ? (
+            <>
+              {isAdmin && roster?.teacherName && (
+                <StatCard
+                  label="Teacher"
+                  value={roster.teacherName}
+                  accent="text-sm font-bold truncate"
+                />
+              )}
+              <StatCard label="Students" value={roster?.rows.length ?? 0} />
+              <StatCard
+                label="Class average"
+                value={
+                  roster?.classAverageRate == null
+                    ? "—"
+                    : `${roster.classAverageRate.toFixed(1)}%`
+                }
+                accent="text-violet-600 dark:text-violet-400"
+              />
+              <StatCard
+                label="Warned"
+                value={roster?.warnedCount ?? 0}
+                accent="text-amber-600 dark:text-amber-400"
+              />
+              <StatCard
+                label="Month"
+                value={selectedMonthLabel}
+                accent="text-sm font-bold truncate"
+              />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="Teacher"
+                value={teacherRoster?.rows[0]?.teacherName ?? "—"}
+                accent="text-sm font-bold truncate"
+              />
+              <StatCard
+                label="Attendance rate"
+                value={
+                  teacherRoster?.rows[0]?.attendanceRate == null
+                    ? "—"
+                    : `${teacherRoster.rows[0].attendanceRate.toFixed(1)}%`
+                }
+                accent="text-violet-600 dark:text-violet-400"
+              />
+              <StatCard
+                label="Month"
+                value={selectedMonthLabel}
+                accent="text-sm font-bold truncate"
+              />
+            </>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
-          <GlassSearchInput
-            placeholder="Search students…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          {tab === "students" && (
+            <GlassSearchInput
+              placeholder="Search students…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          )}
           <GlassSelect
             className="w-full lg:w-auto lg:min-w-[180px]"
             value={selectedClassId ?? ""}
@@ -302,7 +449,7 @@ export function AttendanceManagementView() {
               </option>
             ))}
           </GlassSelect>
-          {config?.canExport && (
+          {tab === "students" && config?.canExport && (
             <button
               type="button"
               disabled={!selectedClassId || exporting}
@@ -319,13 +466,19 @@ export function AttendanceManagementView() {
           )}
         </div>
 
-        {loadError && (
+        {tab === "students" && loadError && (
           <p className="text-sm text-destructive" role="alert">
             {loadError}
           </p>
         )}
 
-        {loading ? (
+        {tab === "teachers" && teacherLoadError && (
+          <p className="text-sm text-destructive" role="alert">
+            {teacherLoadError}
+          </p>
+        )}
+
+        {tab === "students" ? loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -433,6 +586,127 @@ export function AttendanceManagementView() {
                             )}
                             {row.warned ? "Unwarn" : "Warn"}
                           </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        ) : teacherLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (teacherRoster?.rows.length ?? 0) === 0 ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            No teacher attendance recorded for this class yet.
+          </p>
+        ) : (
+          <Card bouncy={false} className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left border-collapse text-[12px]">
+                <thead>
+                  <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800 bg-white/30 dark:bg-zinc-950/30">
+                    <th className="px-5 py-3">Teacher</th>
+                    <th className="px-5 py-3">Present</th>
+                    <th className="px-5 py-3">Late</th>
+                    <th className="px-5 py-3">Absent</th>
+                    <th className="px-5 py-3">Rate</th>
+                    <th className="px-5 py-3">Quality</th>
+                    {config?.canManageTeacherAttendance && (
+                      <th className="px-5 py-3 text-right">Mark today</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80">
+                  {teacherRoster?.rows.map((row) => (
+                    <tr
+                      key={row.teacherId}
+                      className="hover:bg-white/25 dark:hover:bg-white/4 transition-colors"
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <UserAvatar
+                            name={row.teacherName}
+                            avatarUrl={row.avatarUrl}
+                            className="h-8 w-8"
+                            textClassName="text-[10px]"
+                          />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">
+                              {row.teacherName}
+                            </p>
+                            {row.teacherCode && (
+                              <p className="text-[11px] text-muted-foreground font-mono truncate">
+                                {row.teacherCode}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums">{row.present}</td>
+                      <td className="px-5 py-3.5 tabular-nums">{row.late}</td>
+                      <td className="px-5 py-3.5 tabular-nums">{row.absent}</td>
+                      <td className="px-5 py-3.5 tabular-nums font-semibold">
+                        {row.attendanceRate == null
+                          ? "—"
+                          : `${row.attendanceRate.toFixed(1)}%`}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] font-bold",
+                            qualityBadgeClass(row.qualityId),
+                          )}
+                        >
+                          {row.qualityLabel}
+                        </Badge>
+                      </td>
+                      {config?.canManageTeacherAttendance && (
+                        <td className="px-5 py-3.5">
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              type="button"
+                              title="Mark present today"
+                              disabled={marking !== null}
+                              className={cn(glassBtnPrimaryClass, "h-9 w-9 p-0 justify-center")}
+                              onClick={() => void handleMarkTeacherAttendance("PRESENT")}
+                            >
+                              {marking === "PRESENT" ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              title="Mark late today"
+                              disabled={marking !== null}
+                              className={cn(glassBtnSubtleClass, "h-9 px-3 text-xs")}
+                              onClick={() => void handleMarkTeacherAttendance("LATE")}
+                            >
+                              {marking === "LATE" ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                "Late"
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              title="Mark absent today"
+                              disabled={marking !== null}
+                              className={cn(glassBtnSubtleClass, "h-9 px-3 text-xs")}
+                              onClick={() => void handleMarkTeacherAttendance("ABSENT")}
+                            >
+                              {marking === "ABSENT" ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                "Absent"
+                              )}
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>

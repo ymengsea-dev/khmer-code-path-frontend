@@ -1413,7 +1413,7 @@ export function MyTasksView() {
                   disabled={generating}
                 />
               </div>
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 flex flex-col gap-2">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   Model
                 </Label>

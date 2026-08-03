@@ -9,13 +9,17 @@ import type {
   AssetStatusDto,
   CreateFacultyRequestPayload,
   CreatePhysicalAssetPayload,
+  CreateRoomPayload,
   FacultyRequestDto,
   InfrastructureDto,
   InfrastructureVariantDto,
   PhysicalAssetDto,
   RequestIconDto,
   RequestStatusDto,
+  RoomDto,
+  RoomOptionDto,
   UpdatePhysicalAssetPayload,
+  UpdateRoomPayload,
 } from "../types/operations-api";
 
 function mapAssetStatus(status: AssetStatusDto): AssetStatus {
@@ -205,4 +209,31 @@ export const operationsService = {
       facilityStatus: mapInfraRows(data.facilityStatus ?? []),
     };
   },
+
+  async listRooms(): Promise<RoomDto[]> {
+    const response = await apiClient.get<{ data: RoomDto[] }>("/operations/rooms");
+    return response.data.data ?? [];
+  },
+
+  async createRoom(values: CreateRoomPayload): Promise<RoomDto> {
+    const response = await apiClient.post<{ data: RoomDto }>(
+      "/operations/rooms",
+      values
+    );
+    return response.data.data;
+  },
+
+  async updateRoom(id: number, values: UpdateRoomPayload): Promise<RoomDto> {
+    const response = await apiClient.patch<{ data: RoomDto }>(
+      `/operations/rooms/${id}`,
+      values
+    );
+    return response.data.data;
+  },
+
+  async deleteRoom(id: number): Promise<void> {
+    await apiClient.delete(`/operations/rooms/${id}`);
+  },
 };
+
+export type { RoomDto, RoomOptionDto };

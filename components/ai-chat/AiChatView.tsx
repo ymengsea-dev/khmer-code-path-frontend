@@ -26,6 +26,7 @@ import {
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { SelectionNotePopup } from "@/components/lessons/SelectionNotePopup";
 
 interface ChatMessage {
   id: string;
@@ -337,10 +338,11 @@ function MessageBubble({
               {msg.content}
             </ReactMarkdown>
             {streaming && (
-              <span
-                className="inline-block w-[2px] h-[14px] bg-current ml-0.5 align-middle"
-                style={{ animation: "cursor-blink 1s step-end infinite" }}
-              />
+              <span className="ml-1 inline-flex items-center gap-1 align-middle">
+                <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce [animation-delay:-0.3s]" />
+                <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce [animation-delay:-0.15s]" />
+                <span className="size-1.5 rounded-full bg-[#305FC9]/60 animate-bounce" />
+              </span>
             )}
           </div>
         )}
@@ -666,6 +668,7 @@ export function AiChatView() {
 
   return (
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
+      <SelectionNotePopup containerIds={["ai-chat-messages"]} lessonTitle="AI Chat" />
       <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row gap-3">
         {/* Sidebar */}
         <aside
@@ -773,6 +776,7 @@ export function AiChatView() {
 
           {/* Messages */}
           <div
+            id="ai-chat-messages"
             ref={scrollRef}
             className="flex-1 min-h-0 overflow-y-auto scrollbar-hide overscroll-y-contain px-4 sm:px-6 py-5"
           >

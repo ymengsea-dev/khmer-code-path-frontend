@@ -8,7 +8,7 @@ export interface Department {
   headOfDept: string;
   teacherCount: number;
   classCount: number;
-  capacityPercent: number;
+  capacity: number;
   status: DepartmentStatus;
   accent: "violet" | "blue" | "emerald" | "amber";
 }

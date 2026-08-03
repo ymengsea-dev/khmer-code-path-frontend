@@ -75,7 +75,7 @@ export function Sidebar({
   const showDepartments = isAdmin;
   const isTeacher = appRole === "teacher";
   const showOperations = isAdmin || isTeacher;
-  const operationsNavLabel = isAdmin ? "Operations" : "Requests";
+  const operationsNavLabel = isAdmin ? "School Asset" : "Requests";
   const showLearnerNav = !isAdmin;
   const isStudent = appRole === "student";
   const showPublicCourses = (isStudent || isTeacher) && Boolean(publicCoursesNavLabel);
@@ -234,7 +234,7 @@ export function Sidebar({
                   <span className="flex h-5 w-5 items-center justify-center shrink-0">
                     <Users className="w-4 h-4" />
                   </span>
-                  <span className="flex-1 text-left">Student Management</span>
+                  <span className="flex-1 text-left">User Management</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}

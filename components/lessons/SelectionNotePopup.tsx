@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus, Check, Loader2 } from "lucide-react";
 import { noteService } from "@/lib/services/note-service";
+import type { NoteDto } from "@/lib/types/note-api";
+import { getDefaultNoteId } from "@/lib/notebook/note-preferences";
 
 interface SelectionNotePopupProps {
   /** Refs of containers where text selection should trigger the popup */
@@ -76,13 +78,48 @@ export function SelectionNotePopup({ containerIds, lessonTitle, lessonId }: Sele
     if (!popup || saving) return;
     setSaving(true);
     try {
-      await noteService.create({
-        title: lessonTitle ? `Note from "${lessonTitle}"` : "Saved note",
-        bodyHtml: `<blockquote>${popup.text}</blockquote>`,
-        sourceLabel: lessonTitle,
-        lessonId,
-        tags: ["Highlighted"],
-      });
+      const snippet = `<blockquote>${popup.text}</blockquote>`;
+      const fallbackTitle = lessonTitle ? `Note from "${lessonTitle}"` : "Saved note";
+
+      // Prefer the user's configured default note; fall back to reusing (or
+      // creating) the per-source note so repeated saves don't scatter into
+      // a new note every time.
+      let target: NoteDto | null = null;
+      const defaultNoteId = getDefaultNoteId();
+      if (defaultNoteId != null) {
+        try {
+          target = await noteService.get(defaultNoteId);
+        } catch {
+          target = null;
+        }
+      }
+
+      if (!target) {
+        const list = await noteService.list(fallbackTitle);
+        const match = list.items.find((n) => n.title === fallbackTitle);
+        if (match) target = await noteService.get(match.id);
+      }
+
+      if (target) {
+        await noteService.update(target.id, {
+          title: target.title,
+          bodyHtml: `${target.bodyHtml}${snippet}`,
+          sourceLabel: target.sourceLabel ?? lessonTitle,
+          lessonId: target.lessonId ?? lessonId,
+          materialId: target.materialId,
+          tags: target.tags,
+          favorite: target.favorite,
+        });
+      } else {
+        await noteService.create({
+          title: fallbackTitle,
+          bodyHtml: snippet,
+          sourceLabel: lessonTitle,
+          lessonId,
+          tags: ["Highlighted"],
+        });
+      }
+
       setSaved(true);
       setTimeout(() => {
         setPopup(null);

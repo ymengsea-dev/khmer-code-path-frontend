@@ -115,6 +115,11 @@ export interface DepartmentOptionDto {
   facultyName: string;
 }
 
+export interface RoomOptionDto {
+  id: number;
+  name: string;
+}
+
 export interface ClassConfigDto {
   semesterFilters: SemesterFilterDto[];
   createDefaults: {
@@ -123,6 +128,7 @@ export interface ClassConfigDto {
   };
   gradingWeights?: GradingWeightsDto;
   departmentOptions?: DepartmentOptionDto[];
+  roomOptions?: RoomOptionDto[];
 }
 
 export interface CreateClassPayload {

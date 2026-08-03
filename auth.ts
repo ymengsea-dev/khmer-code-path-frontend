@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import {
@@ -11,6 +11,13 @@ import { refreshAccessToken } from "@/lib/auth/refresh-access-token";
 
 function mapRole(role: LmsRole) {
   return role.toLowerCase() as "student" | "teacher" | "admin";
+}
+
+/** Matches ExceptionCode.ACCOUNT_INACTIVE's message on the backend. */
+const ACCOUNT_INACTIVE_MESSAGE = "Account is inactive";
+
+class AccountDisabledSignInError extends CredentialsSignin {
+  code = "account-disabled";
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -49,6 +56,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             "api=",
             process.env.API_BASE_URL ?? "(unset)"
           );
+          if (error instanceof Error && error.message === ACCOUNT_INACTIVE_MESSAGE) {
+            throw new AccountDisabledSignInError();
+          }
           return null;
         }
       },

@@ -33,7 +33,7 @@ export function mapDepartmentDto(dto: DepartmentSummaryDto): Department {
     headOfDept: dto.headOfDept,
     teacherCount: dto.teacherCount,
     classCount: dto.classCount,
-    capacityPercent: dto.capacityPercent,
+    capacity: dto.capacity,
     status: mapStatus(dto.status),
     accent: mapAccent(dto.accent),
   };
@@ -94,14 +94,14 @@ export const departmentService = {
     name: string;
     facultyId: number;
     headOfDept: string;
-    capacityPercent: number;
+    capacity: number;
     status: Department["status"];
   }): CreateDepartmentPayload {
     return {
       name: values.name.trim(),
       facultyId: values.facultyId,
       headOfDept: values.headOfDept.trim() || undefined,
-      capacityPercent: values.capacityPercent,
+      capacity: values.capacity,
       status: toStatusDto(values.status),
     };
   },
@@ -110,14 +110,14 @@ export const departmentService = {
     name: string;
     facultyId: number;
     headOfDept: string;
-    capacityPercent: number;
+    capacity: number;
     status: Department["status"];
   }): UpdateDepartmentPayload {
     return {
       name: values.name.trim(),
       facultyId: values.facultyId,
       headOfDept: values.headOfDept.trim() || undefined,
-      capacityPercent: values.capacityPercent,
+      capacity: values.capacity,
       status: toStatusDto(values.status),
     };
   },

@@ -1,6 +1,6 @@
 export const STUDENT_MANAGEMENT_UI = {
   admin: {
-    pageTitle: "Student Management",
+    pageTitle: "User Management",
     pageDescription:
       "Manage students, teachers, and administrators at your school.",
     tabs: [
@@ -11,7 +11,7 @@ export const STUDENT_MANAGEMENT_UI = {
     ],
   },
   teacher: {
-    pageTitle: "Student Management",
+    pageTitle: "User Management",
     pageDescription: "Students enrolled in your classes.",
     tabs: [] as Array<{ id: string; label: string }>,
   },

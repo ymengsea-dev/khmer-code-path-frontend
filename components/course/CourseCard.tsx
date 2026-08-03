@@ -114,7 +114,7 @@ export function CourseCard({ course, selected, onClick }: CourseCardProps) {
             {getInstructor(course.id)}
           </span>
           <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-emerald-500/80" />
+            <Clock className="w-3 h-3 text-primary/80" />
             {getTimeAgo(course.id)}
           </span>
         </div>
@@ -142,7 +142,7 @@ export function CourseCard({ course, selected, onClick }: CourseCardProps) {
             type="button"
             variant="outline"
             size="icon"
-            className="h-9 w-9 shrink-0 text-emerald-500 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-600 active:translate-y-px transition-all"
+            className="h-9 w-9 shrink-0 text-primary border-primary/30 bg-primary/10 hover:bg-primary/20 active:translate-y-px transition-all"
             title="Join Online Class"
             onClick={(e) => {
               e.stopPropagation();

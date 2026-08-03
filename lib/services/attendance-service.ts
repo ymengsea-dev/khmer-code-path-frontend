@@ -5,6 +5,8 @@ import type {
   AttendanceRecordDto,
   AttendanceRosterDto,
   AttendanceStatisticsDto,
+  AttendanceStatusDto,
+  TeacherAttendanceRosterDto,
 } from "../types/attendance-api";
 
 export function buildSessionId(classId: number, sessionDate: string): string {
@@ -53,6 +55,34 @@ export const attendanceService = {
     const response = await apiClient.patch<{ data: AttendanceRosterDto }>(
       `/attendance-management/classes/${classId}/students/${studentId}/warning`,
       { warned },
+    );
+    return response.data.data;
+  },
+
+  async getTeacherRoster(params: {
+    classId: number;
+    month?: string;
+  }): Promise<TeacherAttendanceRosterDto> {
+    const response = await apiClient.get<{ data: TeacherAttendanceRosterDto }>(
+      "/attendance-management/teacher-roster",
+      {
+        params: {
+          classId: params.classId,
+          month: params.month && params.month !== "all" ? params.month : undefined,
+        },
+      },
+    );
+    return response.data.data;
+  },
+
+  async recordTeacherAttendance(
+    classId: number,
+    sessionDate: string,
+    status: AttendanceStatusDto,
+  ): Promise<TeacherAttendanceRosterDto> {
+    const response = await apiClient.post<{ data: TeacherAttendanceRosterDto }>(
+      `/attendance-management/classes/${classId}/teacher-attendance`,
+      { sessionDate, status },
     );
     return response.data.data;
   },

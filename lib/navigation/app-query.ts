@@ -20,6 +20,7 @@ export const QueryKey = {
   userClass: "userClass",
   attendanceClass: "attendanceClass",
   attendanceMonth: "attendanceMonth",
+  attendanceTab: "attendanceTab",
   opsTab: "opsTab",
   contentModule: "contentModule",
   contentId: "contentId",
@@ -76,9 +77,9 @@ export type UserManagementTab =
   | "teachers"
   | "admins";
 
-export type OperationsTab = "inventory" | "requests" | "infrastructure";
+export type OperationsTab = "inventory" | "rooms" | "requests" | "infrastructure";
 
-const VALID_OPS_TABS = new Set<string>(["inventory", "requests", "infrastructure"]);
+const VALID_OPS_TABS = new Set<string>(["inventory", "rooms", "requests", "infrastructure"]);
 
 export function parseOpsTab(value: string | null): OperationsTab {
   if (value && VALID_OPS_TABS.has(value)) {

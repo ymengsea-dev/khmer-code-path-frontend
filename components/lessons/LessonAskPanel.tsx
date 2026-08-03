@@ -18,13 +18,32 @@ function SaveNoteButton({ content, lessonId, lessonTitle }: { content: string; l
     if (saving || saved) return;
     setSaving(true);
     try {
-      await noteService.create({
-        title: `AI note from "${lessonTitle}"`,
-        bodyHtml: `<blockquote>${content.replace(/\n/g, "<br/>")}</blockquote>`,
-        sourceLabel: lessonTitle,
-        lessonId,
-        tags: ["AI-Generated"],
-      });
+      // One note per lesson: append if it already exists, create it once otherwise.
+      const title = `AI note from "${lessonTitle}"`;
+      const snippet = `<blockquote>${content.replace(/\n/g, "<br/>")}</blockquote>`;
+      const list = await noteService.list(title);
+      const match = list.items.find((n) => n.title === title);
+
+      if (match) {
+        const full = await noteService.get(match.id);
+        await noteService.update(match.id, {
+          title: full.title,
+          bodyHtml: `${full.bodyHtml}${snippet}`,
+          sourceLabel: full.sourceLabel ?? lessonTitle,
+          lessonId: full.lessonId ?? lessonId,
+          materialId: full.materialId,
+          tags: full.tags,
+          favorite: full.favorite,
+        });
+      } else {
+        await noteService.create({
+          title,
+          bodyHtml: snippet,
+          sourceLabel: lessonTitle,
+          lessonId,
+          tags: ["AI-Generated"],
+        });
+      }
       setSaved(true);
     } catch {
       setSaving(false);

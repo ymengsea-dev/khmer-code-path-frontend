@@ -9,7 +9,9 @@ import {
   Loader2,
   Users,
   GraduationCap,
+  Trash2,
 } from "lucide-react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   GlassSearchInput,
   GlassSelect,
@@ -91,12 +93,6 @@ function matchesSearch(user: UserSummary, q: string) {
   );
 }
 
-function matchesStatus(user: UserSummary, status: UserStatusFilter) {
-  if (status === "all") return true;
-  if (status === "active") return user.isActive !== false;
-  return user.isActive === false;
-}
-
 function StatusBadge({ active }: { active?: boolean }) {
   const isActive = active !== false;
   return (
@@ -144,6 +140,40 @@ function EditableStatusCell({
       <option value="active">Active</option>
       <option value="inactive">Inactive</option>
     </GlassSelect>
+  );
+}
+
+function DeleteUserButton({
+  user,
+  canDelete,
+  deleting,
+  isSelf,
+  onDelete,
+}: {
+  user: UserSummary;
+  canDelete: boolean;
+  deleting: boolean;
+  isSelf: boolean;
+  onDelete: (user: UserSummary) => void;
+}) {
+  if (!canDelete || isSelf) return null;
+  return (
+    <button
+      type="button"
+      disabled={deleting}
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete(user);
+      }}
+      aria-label={`Delete ${user.name}`}
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+    >
+      {deleting ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Trash2 className="h-3.5 w-3.5" />
+      )}
+    </button>
   );
 }
 
@@ -195,6 +225,8 @@ export function StudentManagementView() {
   const [addOpen, setAddOpen] = useState(false);
   const [profileStudentId, setProfileStudentId] = useState<string | null>(null);
   const [statusSavingId, setStatusSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { confirm } = useConfirm();
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -319,10 +351,11 @@ export function StudentManagementView() {
 
   const filteredRows = useMemo(() => {
     if (showStudentList) return rows;
-    return rows.filter(
-      (u) => matchesSearch(u, searchQuery) && matchesStatus(u, statusFilter),
-    );
-  }, [rows, searchQuery, statusFilter, showStudentList]);
+    // Status is already filtered server-side via loadUsers' isActive param — don't
+    // re-filter by it here, or a row vanishes the instant its own status is edited
+    // out of the active filter, reading as if the edit silently failed.
+    return rows.filter((u) => matchesSearch(u, searchQuery));
+  }, [rows, searchQuery, showStudentList]);
 
   const stats = useMemo(() => {
     const active = filteredRows.filter((u) => u.isActive !== false).length;
@@ -346,6 +379,26 @@ export function StudentManagementView() {
       setLoadError("Could not update user status.");
     } finally {
       setStatusSavingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (user: UserSummary) => {
+    if (!config?.actions.canEditStatus) return;
+    const ok = await confirm(
+      `Delete "${user.name}"? This cannot be undone.`,
+      { title: "Delete user", confirmLabel: "Delete", variant: "destructive" },
+    );
+    if (!ok) return;
+    setDeletingId(user.id);
+    setLoadError(null);
+    try {
+      await userService.deleteUser(user.id);
+      setRows((prev) => prev.filter((u) => u.id !== user.id));
+      if (profileStudentId === user.id) setProfileStudentId(null);
+    } catch {
+      setLoadError("Could not delete user.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -392,7 +445,7 @@ export function StudentManagementView() {
         <div className="glass-panel rounded-2xl p-8 max-w-sm">
           <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
-            Student management is not available for students.
+            User management is not available for students.
           </p>
         </div>
       </div>
@@ -466,10 +519,10 @@ export function StudentManagementView() {
                 type="button"
                 onClick={() => setActiveTab(tab.id as UserManagementTab)}
                 className={cn(
-                  "px-4 py-2 text-sm font-semibold rounded-2xl transition-colors liquid-glass-btn-subtle liquid-glass-btn",
+                  "px-4 py-2 text-sm font-semibold rounded-2xl transition-colors",
                   activeTab === tab.id
-                    ? "text-foreground ring-1 ring-zinc-200/70 dark:ring-white/12"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "glass-btn-primary text-white shadow-sm"
+                    : "liquid-glass-btn-subtle liquid-glass-btn text-muted-foreground hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -567,6 +620,9 @@ export function StudentManagementView() {
             statusSavingId={statusSavingId}
             onStatusChange={(id, active) => void handleStatusChange(id, active)}
             onViewProfile={setProfileStudentId}
+            deletingId={deletingId}
+            currentUserId={session?.user?.id}
+            onDelete={(user) => void handleDeleteUser(user)}
           />
         ) : showAllUsersList ? (
           <AllUsersListTable
@@ -579,6 +635,9 @@ export function StudentManagementView() {
                 setProfileStudentId(user.id);
               }
             }}
+            deletingId={deletingId}
+            currentUserId={session?.user?.id}
+            onDelete={(user) => void handleDeleteUser(user)}
           />
         ) : showStaffTable ? (
           <StaffListTable
@@ -587,6 +646,9 @@ export function StudentManagementView() {
             canEditStatus={config?.actions.canEditStatus ?? false}
             statusSavingId={statusSavingId}
             onStatusChange={(id, active) => void handleStatusChange(id, active)}
+            deletingId={deletingId}
+            currentUserId={session?.user?.id}
+            onDelete={(user) => void handleDeleteUser(user)}
           />
         ) : null}
       </div>
@@ -654,12 +716,18 @@ function StudentListTable({
   statusSavingId,
   onStatusChange,
   onViewProfile,
+  deletingId,
+  currentUserId,
+  onDelete,
 }: {
   users: UserSummary[];
   canEditStatus: boolean;
   statusSavingId: string | null;
   onStatusChange: (userId: string, isActive: boolean) => void;
   onViewProfile: (userId: string) => void;
+  deletingId: string | null;
+  currentUserId?: string;
+  onDelete: (user: UserSummary) => void;
 }) {
   return (
     <ListTableShell isEmpty={users.length === 0} emptyMessage="No students found.">
@@ -670,6 +738,7 @@ function StudentListTable({
             <th className="px-5 py-3">Student ID</th>
             <th className="px-5 py-3">Class</th>
             <th className="px-5 py-3">Status</th>
+            <th className="px-5 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80 text-[12px]">
@@ -702,6 +771,15 @@ function StudentListTable({
                   onStatusChange={onStatusChange}
                 />
               </td>
+              <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                <DeleteUserButton
+                  user={user}
+                  canDelete={canEditStatus}
+                  deleting={deletingId === user.id}
+                  isSelf={currentUserId === user.id}
+                  onDelete={onDelete}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -716,12 +794,18 @@ function AllUsersListTable({
   statusSavingId,
   onStatusChange,
   onViewProfile,
+  deletingId,
+  currentUserId,
+  onDelete,
 }: {
   users: UserSummary[];
   canEditStatus: boolean;
   statusSavingId: string | null;
   onStatusChange: (userId: string, isActive: boolean) => void;
   onViewProfile: (user: UserSummary) => void;
+  deletingId: string | null;
+  currentUserId?: string;
+  onDelete: (user: UserSummary) => void;
 }) {
   return (
     <ListTableShell isEmpty={users.length === 0} emptyMessage="No users found.">
@@ -732,6 +816,7 @@ function AllUsersListTable({
             <th className="px-5 py-3">Role</th>
             <th className="px-5 py-3">ID</th>
             <th className="px-5 py-3">Status</th>
+            <th className="px-5 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80 text-[12px]">
@@ -767,6 +852,15 @@ function AllUsersListTable({
                     onStatusChange={onStatusChange}
                   />
                 </td>
+                <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <DeleteUserButton
+                    user={user}
+                    canDelete={canEditStatus}
+                    deleting={deletingId === user.id}
+                    isSelf={currentUserId === user.id}
+                    onDelete={onDelete}
+                  />
+                </td>
               </tr>
             );
           })}
@@ -782,12 +876,18 @@ function StaffListTable({
   canEditStatus,
   statusSavingId,
   onStatusChange,
+  deletingId,
+  currentUserId,
+  onDelete,
 }: {
   users: UserSummary[];
   mode: UserManagementTab;
   canEditStatus: boolean;
   statusSavingId: string | null;
   onStatusChange: (userId: string, isActive: boolean) => void;
+  deletingId: string | null;
+  currentUserId?: string;
+  onDelete: (user: UserSummary) => void;
 }) {
   const isTeachers = mode === "teachers";
   const isAdmins = mode === "admins";
@@ -814,6 +914,7 @@ function StaffListTable({
               </>
             )}
             <th className="px-5 py-3">Status</th>
+            <th className="px-5 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100/80 dark:divide-zinc-800/80 text-[12px]">
@@ -849,6 +950,15 @@ function StaffListTable({
                   canEdit={canEditStatus}
                   saving={statusSavingId === user.id}
                   onStatusChange={onStatusChange}
+                />
+              </td>
+              <td className="px-5 py-3.5">
+                <DeleteUserButton
+                  user={user}
+                  canDelete={canEditStatus}
+                  deleting={deletingId === user.id}
+                  isSelf={currentUserId === user.id}
+                  onDelete={onDelete}
                 />
               </td>
             </tr>

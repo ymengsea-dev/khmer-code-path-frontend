@@ -8,6 +8,7 @@ import {
   EyeOff,
   Loader2,
   Moon,
+  NotebookPen,
   Save,
   Shield,
   Sun,
@@ -24,6 +25,9 @@ import {
   getNotificationsEnabled,
   setNotificationsEnabled,
 } from "@/lib/notification-preferences";
+import { noteService } from "@/lib/services/note-service";
+import type { NoteSummaryDto } from "@/lib/types/note-api";
+import { getDefaultNoteId, setDefaultNoteId } from "@/lib/notebook/note-preferences";
 import { BouncyEnter, BouncyPress, BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 import { SchoolProfileSection } from "@/components/school/SchoolProfileSection";
@@ -193,6 +197,8 @@ export function SettingsView() {
   const isAdmin = (currentUser?.role ?? "").toLowerCase() === "admin";
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+  const [notes, setNotes] = useState<NoteSummaryDto[]>([]);
+  const [defaultNoteId, setDefaultNoteIdState] = useState<number | null>(null);
   const [userName, setUserName] = useState("");
   const [bio, setBio] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
@@ -210,6 +216,11 @@ export function SettingsView() {
     setTheme(stored);
     applyTheme(stored);
     setNotificationsEnabledState(getNotificationsEnabled());
+    setDefaultNoteIdState(getDefaultNoteId());
+    noteService
+      .list()
+      .then((page) => setNotes(page.items))
+      .catch(() => setNotes([]));
   }, []);
 
   useEffect(() => {
@@ -221,6 +232,12 @@ export function SettingsView() {
     setTheme(mode);
     localStorage.setItem("lms-theme", mode);
     applyTheme(mode);
+  };
+
+  const handleDefaultNoteChange = (value: string) => {
+    const id = value ? Number(value) : null;
+    setDefaultNoteIdState(id);
+    setDefaultNoteId(id);
   };
 
   const handleNotificationsChange = (enabled: boolean) => {
@@ -401,6 +418,31 @@ export function SettingsView() {
                 checked={notificationsEnabled}
                 onChange={handleNotificationsChange}
               />
+            </div>
+          </GlassCard>
+          </BouncyStaggerItem>
+
+          <BouncyStaggerItem>
+          <GlassCard icon={<NotebookPen className="h-4 w-4" />} iconColor="#305FC9" title="Default note">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Quick &quot;Add to note&quot; actions (AI Chat, lesson highlights) append here.
+                Leave unset to save into a per-source note like{" "}
+                <span className="font-semibold text-foreground">Note from &quot;AI Chat&quot;</span> instead.
+              </p>
+              <select
+                value={defaultNoteId ?? ""}
+                onChange={(e) => handleDefaultNoteChange(e.target.value)}
+                className="w-full rounded-xl text-sm text-foreground px-3 py-2 focus-visible:outline-none"
+                style={GLASS_SUBTLE}
+              >
+                <option value="">No default — use per-source note</option>
+                {notes.map((note) => (
+                  <option key={note.id} value={note.id}>
+                    {note.title}
+                  </option>
+                ))}
+              </select>
             </div>
           </GlassCard>
           </BouncyStaggerItem>

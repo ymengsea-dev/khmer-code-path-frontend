@@ -36,6 +36,8 @@ export interface AttendanceManagementConfigDto {
   defaultClassId?: string | null;
   canManageWarnings: boolean;
   canExport: boolean;
+  canViewTeacherAttendance: boolean;
+  canManageTeacherAttendance: boolean;
 }
 
 export interface AttendanceRosterRowDto {
@@ -56,7 +58,28 @@ export interface AttendanceRosterRowDto {
 export interface AttendanceRosterDto {
   classId: number;
   className: string;
+  teacherName: string | null;
   rows: AttendanceRosterRowDto[];
   warnedCount: number;
   classAverageRate: number | null;
+}
+
+export interface TeacherAttendanceRosterRowDto {
+  teacherId: string;
+  teacherName: string;
+  teacherCode?: string | null;
+  avatarUrl?: string | null;
+  present: number;
+  late: number;
+  absent: number;
+  total: number;
+  attendanceRate: number | null;
+  qualityId: string;
+  qualityLabel: string;
+}
+
+export interface TeacherAttendanceRosterDto {
+  classId: number;
+  className: string;
+  rows: TeacherAttendanceRosterRowDto[];
 }

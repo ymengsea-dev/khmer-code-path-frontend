@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Plus, Loader2, GraduationCap } from "lucide-react";
-import { glassBtnPrimaryClass } from "@/components/ui/glass-field";
+import { glassBtnPrimaryClass, glassSelectClass } from "@/components/ui/glass-field";
 import { BouncyStagger, BouncyStaggerItem } from "@/components/motion/BouncyStagger";
 import { departmentService } from "@/lib/services/department-service";
 import { facultyService } from "@/lib/services/faculty-service";
@@ -31,6 +31,12 @@ export function DepartmentsView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [facultyFilter, setFacultyFilter] = useState<string>("all");
+
+  const filteredDepartments =
+    facultyFilter === "all"
+      ? departments
+      : departments.filter((dept) => String(dept.facultyId) === facultyFilter);
 
   const openDetail = useCallback(
     (id: number) => {
@@ -107,7 +113,20 @@ export function DepartmentsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="mb-4 flex shrink-0 justify-end">
+      <div className="mb-4 flex shrink-0 items-center justify-between gap-3 p-1">
+        <select
+          className={cn(glassSelectClass, "h-10 w-full max-w-56 text-xs")}
+          value={facultyFilter}
+          onChange={(e) => setFacultyFilter(e.target.value)}
+          disabled={faculties.length === 0}
+        >
+          <option value="all">All faculties</option>
+          {faculties.map((f) => (
+            <option key={f.id} value={String(f.id)}>
+              {f.name}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => setFormOpen(true)}
@@ -142,6 +161,15 @@ export function DepartmentsView() {
               Add Department
             </button>
           </div>
+        ) : filteredDepartments.length === 0 ? (
+          <div className="glass-panel flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl glass-panel-subtle">
+              <GraduationCap className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              No departments in this faculty
+            </p>
+          </div>
         ) : (
           <>
             {error && (
@@ -150,7 +178,7 @@ export function DepartmentsView() {
               </p>
             )}
             <BouncyStagger className="grid items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {departments.map((dept) => (
+              {filteredDepartments.map((dept) => (
                 <BouncyStaggerItem key={dept.id} enter="simple">
                   <DepartmentCard
                     dept={dept}

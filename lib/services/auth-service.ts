@@ -17,6 +17,11 @@ export const authService = {
     });
 
     if (!result?.ok || result.error) {
+      if (result?.code === "account-disabled") {
+        throw new Error(
+          "Your account has been disabled. Please contact your administrator."
+        );
+      }
       throw new Error("Invalid email or password. Please try again.");
     }
 

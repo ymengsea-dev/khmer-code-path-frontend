@@ -10,7 +10,6 @@ import {
   GraduationCap,
   Medal,
   ShieldCheck,
-  Star,
   Trophy,
   Users,
 } from "lucide-react";
@@ -43,13 +42,6 @@ interface ProfileMetric {
   label: string;
   value: string;
   helper: string;
-  icon: ComponentType<{ className?: string }>;
-}
-
-interface Achievement {
-  title: string;
-  description: string;
-  earned: boolean;
   icon: ComponentType<{ className?: string }>;
 }
 
@@ -116,45 +108,6 @@ function buildMetrics({
   ];
 }
 
-function buildAchievements({
-  role,
-  studentDashboard,
-  teacherDashboard,
-  adminDashboard,
-  noteCount,
-  favoriteNoteCount,
-  submittedQuizCount,
-}: {
-  role: Role;
-  studentDashboard: StudentDashboard | null;
-  teacherDashboard: TeacherDashboard | null;
-  adminDashboard: AdminDashboard | null;
-  noteCount: number;
-  favoriteNoteCount: number;
-  submittedQuizCount: number;
-}): Achievement[] {
-  if (role === "teacher") {
-    return [
-      { title: "Class Builder",   description: `${teacherDashboard?.activeClasses ?? 0} active classes`,    earned: (teacherDashboard?.activeClasses ?? 0) > 0,     icon: BookOpen     },
-      { title: "Quiz Creator",    description: `${teacherDashboard?.quizzes ?? 0} published quizzes`,       earned: (teacherDashboard?.quizzes ?? 0) > 0,           icon: ClipboardList },
-      { title: "Student Mentor",  description: `${teacherDashboard?.studentQuestions ?? 0} student Qs`,     earned: (teacherDashboard?.studentQuestions ?? 0) > 0,  icon: Users        },
-    ];
-  }
-  if (role === "admin") {
-    return [
-      { title: "LMS Operator",       description: `${adminDashboard?.totalClasses ?? 0} classes managed`,       earned: (adminDashboard?.totalClasses ?? 0) > 0,       icon: ShieldCheck  },
-      { title: "People Manager",     description: `${adminDashboard?.totalStudents ?? 0} students registered`,  earned: (adminDashboard?.totalStudents ?? 0) > 0,      icon: Users        },
-      { title: "Academic Structure", description: `${adminDashboard?.totalDepartments ?? 0} departments`,       earned: (adminDashboard?.totalDepartments ?? 0) > 0,   icon: GraduationCap},
-    ];
-  }
-  return [
-    { title: "Active Learner",     description: `${studentDashboard?.coursesEnrolled ?? 0} enrolled`,  earned: (studentDashboard?.coursesEnrolled ?? 0) > 0, icon: BookOpen     },
-    { title: "Quiz Finisher",      description: `${submittedQuizCount} submitted`,                     earned: submittedQuizCount > 0,                       icon: ClipboardList },
-    { title: "Notebook Builder",   description: `${noteCount} saved notes`,                            earned: noteCount > 0,                                icon: FileText     },
-    { title: "Favorite Collector", description: `${favoriteNoteCount} favorites`,                      earned: favoriteNoteCount > 0,                        icon: Star         },
-  ];
-}
-
 export function ProfileView() {
   const { displayName, email, bio, roleLabel, userId, role, user } = useUserProfile();
 
@@ -173,21 +126,6 @@ export function ProfileView() {
         adminDashboard: data?.adminDashboard ?? null,
         noteCount: data?.notes.total ?? 0,
         quizCount: data?.quizzes.length ?? 0,
-      }),
-    [data, role]
-  );
-
-  const achievements = useMemo(
-    () =>
-      buildAchievements({
-        role,
-        studentDashboard: data?.studentDashboard ?? null,
-        teacherDashboard: data?.teacherDashboard ?? null,
-        adminDashboard: data?.adminDashboard ?? null,
-        noteCount: data?.notes.total ?? 0,
-        favoriteNoteCount: data?.notes.items.filter((n) => n.favorite).length ?? 0,
-        submittedQuizCount:
-          data?.quizzes.filter((q) => q.submissionStatus === "SUBMITTED").length ?? 0,
       }),
     [data, role]
   );
@@ -281,37 +219,6 @@ export function ProfileView() {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* Achievements */}
-              <div className="rounded-2xl p-5" style={GLASS}>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Achievements</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {achievements.map((a) => (
-                    <div
-                      key={a.title}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3"
-                      style={GLASS_SUBTLE}
-                    >
-                      <div
-                        className="h-9 w-9 rounded-full flex items-center justify-center text-white shrink-0"
-                        style={{
-                          background: a.earned
-                            ? "linear-gradient(135deg, #305FC9 0%, #7c3aed 100%)"
-                            : "rgba(0,0,0,0.08)",
-                          color: a.earned ? "white" : "rgba(0,0,0,0.3)",
-                        }}
-                      >
-                        <a.icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-foreground">{a.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{a.description}</p>
-                      </div>
-                      {a.earned && <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-emerald-500" />}
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Class grades (student only) */}

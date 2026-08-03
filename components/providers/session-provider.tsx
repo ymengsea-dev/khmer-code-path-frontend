@@ -16,15 +16,30 @@ function SessionErrorHandler({ children }: { children: React.ReactNode }) {
     retrying.current = true;
     let cancelled = false;
 
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     (async () => {
-      await update();
-      const retried = await fetchSessionFromServer();
-      if (cancelled) return;
+      // Give any in-flight refresh elsewhere (other tab, other request) a beat to
+      // land before treating this as a real logout — a cold remount (e.g. browser
+      // back navigation) can race a transient failure here against a refresh that
+      // actually succeeds moments later.
+      for (const delayMs of [0, 800, 2000]) {
+        if (delayMs > 0) await wait(delayMs);
+        if (cancelled) return;
 
-      const stillBroken =
-        retried?.error === "RefreshAccessTokenError" || !retried?.accessToken;
+        await update();
+        const retried = await fetchSessionFromServer();
+        if (cancelled) return;
 
-      if (stillBroken) {
+        const stillBroken =
+          retried?.error === "RefreshAccessTokenError" || !retried?.accessToken;
+        if (!stillBroken) {
+          retrying.current = false;
+          return;
+        }
+      }
+
+      if (!cancelled) {
         await signOut({ callbackUrl: "/login" });
       }
       retrying.current = false;

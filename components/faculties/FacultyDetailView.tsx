@@ -24,6 +24,7 @@ import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import type { Department } from "@/data/departments";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { FacultyCoverBanner } from "./FacultyCoverBanner";
 
@@ -49,6 +50,7 @@ export function FacultyDetailView({
 }: FacultyDetailViewProps) {
   const config = FACULTIES_UI;
   const { setParams } = useQueryParams();
+  const { confirm } = useConfirm();
   const [faculty, setFaculty] = useState<FacultySummaryDto | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,13 +127,11 @@ export function FacultyDetailView({
 
   const handleDelete = async () => {
     if (!faculty) return;
-    if (
-      !window.confirm(
-        `Delete faculty “${faculty.name}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm(
+      `Delete faculty "${faculty.name}"? This cannot be undone.`,
+      { title: "Delete faculty", confirmLabel: "Delete", variant: "destructive" },
+    );
+    if (!ok) return;
     setDeleting(true);
     setError(null);
     try {

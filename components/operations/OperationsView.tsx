@@ -34,14 +34,33 @@ import type {
   TeacherRequest,
   AssetStatus,
 } from "@/data/operations";
+import type { RoomDto, RoomPurposeDto } from "@/lib/types/operations-api";
 import { AddAssetDialog, type AssetFormValues } from "./AddAssetDialog";
 import { RequestDialog, type RequestFormValues } from "./RequestDialog";
+import { RoomFormDialog, type RoomFormValues } from "./RoomFormDialog";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 const OPS_TABS: { id: OperationsTab; label: string }[] = [
   { id: "inventory", label: "Physical Inventory" },
+  { id: "rooms", label: "Rooms" },
   { id: "requests", label: "Teacher Requests" },
 ];
+
+const ROOM_PURPOSE_LABEL: Record<RoomPurposeDto, string> = {
+  CLASSROOM: "Classroom",
+  LAB: "Lab room",
+  SEMINAR: "Seminar room",
+  OTHER: "Other",
+};
+
+function toRoomForm(room: RoomDto): RoomFormValues {
+  return {
+    name: room.name,
+    purpose: room.purpose,
+    capacity: room.capacity != null ? String(room.capacity) : "",
+    notes: room.notes ?? "",
+  };
+}
 
 function assetStatusBadge(status: AssetStatus) {
   if (status === "available") {
@@ -106,8 +125,10 @@ function toAssetForm(asset: PhysicalAsset): AssetFormValues {
 export function OperationsView() {
   const { confirm } = useConfirm();
   const { get, setParams } = useQueryParams();
-  const activeTab: OperationsTab =
-    parseOpsTab(get(QueryKey.opsTab)) === "requests" ? "requests" : "inventory";
+  const activeTab: OperationsTab = (() => {
+    const parsed = parseOpsTab(get(QueryKey.opsTab));
+    return parsed === "requests" || parsed === "rooms" ? parsed : "inventory";
+  })();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
 
   const role =
@@ -118,6 +139,7 @@ export function OperationsView() {
   const isTeacher = role === "teacher";
 
   const [assets, setAssets] = useState<PhysicalAsset[]>([]);
+  const [rooms, setRooms] = useState<RoomDto[]>([]);
   const [requests, setRequests] = useState<TeacherRequest[]>([]);
   const [myRequests, setMyRequests] = useState<TeacherRequest[]>([]);
 
@@ -126,6 +148,9 @@ export function OperationsView() {
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<PhysicalAsset | null>(null);
   const [savingAsset, setSavingAsset] = useState(false);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<RoomDto | null>(null);
+  const [savingRoom, setSavingRoom] = useState(false);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [savingRequest, setSavingRequest] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
@@ -135,11 +160,13 @@ export function OperationsView() {
     setLoading(true);
     setError(null);
     try {
-      const [inventory, allRequests] = await Promise.all([
+      const [inventory, roomList, allRequests] = await Promise.all([
         operationsService.listInventory(),
+        operationsService.listRooms(),
         operationsService.listRequests(),
       ]);
       setAssets(inventory);
+      setRooms(roomList);
       setRequests(allRequests);
     } catch {
       setError("Could not load operations data. Try signing in again as admin.");
@@ -255,6 +282,54 @@ export function OperationsView() {
     }
   };
 
+  const openAddRoom = () => {
+    setEditingRoom(null);
+    setRoomDialogOpen(true);
+  };
+  const openEditRoom = (room: RoomDto) => {
+    setEditingRoom(room);
+    setRoomDialogOpen(true);
+  };
+
+  const handleSaveRoom = async (values: RoomFormValues) => {
+    setSavingRoom(true);
+    try {
+      const payload = {
+        name: values.name.trim(),
+        purpose: values.purpose,
+        capacity: values.capacity.trim() ? Number(values.capacity) : null,
+        notes: values.notes.trim() || null,
+      };
+      if (editingRoom) {
+        const updated = await operationsService.updateRoom(editingRoom.id, payload);
+        setRooms((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      } else {
+        const created = await operationsService.createRoom(payload);
+        setRooms((prev) => [...prev, created]);
+      }
+      setRoomDialogOpen(false);
+      setEditingRoom(null);
+    } catch {
+      setError(editingRoom ? "Failed to update room." : "Failed to add room.");
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async (room: RoomDto) => {
+    const ok = await confirm(
+      `Delete "${room.name}"? This removes it from the room picker.`,
+      { title: "Delete room", variant: "destructive", confirmLabel: "Delete" },
+    );
+    if (!ok) return;
+    try {
+      await operationsService.deleteRoom(room.id);
+      setRooms((prev) => prev.filter((r) => r.id !== room.id));
+    } catch {
+      setError("Failed to delete room.");
+    }
+  };
+
   if (!roleLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center p-12">
@@ -349,10 +424,10 @@ export function OperationsView() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium rounded-2xl transition-colors inline-flex items-center gap-1.5",
+                  "px-4 py-2 text-sm font-semibold rounded-2xl transition-colors inline-flex items-center gap-1.5",
                   activeTab === tab.id
-                    ? "bg-white/42 text-foreground ring-1 ring-zinc-200/60 dark:bg-white/8 dark:ring-white/10"
-                    : "text-muted-foreground hover:bg-white/22 dark:hover:bg-white/6 hover:text-foreground",
+                    ? "glass-btn-primary text-white shadow-sm"
+                    : "liquid-glass-btn-subtle liquid-glass-btn text-muted-foreground hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -371,6 +446,12 @@ export function OperationsView() {
             <Button size="sm" className="ml-auto" onClick={openAddAsset}>
               <Plus className="h-4 w-4 mr-1.5" />
               Add Asset
+            </Button>
+          )}
+          {activeTab === "rooms" && (
+            <Button size="sm" className="ml-auto" onClick={openAddRoom}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Room
             </Button>
           )}
         </div>
@@ -456,6 +537,85 @@ export function OperationsView() {
                                     subtle
                                     onClick={() => void handleDeleteAsset(asset)}
                                     aria-label={`Delete ${asset.name}`}
+                                    className="h-8 gap-1 rounded-full px-3 text-[12px] font-semibold text-red-600 hover:text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Delete
+                                  </GlassButton>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "rooms" && (
+              <section className="space-y-4">
+                <h2 className="text-lg font-bold text-foreground">Rooms</h2>
+                <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/40 shadow-2xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-160 text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/50 dark:bg-zinc-950/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200/60 dark:border-zinc-800">
+                          <th className="px-5 py-3">Room Name</th>
+                          <th className="px-5 py-3">Used For</th>
+                          <th className="px-5 py-3">Capacity</th>
+                          <th className="px-5 py-3">Notes</th>
+                          <th className="px-5 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-[12px]">
+                        {rooms.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="px-5 py-8 text-center text-muted-foreground"
+                            >
+                              No rooms registered yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          rooms.map((room) => (
+                            <tr
+                              key={room.id}
+                              className="group hover:bg-slate-100/30 dark:hover:bg-zinc-900/25 transition-colors"
+                            >
+                              <td className="px-5 py-3.5 font-semibold text-foreground">
+                                {room.name}
+                              </td>
+                              <td className="px-5 py-3.5">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[11px] font-semibold border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                                >
+                                  {ROOM_PURPOSE_LABEL[room.purpose]}
+                                </Badge>
+                              </td>
+                              <td className="px-5 py-3.5 text-muted-foreground">
+                                {room.capacity ?? "—"}
+                              </td>
+                              <td className="px-5 py-3.5 text-muted-foreground">
+                                {room.notes || "—"}
+                              </td>
+                              <td className="px-5 py-3.5">
+                                <div className="flex items-center justify-end gap-2">
+                                  <GlassButton
+                                    subtle
+                                    onClick={() => openEditRoom(room)}
+                                    className="h-8 gap-1 rounded-full px-3 text-[12px] font-semibold text-muted-foreground"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit
+                                  </GlassButton>
+                                  <GlassButton
+                                    subtle
+                                    onClick={() => void handleDeleteRoom(room)}
+                                    aria-label={`Delete ${room.name}`}
                                     className="h-8 gap-1 rounded-full px-3 text-[12px] font-semibold text-red-600 hover:text-red-600 dark:text-red-400"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -565,6 +725,17 @@ export function OperationsView() {
         saving={savingAsset}
         onSave={handleSaveAsset}
         initialValues={editingAsset ? toAssetForm(editingAsset) : null}
+      />
+
+      <RoomFormDialog
+        open={roomDialogOpen}
+        onOpenChange={(o) => {
+          setRoomDialogOpen(o);
+          if (!o) setEditingRoom(null);
+        }}
+        saving={savingRoom}
+        onSave={handleSaveRoom}
+        initialValues={editingRoom ? toRoomForm(editingRoom) : null}
       />
     </div>
   );

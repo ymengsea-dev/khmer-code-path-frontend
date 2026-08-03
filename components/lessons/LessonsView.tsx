@@ -350,13 +350,32 @@ export function LessonsView({
     if (!lesson || !displaySummary) return;
     setSavingToNotebook(true);
     try {
-      await noteService.create({
-        title: `Summary: ${lesson.title}`,
-        bodyHtml: summaryToNotebookHtml(displaySummary),
-        sourceLabel: lesson.title,
-        lessonId: lesson.id,
-        tags: ["AI-Generated"],
-      });
+      // One note per lesson: append if it already exists, create it once otherwise.
+      const title = `Summary: ${lesson.title}`;
+      const snippet = summaryToNotebookHtml(displaySummary);
+      const list = await noteService.list(title);
+      const match = list.items.find((n) => n.title === title);
+
+      if (match) {
+        const full = await noteService.get(match.id);
+        await noteService.update(match.id, {
+          title: full.title,
+          bodyHtml: `${full.bodyHtml}${snippet}`,
+          sourceLabel: full.sourceLabel ?? lesson.title,
+          lessonId: full.lessonId ?? lesson.id,
+          materialId: full.materialId,
+          tags: full.tags,
+          favorite: full.favorite,
+        });
+      } else {
+        await noteService.create({
+          title,
+          bodyHtml: snippet,
+          sourceLabel: lesson.title,
+          lessonId: lesson.id,
+          tags: ["AI-Generated"],
+        });
+      }
       void showAlert("Summary saved to your Digital Notebook.", {
         title: "Saved",
         variant: "success",

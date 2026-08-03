@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Bot, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { aiChatService, type AiModelDto } from "@/lib/services/ai-chat-service";
 import { cn } from "@/lib/utils";
 import {
@@ -72,8 +72,9 @@ export function ModelSelector({ value, onChange, className }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         type="button"
+        title={active?.displayName ?? "Select model"}
         className={cn(
-          "group inline-flex items-center gap-1.5 rounded-full pl-2 pr-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-colors outline-none",
+          "group inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-foreground/80 transition-colors outline-none",
           "hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/50",
           className,
         )}
@@ -83,7 +84,7 @@ export function ModelSelector({ value, onChange, className }: Props) {
         }}
       >
         <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-          <Bot className="h-3 w-3 text-muted-foreground" strokeWidth={2} />
+          <Sparkles className="h-3 w-3 text-muted-foreground" strokeWidth={2} />
           <span
             className="absolute -right-0.5 -bottom-0.5 h-1.5 w-1.5 rounded-full"
             style={{
@@ -91,9 +92,6 @@ export function ModelSelector({ value, onChange, className }: Props) {
               boxShadow: "0 0 0 2px var(--glass-bg-subtle)",
             }}
           />
-        </span>
-        <span className="max-w-35 truncate">
-          {active?.displayName ?? "Select model"}
         </span>
         <ChevronDown
           className="h-3 w-3 text-muted-foreground transition-transform duration-150 group-data-popup-open:rotate-180"
@@ -114,7 +112,7 @@ export function ModelSelector({ value, onChange, className }: Props) {
         }}
       >
         <DropdownMenuRadioGroup
-          value={value ?? undefined}
+          value={value ?? ""}
           onValueChange={(next) => {
             const id = String(next);
             localStorage.setItem(STORAGE_KEY, id);

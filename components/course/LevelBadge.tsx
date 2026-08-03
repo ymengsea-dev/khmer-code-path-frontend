@@ -5,7 +5,7 @@ import { Level } from "@/types/course";
 const levelConfig: Record<Level, { label: string; className: string }> = {
   BEGINNER: {
     label: "BEGINNER",
-    className: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    className: "bg-primary/20 text-primary border-primary/30",
   },
   INTERMEDIATE: {
     label: "INTERMEDIATE",

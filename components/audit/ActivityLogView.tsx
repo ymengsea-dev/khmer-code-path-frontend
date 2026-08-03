@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, ScrollText } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { GlassSearchInput, glassSelectClass } from "@/components/ui/glass-field";
 import { auditService, type AuditLogEntry } from "@/lib/services/audit-service";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -60,6 +66,7 @@ export function ActivityLogView() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("");
+  const [selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null);
 
   const load = useCallback(async (pageNum: number, action: string) => {
     setLoading(true);
@@ -196,7 +203,8 @@ export function ActivityLogView() {
                 {filtered.map((e) => (
                   <tr
                     key={e.id}
-                    className="border-b border-black/[0.04] last:border-0 hover:bg-black/[0.015] dark:border-white/5 dark:hover:bg-white/[0.03]"
+                    onClick={() => setSelectedEntry(e)}
+                    className="cursor-pointer border-b border-black/[0.04] last:border-0 hover:bg-black/[0.015] dark:border-white/5 dark:hover:bg-white/[0.03]"
                   >
                     <td className="whitespace-nowrap px-4 py-3 text-muted-foreground" title={fullTime(e.createdAt)}>
                       {formatTimeAgo(e.createdAt)}
@@ -299,6 +307,72 @@ export function ActivityLogView() {
           </div>
         </div>
       )}
+
+      <Dialog
+        open={Boolean(selectedEntry)}
+        onOpenChange={(open) => !open && setSelectedEntry(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Activity detail</DialogTitle>
+          </DialogHeader>
+          {selectedEntry && (
+            <dl className="grid grid-cols-3 gap-x-3 gap-y-3 text-sm">
+              <dt className="col-span-1 font-semibold text-muted-foreground">Action</dt>
+              <dd className="col-span-2">
+                <span
+                  className={cn(
+                    "inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                    actionTone(selectedEntry.action),
+                  )}
+                >
+                  {selectedEntry.action}
+                </span>
+              </dd>
+
+              <dt className="col-span-1 font-semibold text-muted-foreground">When</dt>
+              <dd className="col-span-2">{fullTime(selectedEntry.createdAt)}</dd>
+
+              <dt className="col-span-1 font-semibold text-muted-foreground">Actor</dt>
+              <dd className="col-span-2 wrap-break-word">
+                {selectedEntry.actorName || "System"}
+                {selectedEntry.actorEmail && (
+                  <span className="block text-xs text-muted-foreground">
+                    {selectedEntry.actorEmail}
+                  </span>
+                )}
+                {selectedEntry.actorId && (
+                  <span className="block font-mono text-[11px] text-muted-foreground">
+                    {selectedEntry.actorId}
+                  </span>
+                )}
+              </dd>
+
+              <dt className="col-span-1 font-semibold text-muted-foreground">Target</dt>
+              <dd className="col-span-2 wrap-break-word">
+                {selectedEntry.targetType ? (
+                  <>
+                    {selectedEntry.targetType}
+                    {selectedEntry.targetId ? ` #${selectedEntry.targetId}` : ""}
+                  </>
+                ) : (
+                  "—"
+                )}
+              </dd>
+
+              <dt className="col-span-1 font-semibold text-muted-foreground">IP address</dt>
+              <dd className="col-span-2 font-mono text-[12px]">
+                {selectedEntry.ipAddress || "—"}
+              </dd>
+
+              <dt className="col-span-1 font-semibold text-muted-foreground">Detail</dt>
+              <dd className="col-span-2 whitespace-pre-wrap wrap-break-word">
+                {selectedEntry.detail || "—"}
+              </dd>
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

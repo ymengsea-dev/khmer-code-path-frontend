@@ -31,6 +31,7 @@ import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import type { ClassSummary } from "@/lib/types/class-api";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const ACCENT_GRADIENT: Record<Department["accent"], string> = {
@@ -75,6 +76,7 @@ export function DepartmentDetailView({
 }: DepartmentDetailViewProps) {
   const parsedId = departmentId ? Number(departmentId) : NaN;
   const { setParams } = useQueryParams();
+  const { confirm } = useConfirm();
 
   const [dept, setDept] = useState<Department | null>(null);
   const [faculties, setFaculties] = useState<FacultySummaryDto[]>([]);
@@ -98,7 +100,7 @@ export function DepartmentDetailView({
     name: "",
     facultyId: 0,
     headOfDept: "",
-    capacityPercent: 50,
+    capacity: 100,
     status: "active" as Department["status"],
     accent: "violet" as Department["accent"],
   });
@@ -126,7 +128,7 @@ export function DepartmentDetailView({
         headOfDept: d.headOfDept,
         teacherCount: d.teacherCount,
         classCount: d.classCount,
-        capacityPercent: d.capacityPercent,
+        capacity: d.capacity,
         status: d.status === "ACTIVE" ? "active" : "inactive",
         accent:
           (["VIOLET", "BLUE", "EMERALD", "AMBER"].includes(d.accent)
@@ -155,7 +157,7 @@ export function DepartmentDetailView({
       name: dept.name,
       facultyId: dept.facultyId || faculties[0]?.id || 0,
       headOfDept: dept.headOfDept === "—" ? "" : dept.headOfDept,
-      capacityPercent: dept.capacityPercent,
+      capacity: dept.capacity,
       status: dept.status,
       accent: dept.accent,
     });
@@ -172,7 +174,7 @@ export function DepartmentDetailView({
         name: form.name,
         facultyId: form.facultyId,
         headOfDept: form.headOfDept,
-        capacityPercent: form.capacityPercent,
+        capacity: form.capacity,
         status: form.status,
       });
       payload.accent = form.accent.toUpperCase() as
@@ -193,13 +195,11 @@ export function DepartmentDetailView({
 
   const handleDelete = async () => {
     if (!dept) return;
-    if (
-      !window.confirm(
-        `Delete department “${dept.name}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm(
+      `Delete department "${dept.name}"? This cannot be undone.`,
+      { title: "Delete department", confirmLabel: "Delete", variant: "destructive" },
+    );
+    if (!ok) return;
     setDeleting(true);
     setError(null);
     try {
@@ -380,19 +380,15 @@ export function DepartmentDetailView({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Capacity %</Label>
+                <Label className="text-xs font-semibold">Capacity (people)</Label>
                 <GlassInput
                   type="number"
-                  min={0}
-                  max={100}
-                  value={form.capacityPercent}
+                  min={1}
+                  value={form.capacity}
                   onChange={(e) =>
                     setForm((c) => ({
                       ...c,
-                      capacityPercent: Math.min(
-                        100,
-                        Math.max(0, Number(e.target.value) || 0),
-                      ),
+                      capacity: Math.max(1, Number(e.target.value) || 1),
                     }))
                   }
                 />
@@ -443,15 +439,10 @@ export function DepartmentDetailView({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Capacity
                 </p>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn("h-full rounded-full bg-gradient-to-r", ACCENT_GRADIENT[dept.accent])}
-                      style={{ width: `${dept.capacityPercent}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold tabular-nums text-foreground">
-                    {dept.capacityPercent}%
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
+                    {dept.capacity.toLocaleString()} people
                   </span>
                 </div>
               </div>

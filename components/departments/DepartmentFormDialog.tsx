@@ -19,7 +19,7 @@ export interface DepartmentFormValues {
   name: string;
   facultyId: number;
   headOfDept: string;
-  capacityPercent: number;
+  capacity: number;
   status: Department["status"];
 }
 
@@ -39,7 +39,7 @@ const empty: DepartmentFormValues = {
   name: "",
   facultyId: 0,
   headOfDept: "",
-  capacityPercent: 50,
+  capacity: 100,
   status: "active",
 };
 
@@ -64,7 +64,7 @@ export function DepartmentFormDialog({
         name: initial.name,
         facultyId: initial.facultyId || defaultFacultyId,
         headOfDept: initial.headOfDept,
-        capacityPercent: initial.capacityPercent,
+        capacity: initial.capacity,
         status: initial.status,
       });
     } else {
@@ -135,20 +135,16 @@ export function DepartmentFormDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="dept-capacity">Capacity %</Label>
+            <Label htmlFor="dept-capacity">Capacity (people)</Label>
             <Input
               id="dept-capacity"
               type="number"
-              min={0}
-              max={100}
-              value={form.capacityPercent}
+              min={1}
+              value={form.capacity}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  capacityPercent: Math.min(
-                    100,
-                    Math.max(0, Number(e.target.value) || 0),
-                  ),
+                  capacity: Math.max(1, Number(e.target.value) || 1),
                 })
               }
             />

@@ -231,6 +231,10 @@ export const userService = {
     return mapUser(response.data.data);
   },
 
+  async deleteUser(id: string) {
+    await apiClient.delete(`/users/${id}`);
+  },
+
   /** Students enrolled in any of the current teacher's classes */
   async listTeacherStudents(): Promise<UserSummary[]> {
     const page = await classService.listClasses({ size: 100 });

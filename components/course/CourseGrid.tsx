@@ -299,7 +299,7 @@ export function CourseGrid({
                       className={cn(
                         "p-1.5 rounded-lg",
                         stat.positive
-                          ? "bg-emerald-500/10 text-emerald-500"
+                          ? "bg-primary/10 text-primary"
                           : "bg-amber-500/10 text-amber-500",
                       )}
                     >
@@ -313,7 +313,7 @@ export function CourseGrid({
                     <div
                       className={cn(
                         "text-[10px] font-bold flex items-center gap-1",
-                        stat.positive ? "text-emerald-500" : "text-amber-500",
+                        stat.positive ? "text-primary" : "text-amber-500",
                       )}
                     >
                       {stat.trend}

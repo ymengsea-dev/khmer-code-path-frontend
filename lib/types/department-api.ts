@@ -9,7 +9,7 @@ export interface DepartmentSummaryDto {
   headOfDept: string;
   teacherCount: number;
   classCount: number;
-  capacityPercent: number;
+  capacity: number;
   status: DepartmentStatusDto;
   accent: DepartmentAccentDto;
 }
@@ -30,7 +30,7 @@ export interface CreateDepartmentPayload {
   name: string;
   facultyId: number;
   headOfDept?: string;
-  capacityPercent?: number;
+  capacity?: number;
   status?: DepartmentStatusDto;
   accent?: DepartmentAccentDto;
 }
@@ -39,7 +39,7 @@ export interface UpdateDepartmentPayload {
   name?: string;
   facultyId?: number;
   headOfDept?: string;
-  capacityPercent?: number;
+  capacity?: number;
   status?: DepartmentStatusDto;
   accent?: DepartmentAccentDto;
 }
