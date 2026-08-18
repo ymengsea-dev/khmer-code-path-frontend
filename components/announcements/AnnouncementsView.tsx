@@ -24,7 +24,7 @@ import {
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { UserAvatar } from "@/components/profile/UserAvatar";
 import { RichTextEditor } from "@/components/notebook/RichTextEditor";
-import { AttachmentTile } from "./AttachmentTile";
+import { AttachmentTile, isImageAttachment } from "./AttachmentTile";
 import { AnnouncementReaderDialog } from "./AnnouncementReaderDialog";
 import { isEmptyHtml, htmlToText } from "@/lib/html-text";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
@@ -318,7 +318,7 @@ export function AnnouncementsView({ role }: AnnouncementsViewProps) {
                   )}
                 </div>
 
-                {/* Title + preview — click opens the read-only article */}
+                {/* Opens the read-only article view */}
                 <button
                   type="button"
                   onClick={() => setReading(a)}
@@ -377,6 +377,10 @@ export function AnnouncementsView({ role }: AnnouncementsViewProps) {
           {visibleItems.slice(0, feedVisibleCount).map((a) => {
             const theme = SCOPE_THEME[a.scope] ?? SCOPE_THEME.CLASS;
             const bodyEmpty = isEmptyHtml(a.body);
+            const heroImage =
+              a.attachments.length === 1 && isImageAttachment(a.attachments[0])
+                ? a.attachments[0]
+                : null;
             return (
               <article
                 key={a.id}
@@ -401,7 +405,6 @@ export function AnnouncementsView({ role }: AnnouncementsViewProps) {
                       )}
                     </div>
 
-                    {/* Publisher — last edit shown under the name */}
                     <div className="flex shrink-0 items-center gap-2.5">
                       <UserAvatar
                         name={a.authorName}
@@ -428,42 +431,75 @@ export function AnnouncementsView({ role }: AnnouncementsViewProps) {
 
                 <div className="mt-5" />
 
-                {bodyEmpty ? (
-                  <p className="px-6 py-6 text-sm italic text-muted-foreground md:px-8">
-                    No message body.
-                  </p>
-                ) : (
-                  <RichTextEditor
-                    html={a.body ?? ""}
-                    onChange={() => {}}
-                    readOnly
-                    variant="apple"
-                    placeholder=""
-                  />
-                )}
-
-                {a.attachments.length > 0 ? (
-                  <div className="px-6 pt-1 pb-8 md:px-8">
-                    <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      {a.attachments.length}{" "}
-                      {a.attachments.length === 1 ? "attachment" : "attachments"}
-                    </p>
-                    <div className="flex flex-wrap items-start gap-2">
-                      {a.attachments.map((att) => (
-                        <AttachmentTile
-                          key={att.id}
-                          announcementId={a.id}
-                          att={att}
-                          onDownload={() =>
-                            void handleDownload(a, att.id, att.fileName)
-                          }
+                {heroImage ? (
+                  /* Single image → text left, large image right */
+                  <div className="grid gap-4 px-6 pb-8 md:grid-cols-[1fr_0.8fr] md:items-stretch md:px-8">
+                    <div className="min-w-0 self-start">
+                      {bodyEmpty ? (
+                        <p className="py-2 text-sm italic text-muted-foreground">
+                          No message body.
+                        </p>
+                      ) : (
+                        <RichTextEditor
+                          html={a.body ?? ""}
+                          onChange={() => {}}
+                          readOnly
+                          variant="apple"
+                          placeholder=""
                         />
-                      ))}
+                      )}
+                    </div>
+                    <div className="min-h-64 md:min-h-80">
+                      <AttachmentTile
+                        announcementId={a.id}
+                        att={heroImage}
+                        size="hero"
+                        onDownload={() =>
+                          void handleDownload(a, heroImage.id, heroImage.fileName)
+                        }
+                      />
                     </div>
                   </div>
-                ) : bodyEmpty ? (
-                  <div className="h-2" />
-                ) : null}
+                ) : (
+                  <>
+                    {bodyEmpty ? (
+                      <p className="px-6 py-6 text-sm italic text-muted-foreground md:px-8">
+                        No message body.
+                      </p>
+                    ) : (
+                      <RichTextEditor
+                        html={a.body ?? ""}
+                        onChange={() => {}}
+                        readOnly
+                        variant="apple"
+                        placeholder=""
+                      />
+                    )}
+
+                    {a.attachments.length > 0 ? (
+                      <div className="px-6 pt-1 pb-8 md:px-8">
+                        <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                          {a.attachments.length}{" "}
+                          {a.attachments.length === 1 ? "attachment" : "attachments"}
+                        </p>
+                        <div className="flex flex-wrap items-start gap-2">
+                          {a.attachments.map((att) => (
+                            <AttachmentTile
+                              key={att.id}
+                              announcementId={a.id}
+                              att={att}
+                              onDownload={() =>
+                                void handleDownload(a, att.id, att.fileName)
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : bodyEmpty ? (
+                      <div className="h-2" />
+                    ) : null}
+                  </>
+                )}
               </article>
             );
           })}

@@ -21,7 +21,6 @@ import {
   GlassSelect,
   glassInputClass,
   glassBtnPrimaryClass,
-  glassBtnSubtleClass,
 } from "@/components/ui/glass-field";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -501,7 +500,7 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
       window.dispatchEvent(new Event(CLASSES_UPDATED_EVENT));
       onBack();
     } catch {
-      setSectionError("Could not delete this class. Remove students and lessons first.");
+      setSectionError("Couldn't delete this class. Remove all enrolled students, then try again.");
     } finally {
       setDeletingClass(false);
     }
@@ -1023,27 +1022,29 @@ export function ClassDetailView({ classId, onBack, onEnterClass, onClassNameLoad
             WebkitBackdropFilter: "var(--glass-blur)",
           }}
         >
-          <h3 className="text-sm font-extrabold text-destructive mb-1">Danger zone</h3>
-          <p className="text-xs text-muted-foreground mb-3">
-            Permanently delete this class. Only possible when there are no enrolled students or
-            lessons.
-          </p>
-          <button
-            type="button"
-            disabled={deletingClass}
-            onClick={() => void handleDeleteClass()}
-            className={cn(
-              glassBtnSubtleClass,
-              "h-9 px-4 text-xs gap-1.5 text-destructive border border-destructive/30",
-            )}
-          >
-            {deletingClass ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
-            Delete class
-          </button>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Danger zone
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Deleting removes this class and its lessons. Remove enrolled students first.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={deletingClass}
+              onClick={() => void handleDeleteClass()}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold",
+                "border border-destructive/40 text-destructive",
+                "hover:bg-destructive/10 disabled:opacity-50 transition-colors",
+              )}
+            >
+              {deletingClass && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Delete class
+            </button>
+          </div>
         </Card>
       </div>
     </div>

@@ -9,7 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GlassInput, glassBtnPrimaryClass } from "@/components/ui/glass-field";
+import {
+  GlassInput,
+  glassBtnPrimaryClass,
+  solidFieldClass,
+} from "@/components/ui/glass-field";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { facultyService } from "@/lib/services/faculty-service";
 import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
@@ -52,7 +56,7 @@ export function FacultyAddDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="glass-modal-solid max-w-sm">
         <DialogHeader>
           <DialogTitle>{config?.addButtonLabel ?? "Add faculty"}</DialogTitle>
         </DialogHeader>
@@ -68,6 +72,7 @@ export function FacultyAddDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={config?.nameLabel ?? "Faculty name"}
+              className={cn(solidFieldClass, "h-9")}
               autoFocus
               required
             />

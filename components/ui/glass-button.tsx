@@ -5,9 +5,7 @@ import { cn } from "@/lib/utils";
 import { glassBtnPrimaryClass } from "@/components/ui/glass-field";
 
 type GlassButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  /** Use the subtler glass token set. */
   subtle?: boolean;
-  /** Use the primary (filled) glass button style. */
   primary?: boolean;
 };
 

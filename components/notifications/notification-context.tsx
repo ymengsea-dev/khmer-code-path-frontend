@@ -153,7 +153,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => window.removeEventListener(NOTIFICATIONS_PREFERENCE_EVENT, onPreferenceChange);
   }, []);
 
-  // Request browser notification permission when push is enabled
   useEffect(() => {
     if (status !== "authenticated" || !pushEnabled) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -188,7 +187,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             return [item, ...without];
           });
 
-          // Native browser notification
           if (
             pushEnabledRef.current &&
             typeof window !== "undefined" &&

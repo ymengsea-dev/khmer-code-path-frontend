@@ -1045,3 +1045,17 @@ textarea.ai-composer-textarea {
     0 16px 40px rgb(0 0 0 / 0.45),
     0 2px 8px rgb(0 0 0 / 0.28);
 }
+
+/* Content Management: give only the writable text body a soft note-like surface */
+#course-content-body-editor {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 0.75rem;
+  width: auto;
+  margin: 0 0.75rem 0.75rem;
+}
+
+.dark #course-content-body-editor {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.07);
+}

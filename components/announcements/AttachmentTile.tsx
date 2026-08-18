@@ -9,17 +9,22 @@ import {
 import { cn } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 
-function isImage(att: AnnouncementAttachment): boolean {
+export function isImageAttachment(att: AnnouncementAttachment): boolean {
   return Boolean(att.contentType?.toLowerCase().startsWith("image/"));
 }
+const isImage = isImageAttachment;
 
 interface AttachmentTileProps {
   announcementId: number;
   att: AnnouncementAttachment;
   /** Save-as handler used for non-image files (and the image fallback chip). */
   onDownload: () => void;
-  /** "sm" for compact grid previews (e.g. the My Announcements card). Defaults to full size. */
-  size?: "sm" | "md";
+  /**
+   * "sm" for compact grid previews (e.g. the My Announcements card),
+   * "hero" fills its container (large side-by-side reader view).
+   * Defaults to the fixed medium tile.
+   */
+  size?: "sm" | "md" | "hero";
 }
 
 export function AttachmentTile({
@@ -79,8 +84,12 @@ export function AttachmentTile({
         onClick={() => url && setLightboxOpen(true)}
         title={`${att.fileName} — click to preview`}
         className={cn(
-          "group relative block shrink-0 overflow-hidden rounded-xl border border-black/6 bg-black/2 dark:border-white/8 dark:bg-white/3",
-          size === "sm" ? "h-16 w-16" : "h-28 w-28",
+          "group relative block overflow-hidden rounded-xl border border-black/6 bg-black/2 dark:border-white/8 dark:bg-white/3",
+          size === "sm"
+            ? "h-16 w-16 shrink-0"
+            : size === "hero"
+              ? "h-full min-h-64 w-full"
+              : "h-28 w-28 shrink-0",
         )}
       >
         {loading || !url ? (

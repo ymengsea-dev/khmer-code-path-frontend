@@ -10,7 +10,6 @@ export function useUserRole(): UserRole {
   return session?.user?.role ?? "student";
 }
 
-/** Map session role to API-style enum when needed. */
 export function toApiRole(role: UserRole): LmsRole {
   return role.toUpperCase() as LmsRole;
 }

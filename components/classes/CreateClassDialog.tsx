@@ -15,7 +15,7 @@ import { TimePicker } from "@/components/ui/time-picker";
 import { classService } from "@/lib/services/class-service";
 import { userService } from "@/lib/services/user-service";
 import type { UserSummary } from "@/lib/services/user-service";
-import type { ClassConfigDto } from "@/lib/types/class-api";
+import type { ClassConfigDto, ScheduleSlotInput, WeekDay } from "@/lib/types/class-api";
 import { Loader2, MapPin, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,16 @@ function generateClassCode(name: string, semester: string, academicYear: string)
 }
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+const WEEK_DAY_ENUM: Record<string, WeekDay> = {
+  Mon: "MONDAY",
+  Tue: "TUESDAY",
+  Wed: "WEDNESDAY",
+  Thu: "THURSDAY",
+  Fri: "FRIDAY",
+  Sat: "SATURDAY",
+  Sun: "SUNDAY",
+};
 
 /** Compresses a set of days into ranges, e.g. Mon-Fri instead of Mon, Tue, Wed, Thu, Fri. */
 function formatDaysLabel(days: string[]): string {
@@ -93,7 +103,7 @@ export function CreateClassDialog({
   const [scheduleDays, setScheduleDays] = useState<string[]>(["Mon"]);
   const [scheduleStart, setScheduleStart] = useState("08:00");
   const [scheduleEnd, setScheduleEnd] = useState("10:00");
-  const [roomNumber, setRoomNumber] = useState("");
+  const [roomId, setRoomId] = useState<number | null>(null);
   const [departmentId, setDepartmentId] = useState("");
 
   const toggleScheduleDay = (day: string) => {
@@ -124,7 +134,7 @@ export function CreateClassDialog({
     const firstDept = classConfig.departmentOptions?.[0];
     if (firstDept) setDepartmentId(String(firstDept.id));
     const firstRoom = classConfig.roomOptions?.[0];
-    if (firstRoom) setRoomNumber(firstRoom.name);
+    setRoomId(firstRoom ? firstRoom.id : null);
   }, [open, classConfig]);
 
   useEffect(() => {
@@ -184,10 +194,20 @@ export function CreateClassDialog({
         setError("Select a department for this class.");
         return;
       }
-      const schedule =
+      // Build structured timetable slots (one per selected day) — the single source of
+      // truth the Class Timetable panel also edits. No more free-text schedule string.
+      const scheduleSlots: ScheduleSlotInput[] =
         scheduleDays.length && scheduleStart && scheduleEnd
-          ? `${formatDaysLabel(scheduleDays)} ${scheduleStart}-${scheduleEnd}`
-          : undefined;
+          ? scheduleDays
+              .map((day) => WEEK_DAY_ENUM[day] as WeekDay)
+              .filter(Boolean)
+              .map((dayOfWeek) => ({
+                dayOfWeek,
+                startTime: scheduleStart,
+                endTime: scheduleEnd,
+                roomId,
+              }))
+          : [];
       await classService.createClass({
         code: code.trim(),
         name: name.trim(),
@@ -196,8 +216,7 @@ export function CreateClassDialog({
         departmentId: parsedDepartmentId,
         semester: semester.trim() || undefined,
         academicYear: Number(academicYear) || undefined,
-        schedule,
-        roomNumber: roomNumber.trim() || undefined,
+        scheduleSlots,
         status: "ACTIVE",
       });
       onCreated();
@@ -209,7 +228,7 @@ export function CreateClassDialog({
       setScheduleDays(["Mon"]);
       setScheduleStart("08:00");
       setScheduleEnd("10:00");
-      setRoomNumber(classConfig?.roomOptions?.[0]?.name ?? "");
+      setRoomId(classConfig?.roomOptions?.[0]?.id ?? null);
     } catch {
       setError("Failed to create class. Check the code is unique and you have permission.");
     } finally {
@@ -224,6 +243,11 @@ export function CreateClassDialog({
         (o.academicYear == null || String(o.academicYear) === academicYear)
     )?.value ??
     (semester && academicYear ? `${semester}, ${academicYear}` : semester);
+
+  // Solid field styling to match the sibling <select>/<textarea> — the default
+  // Input is glass (bg-white/28) and vanishes on this dialog's solid white bg.
+  const solidField =
+    "rounded-md border border-slate-200/80 bg-white shadow-none dark:border-zinc-800 dark:bg-zinc-950";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -253,6 +277,7 @@ export function CreateClassDialog({
                     required
                     readOnly={codeMode === "auto"}
                     className={cn(
+                      solidField,
                       "h-9 pr-14 text-sm",
                       codeMode === "auto" && "text-muted-foreground",
                     )}
@@ -289,7 +314,7 @@ export function CreateClassDialog({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Introduction to CS"
                 required
-                className="h-9 text-sm"
+                className={cn(solidField, "h-9 text-sm")}
               />
             </div>
           </div>
@@ -363,7 +388,7 @@ export function CreateClassDialog({
                 <Input
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="h-9 text-sm"
+                  className={cn(solidField, "h-9 text-sm")}
                   disabled={!classConfig}
                 />
               )}
@@ -374,7 +399,7 @@ export function CreateClassDialog({
                 value={academicYear}
                 onChange={(e) => setAcademicYear(e.target.value)}
                 type="number"
-                className="h-9 text-sm"
+                className={cn(solidField, "h-9 text-sm")}
                 disabled={!classConfig}
               />
             </div>
@@ -427,26 +452,21 @@ export function CreateClassDialog({
                 <MapPin className="h-3 w-3" />
                 Room
               </Label>
-              {roomOptions.length > 0 ? (
-                <select
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
-                >
-                  {roomOptions.map((room) => (
-                    <option key={room.id} value={room.name}>
-                      {room.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <Input
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  placeholder="B201"
-                  className="h-9 text-sm"
-                />
-              )}
+              <select
+                value={roomId != null ? String(roomId) : ""}
+                onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : null)}
+                disabled={roomOptions.length === 0}
+                className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm disabled:opacity-60"
+              >
+                <option value="">
+                  {roomOptions.length === 0 ? "No rooms — add in Operations" : "No room"}
+                </option>
+                {roomOptions.map((room) => (
+                  <option key={room.id} value={String(room.id)}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

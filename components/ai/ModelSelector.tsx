@@ -93,8 +93,11 @@ export function ModelSelector({ value, onChange, className }: Props) {
             }}
           />
         </span>
+        <span className="min-w-0 flex-1 truncate text-left">
+          {active?.displayName ?? "Select model"}
+        </span>
         <ChevronDown
-          className="h-3 w-3 text-muted-foreground transition-transform duration-150 group-data-popup-open:rotate-180"
+          className="h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-150 group-data-popup-open:rotate-180"
           strokeWidth={2}
         />
       </DropdownMenuTrigger>

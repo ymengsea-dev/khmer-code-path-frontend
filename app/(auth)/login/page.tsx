@@ -9,6 +9,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { glassBtnPrimaryClass, glassBtnSubtleClass } from "@/components/ui/glass-field";
 import { authService } from "@/lib/services/auth-service";
+import { getApiErrorMessage } from "@/lib/api-error";
+
+// Primary school's stable numeric id — rename-proof, unlike its name-derived slug.
+const PRIMARY_SCHOOL_SLUG = "1";
+
+type AuthMode = "signin" | "register";
 
 const inputClass = cn(
   "w-full h-12 rounded-2xl px-4 text-sm font-medium",
@@ -29,9 +35,19 @@ function resolveCallbackUrl(raw: string | null): string {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mode, setMode] = React.useState<AuthMode>("signin");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
+
+  const isRegister = mode === "register";
+
+  const switchMode = (next: AuthMode) => {
+    setMode(next);
+    setError(null);
+    setSuccess(null);
+  };
 
   useEffect(() => {
     const oauthError = searchParams.get("error");
@@ -78,8 +94,35 @@ function LoginContent() {
     }
   };
 
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const formData = new FormData(e.currentTarget);
+    const username = String(formData.get("username") ?? "");
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      await authService.register({
+        username,
+        email,
+        password,
+        schoolSlug: PRIMARY_SCHOOL_SLUG,
+      });
+      setSuccess("Account created. Sign in with your new details.");
+      setMode("signin");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Couldn't create your account. Check your details and try again."));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = () => {
-    authService.googleLogin();
+    authService.googleLogin(isRegister ? PRIMARY_SCHOOL_SLUG : undefined);
   };
 
   return (
@@ -97,10 +140,12 @@ function LoginContent() {
         <div className="flex flex-col items-center text-center mb-8">
           <AppLogoMark className="h-14 w-auto mb-5" />
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Welcome back
+            {isRegister ? "Create your account" : "Welcome back"}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground max-w-[280px]">
-            Sign in to continue to your classes, assignments, and learning tools.
+            {isRegister
+              ? "Join your school to access classes, assignments, and learning tools."
+              : "Sign in to continue to your classes, assignments, and learning tools."}
           </p>
         </div>
 
@@ -114,7 +159,34 @@ function LoginContent() {
           </div>
         ) : null}
 
-        <form className="space-y-5" onSubmit={handleLogin}>
+        {success ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-5 rounded-2xl border border-emerald-300/60 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            {success}
+          </div>
+        ) : null}
+
+        <form className="space-y-5" onSubmit={isRegister ? handleRegister : handleLogin}>
+          {isRegister ? (
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-xs font-semibold text-muted-foreground">
+                Full name
+              </Label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="name"
+                placeholder="Enter your full name"
+                className={inputClass}
+                required
+              />
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
               Email address
@@ -135,20 +207,24 @@ function LoginContent() {
               <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
                 Password
               </Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-semibold text-[#305FC9] hover:text-[#254db0] hover:underline dark:text-[#6b93e8]"
-              >
-                Forgot password?
-              </Link>
+              {isRegister ? null : (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-semibold text-[#305FC9] hover:text-[#254db0] hover:underline dark:text-[#6b93e8]"
+                >
+                  Forgot password?
+                </Link>
+              )}
             </div>
             <div className="relative">
               <input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="Enter your password"
+                autoComplete={isRegister ? "new-password" : "current-password"}
+                placeholder={isRegister ? "4–16 characters" : "Enter your password"}
+                minLength={isRegister ? 4 : undefined}
+                maxLength={isRegister ? 16 : undefined}
                 className={cn(inputClass, "pr-11")}
                 required
               />
@@ -183,11 +259,11 @@ function LoginContent() {
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Signing in…
+                {isRegister ? "Creating account…" : "Signing in…"}
               </>
             ) : (
               <>
-                Sign in
+                {isRegister ? "Create account" : "Sign in"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </>
             )}
@@ -235,13 +311,14 @@ function LoginContent() {
         </button>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          New student?{" "}
-          <Link
-            href="/register/default"
+          {isRegister ? "Already have an account?" : "New student?"}{" "}
+          <button
+            type="button"
+            onClick={() => switchMode(isRegister ? "signin" : "register")}
             className="font-semibold text-[#305FC9] hover:underline dark:text-[#6b93e8]"
           >
-            Create an account
-          </Link>
+            {isRegister ? "Sign in" : "Create an account"}
+          </button>
         </p>
       </div>
     </div>

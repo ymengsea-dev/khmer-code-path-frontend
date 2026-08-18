@@ -10,7 +10,7 @@ import type {
 } from "../types/lesson-ai-api";
 
 export const lessonAiService = {
-  // ── Lesson (class) — file-based (RAG) ────────────────────────────────────
+  // Lesson (class), file-based via RAG
 
   async generateSummaryFromLesson(
     lessonId: number,
@@ -41,7 +41,7 @@ export const lessonAiService = {
     return response.data.data;
   },
 
-  // ── Lesson (class) — written notes (direct LLM, no file) ─────────────────
+  // Lesson (class), written notes via direct LLM (no file)
 
   async generateSummaryFromLessonContent(
     lessonId: number,
@@ -87,7 +87,7 @@ export const lessonAiService = {
     return response.data.data;
   },
 
-  // ── Library template — file-based (RAG) ──────────────────────────────────
+  // Library template, file-based via RAG
 
   async generateQuizFromLibrary(
     libraryItemId: number,
@@ -106,7 +106,7 @@ export const lessonAiService = {
     return response.data.data;
   },
 
-  // ── Library template — written notes (direct LLM, no file) ───────────────
+  // Library template, written notes via direct LLM (no file)
 
   async generateQuizFromLibraryContent(
     libraryItemId: number,

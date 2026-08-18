@@ -13,7 +13,6 @@ export interface NotificationItem {
   timeAgo: string;
   parts: NotificationPart[];
   read: boolean;
-  /** Highlight row (e.g. payment confirmation) */
   highlighted?: boolean;
   section: string;
 }

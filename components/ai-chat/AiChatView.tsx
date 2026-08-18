@@ -289,7 +289,6 @@ function MessageBubble({
         isUser ? "justify-end" : "justify-start",
       )}
     >
-      {/* AI avatar — left side */}
       {!isUser && (
         <div
           className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center mb-0.5"
@@ -348,7 +347,6 @@ function MessageBubble({
         )}
       </div>
 
-      {/* User avatar — right side */}
       {isUser && (
         <div
           className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center mb-0.5"
@@ -537,14 +535,12 @@ export function AiChatView() {
         selectedModel ?? undefined,
       );
 
-      // Cancel any pending frame, then do a final synchronous flush.
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
       flushStreamBuffer();
 
-      // Finalise: give the message a stable id and refresh the sidebar.
       setMessages((prev) =>
         prev.map((m) =>
           m.id === STREAM_MSG_ID ? { ...m, id: `assistant-${Date.now()}` } : m,
@@ -670,7 +666,6 @@ export function AiChatView() {
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
       <SelectionNotePopup containerIds={["ai-chat-messages"]} lessonTitle="AI Chat" />
       <div className="flex flex-1 min-h-0 h-full w-full flex-col lg:flex-row gap-3">
-        {/* Sidebar */}
         <aside
           className="w-full lg:w-[260px] xl:w-[280px] shrink-0 flex flex-col min-h-0 rounded-2xl overflow-hidden scrollbar-hide"
           style={{
@@ -753,7 +748,6 @@ export function AiChatView() {
           </div>
         </aside>
 
-        {/* Main area */}
         <main
           className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden rounded-2xl"
           style={{
@@ -764,7 +758,6 @@ export function AiChatView() {
             boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
           }}
         >
-          {/* Top bar */}
           <div
             className="shrink-0 h-[48px] px-5 flex items-center justify-between gap-3"
             style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
@@ -774,7 +767,6 @@ export function AiChatView() {
             </p>
           </div>
 
-          {/* Messages */}
           <div
             id="ai-chat-messages"
             ref={scrollRef}
@@ -846,7 +838,6 @@ export function AiChatView() {
                   />
                 ))}
 
-                {/* Typing dots before streaming placeholder is added */}
                 {isLoading && !messages.some((m) => m.id === STREAM_MSG_ID) ? (
                   <div className="flex justify-start items-end gap-2.5 mt-1">
                     <div
@@ -894,7 +885,6 @@ export function AiChatView() {
             </p>
           ) : null}
 
-          {/* Composer */}
           <div className="shrink-0 px-4 sm:px-6 pb-4 pt-2">
             <form
               onSubmit={handleSubmit}

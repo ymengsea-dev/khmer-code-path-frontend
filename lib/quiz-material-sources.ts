@@ -108,7 +108,6 @@ export async function loadQuizMaterialSources(): Promise<QuizMaterialSource[]> {
 
   const templates = await lessonService.listLibrary();
   for (const template of templates) {
-    // Written notes source (generated from the template's text content)
     const hasNotes =
       template.description != null &&
       template.description.trim() !== "" &&
@@ -124,7 +123,6 @@ export async function loadQuizMaterialSources(): Promise<QuizMaterialSource[]> {
       });
     }
 
-    // Uploaded file sources
     if (template.assetCount <= 0) continue;
     let materials: LibraryMaterialDto[];
     try {

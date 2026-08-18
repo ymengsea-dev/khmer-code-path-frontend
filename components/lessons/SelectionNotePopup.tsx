@@ -39,7 +39,6 @@ export function SelectionNotePopup({ containerIds, lessonTitle, lessonId }: Sele
         const range = selection.getRangeAt(0);
         const ancestor = range.commonAncestorContainer as Node;
 
-        // Check if selection is inside one of the registered containers
         const insideContainer = containerIds.some((id) => {
           const el = document.getElementById(id);
           return el?.contains(ancestor);

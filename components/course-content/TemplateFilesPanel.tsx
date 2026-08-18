@@ -199,7 +199,7 @@ export function TemplateFilesPanel({
               "h-8 flex-1 gap-1 text-[11px] font-semibold rounded-xl inline-flex items-center justify-center transition-colors",
               source === "computer"
                 ? "text-white"
-                : glassBtnSubtleClass,
+                : "liquid-glass-btn-subtle liquid-glass-btn text-foreground",
             )}
             style={
               source === "computer"
@@ -218,7 +218,7 @@ export function TemplateFilesPanel({
               "h-8 flex-1 gap-1 text-[11px] font-semibold rounded-xl inline-flex items-center justify-center transition-colors",
               source === "library"
                 ? "text-white"
-                : glassBtnSubtleClass,
+                : "liquid-glass-btn-subtle liquid-glass-btn text-foreground",
             )}
             style={
               source === "library"
@@ -297,7 +297,7 @@ export function TemplateFilesPanel({
               </ul>
               <button
                 type="button"
-                className={cn(glassBtnPrimaryClass, "w-full h-8 text-xs gap-1")}
+                className={cn(glassBtnPrimaryClass, "w-full h-10 text-xs gap-1")}
                 disabled={disabled || linking || selectedLibraryIds.length === 0}
                 onClick={() => void handleLinkFromLibrary()}
               >

@@ -19,12 +19,12 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { facultyService } from "@/lib/services/faculty-service";
 import { departmentService } from "@/lib/services/department-service";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { FACULTIES_UI } from "@/lib/lms-ui/faculties";
 import type { FacultySummaryDto } from "@/lib/types/faculty-api";
 import type { Department } from "@/data/departments";
 import { useQueryParams } from "@/lib/hooks/use-query-params";
 import { QueryKey } from "@/lib/navigation/app-query";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { FacultyCoverBanner } from "./FacultyCoverBanner";
 
@@ -138,7 +138,7 @@ export function FacultyDetailView({
       await facultyService.deleteFaculty(faculty.id);
       onBack();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Could not delete faculty."));
+      setError(getApiErrorMessage(err, "Couldn't delete faculty."));
     } finally {
       setDeleting(false);
     }
@@ -269,19 +269,21 @@ export function FacultyDetailView({
               </button>
             </form>
 
-            <div className="mt-2 border-t border-destructive/20 pt-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Danger zone
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                Deleting removes this faculty. Move or delete its departments first.
-              </p>
+            <div className="mt-2 flex items-center justify-between gap-4 border-t border-destructive/20 pt-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Danger zone
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Deleting removes this faculty. Move or delete its departments first.
+                </p>
+              </div>
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => void handleDelete()}
                 className={cn(
-                  "mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold",
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold",
                   "border border-destructive/40 text-destructive",
                   "hover:bg-destructive/10 disabled:opacity-50 transition-colors",
                 )}

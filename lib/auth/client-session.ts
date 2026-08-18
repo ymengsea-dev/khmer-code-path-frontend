@@ -41,10 +41,7 @@ function isSessionTokenFresh(session: ClientSession | null | undefined): boolean
   return Date.now() < session.accessTokenExpires - REFRESH_BUFFER_MS;
 }
 
-/**
- * Returns a valid bearer token, refreshing the NextAuth session when needed.
- * Never returns an expired access token.
- */
+/** Never returns an expired token; refreshes the session first if the cached one is stale. */
 export async function getValidAccessToken(): Promise<string | null> {
   const cached = (await getSession()) as ClientSession | null;
   if (isSessionTokenFresh(cached)) {

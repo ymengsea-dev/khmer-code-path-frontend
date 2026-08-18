@@ -351,7 +351,6 @@ export function HomePage() {
         />
 
         <SidebarInset>
-          {/* Shared top header — Apple liquid glass floating pills */}
           <header className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-1">
             <div className="flex min-w-0 items-center gap-2.5">
               <SidebarTrigger />
@@ -400,12 +399,9 @@ export function HomePage() {
 
             </div>
 
-            {/* Right — action pills */}
             <div className="flex items-center gap-2.5">
-              {/* Notification pill */}
               <NotificationBell className="topbar-pill h-10 px-3 rounded-full inline-flex items-center justify-center" />
 
-              {/* Avatar + name pill */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="topbar-pill h-10 flex items-center gap-2.5 px-3 cursor-pointer outline-none">
                   <CurrentUserAvatar
@@ -445,7 +441,6 @@ export function HomePage() {
             </div>
           </header>
 
-          {/* View area fills remaining height */}
           <BouncyPage key={activeNav} className="px-5 pt-3 pb-5">
             {activeNav === "code" && <EmbeddedIDE />}
             {activeNav === "learning" && <MyLearning onEnterClass={handleEnterClass} />}

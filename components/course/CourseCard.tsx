@@ -21,7 +21,6 @@ interface CourseCardProps {
 function CardThumbnail({ course }: { course: Course }) {
   return (
     <div className={cn("relative h-36 bg-gradient-to-br overflow-hidden", course.bgColor)}>
-      {/* Course cover image (when provided) */}
       {course.image && (
         <>
           <img
@@ -32,7 +31,6 @@ function CardThumbnail({ course }: { course: Course }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </>
       )}
-      {/* Decorative code overlay */}
       <div className="absolute inset-0 opacity-20 font-mono text-[8px] text-white leading-3 p-2 overflow-hidden select-none pointer-events-none">
         {course.level === "BEGINNER" &&
           `def hello_world():\n    print("Hello!")\n\nfor i in range(10):\n    hello_world()\n\nclass Node:\n    def __init__(self):\n        self.val = 0`}
@@ -66,7 +64,6 @@ function CardThumbnail({ course }: { course: Course }) {
 }
 
 export function CourseCard({ course, selected, onClick }: CourseCardProps) {
-  // Dynamically map instructors, time information, and current lesson details
   const getInstructor = (id: number) => {
     if (id === 1) return "Dr. SOK";
     if (id === 2) return "Dr. SOK";
@@ -102,12 +99,10 @@ export function CourseCard({ course, selected, onClick }: CourseCardProps) {
       <CardThumbnail course={course} />
       
       <CardContent className="flex flex-col gap-2 p-4 flex-1">
-        {/* Title */}
         <h3 className="font-extrabold text-sm text-foreground tracking-tight line-clamp-1 group-hover:text-indigo-500 transition-colors">
           {course.title}
         </h3>
 
-        {/* Level and Meta details */}
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
           <span className="flex items-center gap-1">
             <User className="w-3 h-3 text-indigo-500/80" />
@@ -119,14 +114,12 @@ export function CourseCard({ course, selected, onClick }: CourseCardProps) {
           </span>
         </div>
 
-        {/* Current Lesson Detail text */}
         <p className="text-xs text-muted-foreground line-clamp-2 mt-1 min-h-[32px]">
           {getCurrentLesson(course.title)}
         </p>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 mt-auto flex items-center gap-2">
-        {/* Resume/Start Button */}
         <Button
           variant={course.locked ? "secondary" : "default"}
           size="sm"
@@ -136,7 +129,6 @@ export function CourseCard({ course, selected, onClick }: CourseCardProps) {
           {course.locked ? "Locked" : "Resume Lesson"}
         </Button>
 
-        {/* Dynamic Video Class Join Button */}
         {!course.locked && (
           <Button
             type="button"

@@ -51,19 +51,17 @@ export function RichTextDocumentEditor({
 
   return (
     <div className={cn("flex flex-1 flex-col min-h-0 overflow-hidden relative", className)}>
-      {/* Floating row: tag/share pills on the left, editor formatting buttons on the right */}
       {hasFloating ? (
         <div
           ref={setToolbarRowEl}
           className="absolute top-3 left-3 right-3 sm:left-6 sm:right-6 z-10 flex items-center gap-2 pointer-events-none min-w-0"
         >
-          {/* Left: custom toolbar items (Tag, Share, etc.) */}
           {toolbar ? (
             <div className="pointer-events-auto flex items-center gap-2 shrink-0">
               {toolbar}
             </div>
           ) : null}
-          {/* Editor formatting toolbar — shrink-wraps to button content */}
+          {/* Shrink-wraps to button content */}
           <div
             ref={setToolbarPortalEl}
             className="pointer-events-auto ml-auto shrink-0 glass-panel rounded-xl px-1 py-0.5 flex items-center"

@@ -245,7 +245,6 @@ export function LessonAskPanel({
                   </div>
                 ) : null}
               </div>
-              {/* Save-to-note — always visible under assistant messages */}
               {msg.role === "assistant" && (
                 <SaveNoteButton content={msg.content} lessonId={lessonId} lessonTitle={lessonTitle} />
               )}
@@ -275,7 +274,6 @@ export function LessonAskPanel({
         </div>
       )}
 
-      {/* Compose bar */}
       <div className={cn("shrink-0 px-3 pb-3 pt-2", !compactFooter && "mt-auto")}>
         <div className="mb-2 flex justify-end">
           <ModelSelector

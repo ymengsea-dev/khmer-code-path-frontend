@@ -7,9 +7,12 @@ import {
   CheckCircle2,
   ClipboardPen,
   Clock,
+  Download,
   GraduationCap,
   Loader2,
+  Paperclip,
   Trash2,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +35,10 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   formatQuizDueAt,
 } from "@/lib/quiz-display";
+import { downloadAuthedFile } from "@/lib/download";
 import { ExamTakingView } from "./ExamTakingView";
 import { TaskContentDisplay } from "./TaskContentDisplay";
+import { AssignmentSubmissionsDialog } from "./AssignmentSubmissionsDialog";
 import {
   CreateAssignmentDialog,
   CreateExamDialog,
@@ -91,7 +96,11 @@ export function AssignmentsExamsView() {
     null,
   );
   const [submitContent, setSubmitContent] = useState("");
+  const [submitFile, setSubmitFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewAssignment, setReviewAssignment] = useState<AssignmentDto | null>(
+    null,
+  );
 
   const { confirm, alert } = useConfirm();
 
@@ -131,10 +140,13 @@ export function AssignmentsExamsView() {
     if (!activeAssignment) return;
     setSubmitting(true);
     try {
-      const updated = await assignmentService.submit(activeAssignment.id, {
-        content: submitContent.trim(),
-      });
+      const updated = await assignmentService.submit(
+        activeAssignment.id,
+        { content: submitContent.trim() },
+        submitFile,
+      );
       setActiveAssignment(updated);
+      setSubmitFile(null);
       void loadData();
     } catch (err) {
       void alert(getApiErrorMessage(err, "Could not submit."), {
@@ -150,6 +162,7 @@ export function AssignmentsExamsView() {
     try {
       const full = await assignmentService.get(item.id);
       setSubmitContent(full.submittedContent ?? "");
+      setSubmitFile(null);
       setActiveAssignment(full);
     } catch (err) {
       void alert(getApiErrorMessage(err, "Could not load assignment."), {
@@ -247,6 +260,29 @@ export function AssignmentsExamsView() {
                   {activeAssignment.submittedContent}
                 </p>
               ) : null}
+              {activeAssignment.submittedAttachmentUrl ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() =>
+                    void downloadAuthedFile(
+                      activeAssignment.submittedAttachmentUrl!,
+                      activeAssignment.submittedAttachmentName ?? "attachment",
+                    ).catch((err) =>
+                      void alert(
+                        getApiErrorMessage(err, "Could not download."),
+                        { variant: "destructive" },
+                      ),
+                    )
+                  }
+                >
+                  <Download className="h-4 w-4" />
+                  {activeAssignment.submittedAttachmentName ??
+                    "Your attachment"}
+                </Button>
+              ) : null}
             </div>
           ) : (
             <>
@@ -259,6 +295,20 @@ export function AssignmentsExamsView() {
                   className="w-full rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-background px-4 py-3 text-sm resize-y"
                   placeholder="Write your answer or paste your work here…"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Attachment (optional)</Label>
+                <input
+                  type="file"
+                  onChange={(e) => setSubmitFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 dark:file:bg-zinc-800 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-foreground"
+                />
+                {submitFile ? (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    {submitFile.name}
+                  </p>
+                ) : null}
               </div>
               <Button
                 disabled={
@@ -391,6 +441,9 @@ export function AssignmentsExamsView() {
               isTeacher={isTeacher}
               canStart={canSubmitAssignment(assignment)}
               onOpen={() => void openAssignment(assignment)}
+              onReview={
+                isTeacher ? () => setReviewAssignment(assignment) : undefined
+              }
               onDelete={
                 isTeacher
                   ? () =>
@@ -421,6 +474,11 @@ export function AssignmentsExamsView() {
           setCreateExamOpen(false);
           void loadData();
         }}
+      />
+      <AssignmentSubmissionsDialog
+        assignment={reviewAssignment}
+        onClose={() => setReviewAssignment(null)}
+        onGraded={() => void loadData()}
       />
     </div>
   );
@@ -500,6 +558,7 @@ function WorkCard({
   isTeacher,
   canStart,
   onOpen,
+  onReview,
   onDelete,
 }: {
   kind: "Assignment" | "Exam";
@@ -512,6 +571,7 @@ function WorkCard({
   isTeacher: boolean;
   canStart: boolean;
   onOpen: () => void;
+  onReview?: () => void;
   onDelete?: () => void;
 }) {
   const dueLabel = formatQuizDueAt(dueAt);
@@ -568,19 +628,31 @@ function WorkCard({
       <div className="flex gap-2 mt-1">
         {isTeacher ? (
           <>
-            <div className="flex-1 flex items-center justify-center gap-1 text-xs text-muted-foreground py-2">
-              {isExam ? (
-                <>
-                  <GraduationCap className="h-3.5 w-3.5" />
-                  Proctored exam
-                </>
-              ) : (
-                <>
-                  <ClipboardPen className="h-3.5 w-3.5" />
-                  {meta ?? "Awaiting submissions"}
-                </>
-              )}
-            </div>
+            {onReview ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs gap-1.5"
+                onClick={onReview}
+              >
+                <Users className="h-3.5 w-3.5" />
+                {meta ?? "Review submissions"}
+              </Button>
+            ) : (
+              <div className="flex-1 flex items-center justify-center gap-1 text-xs text-muted-foreground py-2">
+                {isExam ? (
+                  <>
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    Proctored exam
+                  </>
+                ) : (
+                  <>
+                    <ClipboardPen className="h-3.5 w-3.5" />
+                    {meta ?? "Awaiting submissions"}
+                  </>
+                )}
+              </div>
+            )}
             {onDelete ? (
               <Button
                 size="sm"

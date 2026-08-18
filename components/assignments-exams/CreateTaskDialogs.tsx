@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  CalendarClock,
   ClipboardPen,
   GraduationCap,
   Timer,
@@ -25,8 +24,10 @@ import {
   GlassInput,
   GlassSelect,
   glassInputClass,
+  solidFieldClass,
 } from "@/components/ui/glass-field";
 import { cn } from "@/lib/utils";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { TaskContentBuilder } from "./TaskContentBuilder";
 import {
   FormField,
@@ -97,8 +98,8 @@ export function CreateAssignmentDialog({
       icon={ClipboardPen}
       title="New assignment"
       description="Give students clear instructions, set a deadline, and optionally attach AI questions, files, or library materials."
-      headerGradient="bg-gradient-to-br from-sky-500/15 via-blue-500/8 to-transparent"
-      iconClassName="bg-sky-500/15 text-sky-600 ring-sky-500/25 dark:text-sky-400"
+      headerGradient="bg-gradient-to-br from-primary/15 via-primary/8 to-transparent"
+      iconClassName="bg-primary/15 text-primary ring-primary/25"
       saving={saving}
       canSubmit={Boolean(title.trim() && classId)}
       submitLabel="Publish assignment"
@@ -115,6 +116,7 @@ export function CreateAssignmentDialog({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Week 3 programming exercise"
             autoFocus
+            className={solidFieldClass}
           />
         </FormField>
 
@@ -127,7 +129,7 @@ export function CreateAssignmentDialog({
             onChange={(e) => setInstructions(e.target.value)}
             rows={4}
             placeholder="What should students do and submit?"
-            className={cn(glassInputClass, "h-auto min-h-[7.5rem] resize-y py-3 leading-relaxed")}
+            className={cn(glassInputClass, "h-auto min-h-[7.5rem] resize-y py-3 leading-relaxed", solidFieldClass)}
           />
         </FormField>
 
@@ -136,7 +138,7 @@ export function CreateAssignmentDialog({
             <GlassSelect
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
-              className="w-full"
+              className={cn("w-full", solidFieldClass)}
             >
               {classes.map((c) => (
                 <option key={c.id} value={String(c.id)}>
@@ -147,15 +149,11 @@ export function CreateAssignmentDialog({
           </FormField>
 
           <FormField label="Deadline">
-            <div className="relative">
-              <CalendarClock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <GlassInput
-                type="datetime-local"
-                value={dueAtLocal}
-                onChange={(e) => setDueAtLocal(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <DateTimePicker
+              value={dueAtLocal}
+              onChange={setDueAtLocal}
+              placeholder="No deadline — pick a date & time"
+            />
           </FormField>
         </div>
       </FormSection>
@@ -258,6 +256,7 @@ export function CreateExamDialog({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Mid-term exam — Module 2"
             autoFocus
+            className={solidFieldClass}
           />
         </FormField>
 
@@ -266,7 +265,7 @@ export function CreateExamDialog({
             <GlassSelect
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
-              className="w-full"
+              className={cn("w-full", solidFieldClass)}
             >
               {classes.map((c) => (
                 <option key={c.id} value={String(c.id)}>
@@ -285,20 +284,18 @@ export function CreateExamDialog({
                 max={480}
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
-                className="pl-10"
+                className={cn("pl-10", solidFieldClass)}
               />
             </div>
           </FormField>
         </div>
 
         <FormField label="Deadline">
-          <div className="relative max-w-sm">
-            <CalendarClock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <GlassInput
-              type="datetime-local"
+          <div className="max-w-sm">
+            <DateTimePicker
               value={dueAtLocal}
-              onChange={(e) => setDueAtLocal(e.target.value)}
-              className="pl-10"
+              onChange={setDueAtLocal}
+              placeholder="No deadline — pick a date & time"
             />
           </div>
         </FormField>

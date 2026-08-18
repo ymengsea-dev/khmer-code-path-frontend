@@ -672,7 +672,6 @@ export function RichTextEditor({
   const toolbarButtons = !readOnly ? (
     <div className="flex items-center gap-0.5 shrink-0">
       <div className="flex items-center gap-0.5 shrink-0">
-        {/* Core formatting — always visible */}
         <GlassToolbarButton
           icon={<Bold className={iconClass} />}
           title="Bold"

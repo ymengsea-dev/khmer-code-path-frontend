@@ -3,6 +3,7 @@ import type {
   AssignmentDto,
   AssignmentSubmissionDto,
   CreateAssignmentPayload,
+  GradeAssignmentPayload,
   SubmitAssignmentPayload,
 } from "../types/assignments-exams-api";
 
@@ -38,10 +39,20 @@ export const assignmentService = {
     return response.data.data;
   },
 
-  async submit(id: number, payload: SubmitAssignmentPayload): Promise<AssignmentDto> {
+  async submit(
+    id: number,
+    payload: SubmitAssignmentPayload,
+    file?: File | null,
+  ): Promise<AssignmentDto> {
+    const form = new FormData();
+    form.append("content", payload.content);
+    if (file) {
+      form.append("file", file);
+    }
     const response = await apiClient.post<{ data: AssignmentDto }>(
       `/assignments/${id}/submit`,
-      payload,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
     return response.data.data;
   },
@@ -51,6 +62,18 @@ export const assignmentService = {
       `/assignments/${id}/submissions`,
     );
     return response.data.data ?? [];
+  },
+
+  async grade(
+    id: number,
+    submissionId: number,
+    payload: GradeAssignmentPayload,
+  ): Promise<AssignmentSubmissionDto> {
+    const response = await apiClient.post<{ data: AssignmentSubmissionDto }>(
+      `/assignments/${id}/submissions/${submissionId}/grade`,
+      payload,
+    );
+    return response.data.data;
   },
 
   async delete(id: number): Promise<void> {

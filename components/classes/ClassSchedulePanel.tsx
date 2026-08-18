@@ -6,7 +6,13 @@ import { AlertTriangle, Loader2, Plus, Trash2 } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { glassBtnPrimaryClass, glassInputClass } from "@/components/ui/glass-field";
 import { classService } from "@/lib/services/class-service";
-import type { ScheduleConflict, ScheduleSlot, ScheduleSlotInput, WeekDay } from "@/lib/types/class-api";
+import type {
+  RoomOptionDto,
+  ScheduleConflict,
+  ScheduleSlot,
+  ScheduleSlotInput,
+  WeekDay,
+} from "@/lib/types/class-api";
 import { cn } from "@/lib/utils";
 
 const DAYS: WeekDay[] = [
@@ -41,6 +47,7 @@ function toInputTime(value: string): string {
 
 export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
+  const [roomOptions, setRoomOptions] = useState<RoomOptionDto[]>([]);
   const [draft, setDraft] = useState<ScheduleSlotInput[]>([]);
   const [conflicts, setConflicts] = useState<ScheduleConflict[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +72,21 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
     void load();
   }, [load]);
 
-  // Seed the editable draft from the loaded slots whenever edit mode opens.
+  useEffect(() => {
+    let alive = true;
+    classService
+      .getClassConfig()
+      .then((cfg) => {
+        if (alive) setRoomOptions(cfg.roomOptions ?? []);
+      })
+      .catch(() => {
+        /* rooms are optional; fall back to free text */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (editing) {
       setDraft(
@@ -73,7 +94,7 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
           dayOfWeek: s.dayOfWeek,
           startTime: toInputTime(s.startTime),
           endTime: toInputTime(s.endTime),
-          room: s.room ?? "",
+          roomId: s.roomId ?? null,
         })),
       );
       setConflicts([]);
@@ -85,7 +106,7 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
   const addRow = () => {
     setDraft((prev) => [
       ...prev,
-      { dayOfWeek: "MONDAY", startTime: "09:00", endTime: "10:00", room: "" },
+      { dayOfWeek: "MONDAY", startTime: "09:00", endTime: "10:00", roomId: null },
     ]);
   };
 
@@ -131,7 +152,6 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
     );
   }
 
-  // Read view — flat table sorted by day, then start time.
   if (!editing) {
     const dayOrder = new Map(DAYS.map((day, i) => [day, i]));
     const sorted = [...slots].sort((a, b) => {
@@ -161,7 +181,7 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
                     <td className="px-5 py-3.5 tabular-nums">
                       {toInputTime(s.startTime)}–{toInputTime(s.endTime)}
                     </td>
-                    <td className="px-5 py-3.5 text-muted-foreground">{s.room || "—"}</td>
+                    <td className="px-5 py-3.5 text-muted-foreground">{s.roomName || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,7 +193,6 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
     );
   }
 
-  // Edit view — editable rows.
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
@@ -207,13 +226,25 @@ export function ClassSchedulePanel({ classId, editing }: ClassSchedulePanelProps
               onChange={(e) => updateRow(index, { endTime: e.target.value })}
               className={cn(glassInputClass, "h-10 w-28")}
             />
-            <input
-              type="text"
-              placeholder="Room"
-              value={row.room ?? ""}
-              onChange={(e) => updateRow(index, { room: e.target.value })}
-              className={cn(glassInputClass, "h-10 flex-1 min-w-[100px]")}
-            />
+            <select
+              value={row.roomId != null ? String(row.roomId) : ""}
+              onChange={(e) =>
+                updateRow(index, {
+                  roomId: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              disabled={roomOptions.length === 0}
+              className={cn(glassInputClass, "h-10 flex-1 min-w-[100px] disabled:opacity-60")}
+            >
+              <option value="">
+                {roomOptions.length === 0 ? "No rooms — add in Operations" : "No room"}
+              </option>
+              {roomOptions.map((r) => (
+                <option key={r.id} value={String(r.id)}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
             <GlassButton
               subtle
               className="h-9 w-9 p-0 rounded-lg shrink-0"

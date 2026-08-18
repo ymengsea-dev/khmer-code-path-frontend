@@ -124,11 +124,7 @@ export const aiChatService = {
     await apiClient.delete(`/ai/conversations/${conversationId}`);
   },
 
-  /**
-   * Streams the AI reply token-by-token via SSE.
-   * Calls `onChunk` for each text token received.
-   * Resolves when the `done` event arrives or the stream closes.
-   */
+  /** Streams the AI reply via SSE; resolves on the `done` event or when the stream closes. */
   async streamMessage(
     conversationId: string,
     content: string,

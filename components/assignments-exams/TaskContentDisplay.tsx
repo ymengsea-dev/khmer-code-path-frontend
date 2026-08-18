@@ -8,11 +8,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getValidAccessToken } from "@/lib/auth/client-session";
+import { downloadAuthedFile } from "@/lib/download";
 import type { TaskContentBlockDto } from "@/lib/types/assignments-exams-api";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
 interface TaskContentDisplayProps {
   blocks: TaskContentBlockDto[] | null | undefined;
@@ -43,22 +40,7 @@ function parseAiPreview(content: string | null | undefined): Array<{
   }
 }
 
-async function downloadFile(url: string, fileName: string) {
-  const token = await getValidAccessToken();
-  const fullUrl = url.startsWith("http")
-    ? url
-    : `${API_BASE}${url.startsWith("/api/v1") ? url.slice("/api/v1".length) : url}`;
-  const res = await fetch(fullUrl, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) return;
-  const blob = await res.blob();
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
+const downloadFile = downloadAuthedFile;
 
 export function TaskContentDisplay({
   blocks,
@@ -94,7 +76,16 @@ export function TaskContentDisplay({
               size="sm"
               className="gap-1.5"
               onClick={() =>
-                void downloadFile(block.downloadUrl!, block.fileName ?? "file")
+                void downloadFile(
+                  block.downloadUrl!,
+                  block.fileName ?? "file",
+                ).catch((err) =>
+                  window.alert(
+                    err instanceof Error
+                      ? err.message
+                      : "Could not download this file.",
+                  ),
+                )
               }
             >
               <Download className="h-4 w-4" />
@@ -160,6 +151,12 @@ function LibraryBlockContent({ block }: { block: TaskContentBlockDto }) {
           void downloadFile(
             block.downloadUrl!,
             block.fileName ?? block.label ?? "material",
+          ).catch((err) =>
+            window.alert(
+              err instanceof Error
+                ? err.message
+                : "Could not download this file.",
+            ),
           )
         }
       >

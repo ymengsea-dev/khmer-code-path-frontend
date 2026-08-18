@@ -30,8 +30,6 @@ import type { NoteSummaryDto } from "@/lib/types/note-api";
 import { getDefaultNoteId, setDefaultNoteId } from "@/lib/notebook/note-preferences";
 import { BouncyEnter, BouncyPress, BouncyStagger, BouncyStaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
-import { SchoolProfileSection } from "@/components/school/SchoolProfileSection";
-import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -57,7 +55,6 @@ function applyTheme(mode: ThemeMode) {
   root.classList.toggle("dark", mode === "dark" || (mode === "system" && prefersDark));
 }
 
-/** Password input with individual show/hide toggle */
 function PasswordField({
   id,
   label,
@@ -98,7 +95,6 @@ function PasswordField({
   );
 }
 
-/** Section card with liquid-glass */
 function GlassCard({
   icon,
   iconColor,
@@ -126,7 +122,6 @@ function GlassCard({
   );
 }
 
-/** Toggle switch styled for glass panels */
 function GlassToggle({
   checked,
   onChange,
@@ -161,7 +156,6 @@ function GlassToggle({
   );
 }
 
-/** Solid blue action button */
 function BlueBtn({
   loading,
   disabled,
@@ -193,8 +187,6 @@ export function SettingsView() {
   const queryClient = useQueryClient();
   const { alert } = useConfirm();
   const { user, roleLabel, displayName, email } = useUserProfile();
-  const { data: currentUser } = useCurrentUser();
-  const isAdmin = (currentUser?.role ?? "").toLowerCase() === "admin";
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [notes, setNotes] = useState<NoteSummaryDto[]>([]);
@@ -297,7 +289,6 @@ export function SettingsView() {
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-5 overflow-y-auto scrollbar-hide lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] lg:items-stretch">
 
-        {/* ── Left ~30%: Profile ── */}
         <div className="shrink-0 lg:min-h-0 lg:overflow-y-auto lg:scrollbar-hide">
         <BouncyEnter>
         <GlassCard icon={<UserRound className="h-4 w-4" />} iconColor="#305FC9" title="Profile">
@@ -372,7 +363,6 @@ export function SettingsView() {
         </BouncyEnter>
         </div>
 
-        {/* ── Right ~70%: Preferences (scrollable) ── */}
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide lg:max-h-full">
         <BouncyStagger className="flex flex-col gap-5 pb-6 min-w-0">
           <BouncyStaggerItem>
@@ -486,14 +476,6 @@ export function SettingsView() {
           </GlassCard>
           </BouncyStaggerItem>
         </BouncyStagger>
-
-        {isAdmin && (
-          <BouncyEnter className="mt-6">
-            <GlassCard icon={<Shield className="h-4 w-4" />} iconColor="#305FC9" title="School registration">
-              <SchoolProfileSection />
-            </GlassCard>
-          </BouncyEnter>
-        )}
         </div>
     </div>
   );

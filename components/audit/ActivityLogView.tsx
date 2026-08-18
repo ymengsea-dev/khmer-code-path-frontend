@@ -37,7 +37,6 @@ function actionLabel(action: string): string {
     .join(" ");
 }
 
-/** Colour an action badge by what it signifies. */
 function actionTone(action: string): string {
   const a = action.toUpperCase();
   if (a.includes("FAIL") || a.includes("DELETE") || a.includes("REVOKE")) {
@@ -135,7 +134,6 @@ export function ActivityLogView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {/* Toolbar */}
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full flex-col gap-2 sm:max-w-md sm:flex-row">
           <GlassSearchInput
@@ -257,7 +255,6 @@ export function ActivityLogView() {
         )}
       </Card>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">

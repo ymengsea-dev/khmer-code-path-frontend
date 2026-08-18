@@ -33,7 +33,6 @@ import {
   toEditorHtml,
 } from "@/lib/editor/html-content";
 import {
-  GlassInput,
   glassBtnPrimaryClass,
   glassBtnSubtleClass,
 } from "@/components/ui/glass-field";
@@ -64,10 +63,7 @@ export function CourseContentEditor({
   onDeleted,
 }: CourseContentEditorProps) {
   const [title, setTitle] = useState("");
-  const [moduleTag, setModuleTag] = useState("");
   const [bodyHtml, setBodyHtml] = useState(EMPTY_EDITOR_HTML);
-  const [updatedAt, setUpdatedAt] = useState<string | undefined>();
-  const [assetCount, setAssetCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -101,10 +97,7 @@ export function CourseContentEditor({
 
   const applyTemplate = useCallback((item: MaterialLibraryItemDto) => {
     setTitle(item.title);
-    setModuleTag(item.moduleTag ?? "");
     setBodyHtml(toEditorHtml(item.description));
-    setUpdatedAt(item.updatedAt);
-    setAssetCount(item.assetCount);
     dirtyRef.current = false;
     setDirty(false);
     setSaveError(null);
@@ -139,13 +132,10 @@ export function CourseContentEditor({
       setSaving(true);
       setSaveError(null);
       try {
-        const updated = await lessonService.updateLibraryItem(templateId, {
+        await lessonService.updateLibraryItem(templateId, {
           title: trimmedTitle,
-          moduleTag: moduleTag.trim() || undefined,
           description: fromEditorHtml(bodyHtml) ?? undefined,
         });
-        setUpdatedAt(updated.updatedAt);
-        setAssetCount(updated.assetCount);
         dirtyRef.current = false;
         setDirty(false);
         setSavedFlash(true);
@@ -158,7 +148,7 @@ export function CourseContentEditor({
         setSaving(false);
       }
     },
-    [templateId, title, moduleTag, bodyHtml, onSaved],
+    [templateId, title, bodyHtml, onSaved],
   );
 
   useEffect(() => {
@@ -228,39 +218,10 @@ export function CourseContentEditor({
             setBodyHtml(html);
             markDirty();
           }}
-          updatedAt={updatedAt}
           titlePlaceholder="Template title"
           bodyPlaceholder="Describe this lesson template…"
           disabled={saving}
           editorId={EDITOR_ID}
-          meta={
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1.5 flex-1 min-w-[200px] max-w-sm">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Topic label (optional)
-                </span>
-                <GlassInput
-                  className="h-10 text-sm"
-                  value={moduleTag}
-                  disabled={saving}
-                  placeholder="e.g. Week 3 — Sorting"
-                  onChange={(e) => {
-                    setModuleTag(e.target.value);
-                    markDirty();
-                  }}
-                />
-              </label>
-              <span
-                className="inline-flex items-center h-10 px-3 rounded-xl text-[11px] font-semibold text-muted-foreground shrink-0"
-                style={{
-                  background: "var(--glass-bg)",
-                  border: "1px solid var(--glass-border-color)",
-                }}
-              >
-                {assetCount} file{assetCount === 1 ? "" : "s"} attached
-              </span>
-            </div>
-          }
           toolbar={
             <>
               <GlassButton

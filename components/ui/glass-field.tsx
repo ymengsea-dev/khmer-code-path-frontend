@@ -27,6 +27,17 @@ export const glassInputClass = cn(
   "focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-60"
 );
 
+/**
+ * Solid gray field surface — overrides the translucent glass look so inputs
+ * read clearly on solid (white / zinc) dialog cards. Append after the glass
+ * class; utilities win over the component layer.
+ */
+export const solidFieldClass = cn(
+  "border !border-slate-200/90 dark:!border-white/10 bg-slate-100 dark:bg-white/5",
+  "shadow-none backdrop-blur-none",
+  "focus:bg-white dark:focus:bg-white/8 focus:!border-primary/40"
+);
+
 export const glassBtnPrimaryClass = cn(
   "glass-btn-primary inline-flex items-center justify-center",
   "rounded-xl px-4 h-10 text-sm font-semibold text-white outline-none select-none",

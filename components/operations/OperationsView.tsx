@@ -338,7 +338,6 @@ export function OperationsView() {
     );
   }
 
-  // ---- Teacher view: submit + track own requests ----
   if (isTeacher) {
     return (
       <div className="flex-1 min-h-0 overflow-y-auto pb-4">
@@ -395,7 +394,6 @@ export function OperationsView() {
     );
   }
 
-  // ---- Non-admin, non-teacher: blocked ----
   if (!isAdmin) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-12 text-center">
@@ -407,7 +405,6 @@ export function OperationsView() {
     );
   }
 
-  // ---- Admin view ----
   const visibleRequests =
     reqFilter === "pending"
       ? requests.filter((r) => r.status === "pending")

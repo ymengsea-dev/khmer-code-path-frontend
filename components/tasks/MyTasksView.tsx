@@ -72,6 +72,7 @@ import {
   BouncyStaggerItem,
 } from "@/components/motion";
 import { glassBtnSubtleClass, glassSelectClass } from "@/components/ui/glass-field";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { ModelSelector } from "@/components/ai/ModelSelector";
 
 type UserRole = "student" | "teacher" | "admin";
@@ -162,7 +163,6 @@ function QuizPreviewPanel({
           key={qi}
           className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 overflow-hidden"
         >
-          {/* Question header */}
           <div className="flex items-start gap-3 px-4 pt-4 pb-3">
             <span className="shrink-0 w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center mt-0.5">
               {qi + 1}
@@ -172,7 +172,6 @@ function QuizPreviewPanel({
             </p>
           </div>
 
-          {/* Options */}
           <div className="px-4 pb-3 space-y-2">
             {q.options.map((opt, oi) => {
               const isCorrect = oi === q.correctIndex;
@@ -214,7 +213,6 @@ function QuizPreviewPanel({
             })}
           </div>
 
-          {/* Explanation */}
           {q.explanation && (
             <div className="mx-4 mb-4 flex items-start gap-2 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 px-3 py-2">
               <BookOpen className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
@@ -502,25 +500,47 @@ function AssignQuizDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-            <Users className="h-4 w-4 text-violet-500" />
-            Assign Quiz to Class
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Publish this AI-generated quiz so students in the selected class can take it.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl flex flex-col p-0 gap-0 max-h-[88vh] overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b border-slate-100 dark:border-zinc-800 space-y-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <FlaskConical className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <DialogTitle className="text-base font-extrabold leading-tight">
+                Assign Quiz to Class
+              </DialogTitle>
+              <DialogDescription className="text-xs leading-snug">
+                Publish this AI-generated quiz so students in the selected class can take it.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="space-y-4 flex-1 min-h-0 overflow-y-auto scrollbar-hide px-6 py-5">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-3 flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 text-xs">
+              <p className="font-bold text-foreground">
+                {generatedQuiz.questionCount} question{generatedQuiz.questionCount === 1 ? "" : "s"}
+              </p>
+              <p className="text-muted-foreground truncate">
+                from {generatedQuiz.sourceFileName}
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Quiz title</Label>
+            <Label className="text-xs font-semibold">
+              Quiz title <span className="text-rose-500">*</span>
+            </Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Chapter 3 Quiz"
-              className="h-9 text-sm"
+              className="h-10 text-sm rounded-lg"
             />
           </div>
 
@@ -532,24 +552,28 @@ function AssignQuizDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description for students"
-              className="h-9 text-sm"
+              className="h-10 text-sm rounded-lg"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Assign to class</Label>
+            <Label className="text-xs font-semibold">
+              Assign to class <span className="text-rose-500">*</span>
+            </Label>
             {classesLoading ? (
-              <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 h-10 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading
                 classes…
               </div>
             ) : classes.length === 0 ? (
-              <p className="text-xs text-amber-600">No classes found.</p>
+              <p className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                No classes found. Create a class first.
+              </p>
             ) : (
               <select
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm"
+                className="flex h-10 w-full rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 {classes.map((c) => (
                   <option key={c.id} value={String(c.id)}>
@@ -562,43 +586,40 @@ function AssignQuizDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Deadline (optional)</Label>
-            <Input
-              type="datetime-local"
+            <DateTimePicker
               value={dueAtLocal}
-              onChange={(e) => setDueAtLocal(e.target.value)}
-              className="h-9 text-sm"
+              onChange={setDueAtLocal}
+              placeholder="No deadline — pick a date & time"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">
-              Time limit (minutes)
-            </Label>
+            <Label className="text-xs font-semibold">Time limit (minutes)</Label>
             <Input
               type="number"
               min={5}
               max={180}
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="h-9 text-sm"
+              className="h-10 text-sm rounded-lg"
             />
           </div>
 
-          <div className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40 px-3 py-2 text-xs text-muted-foreground">
-            <strong>{generatedQuiz.questionCount} questions</strong> from{" "}
-            <span className="font-medium">{generatedQuiz.sourceFileName}</span>
-          </div>
-
-          {error && <p className="text-xs text-rose-600">{error}</p>}
+          {error && (
+            <p className="rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-400">
+              {error}
+            </p>
+          )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-slate-100 dark:border-zinc-800 gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
             disabled={saving || !classId || !title.trim()}
             onClick={() => void handleAssign()}
+            className="bg-primary text-primary-foreground hover:opacity-90"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -616,7 +637,6 @@ export function MyTasksView() {
   const role = (currentUser?.role?.toLowerCase() as UserRole) ?? "student";
   const isTeacher = role === "teacher" || role === "admin";
 
-  /* ── AI generator state ── */
   const [sources, setSources] = useState<QuizMaterialSource[]>([]);
   const [sourcesLoading, setSourcesLoading] = useState(false);
   const [sourcesError, setSourcesError] = useState<string | null>(null);
@@ -637,18 +657,14 @@ export function MyTasksView() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
 
-  /* ── Quiz list state ── */
   const [quizzes, setQuizzes] = useState<QuizDto[]>([]);
   const [quizzesLoading, setQuizzesLoading] = useState(true);
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
 
-  /* ── Summary stats state ── */
   const [summary, setSummary] = useState<QuizSummary | null>(null);
 
-  /* ── Active quiz taking ── */
   const [activeQuiz, setActiveQuiz] = useState<QuizDto | null>(null);
 
-  /* ── Published quiz detail / edit ── */
   const [quizViewMode, setQuizViewMode] = useState<QuizViewMode>("list");
   const [publishedPreviewLoading, setPublishedPreviewLoading] = useState(false);
   const [publishedPreviewQuiz, setPublishedPreviewQuiz] =
@@ -1011,7 +1027,6 @@ export function MyTasksView() {
     }
   }, [alert]);
 
-  /* ── Quiz taking (student) ── */
   if (activeQuiz) {
     return (
       <QuizTakingView
@@ -1231,7 +1246,6 @@ export function MyTasksView() {
     );
   }
 
-  /* ── Summary stats (from backend) ── */
   const summaryStats = summary
     ? isTeacher
       ? [
@@ -1299,7 +1313,6 @@ export function MyTasksView() {
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide flex flex-col gap-5">
-        {/* ── Summary stat cards ── */}
         {!quizzesLoading && summary !== null && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
             {summaryStats.map((stat) => (
@@ -1333,7 +1346,6 @@ export function MyTasksView() {
           </div>
         )}
 
-        {/* ── AI Generator (teacher only) ── */}
         {isTeacher && (
           <section
             className="rounded-2xl p-5"
@@ -1508,7 +1520,6 @@ export function MyTasksView() {
           </section>
         )}
 
-        {/* ── Quiz list ── */}
         <div>
           {quizzesLoading ? (
             <div className="flex justify-center py-16">
@@ -1561,10 +1572,8 @@ export function MyTasksView() {
         </div>
       </div>
 
-      {/* Preview dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="w-[88vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
-          {/* Header */}
           <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">
             <div>
               <DialogTitle className="text-base font-extrabold flex items-center gap-2">
@@ -1583,7 +1592,6 @@ export function MyTasksView() {
                 </DialogDescription>
               )}
             </div>
-            {/* Summary badge */}
             {generatedQuiz && (
               <div className="flex items-center gap-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 px-3 py-1.5">
                 <FlaskConical className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
@@ -1594,7 +1602,6 @@ export function MyTasksView() {
             )}
           </div>
 
-          {/* Scrollable editable question list */}
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-slate-50/50 dark:bg-zinc-950/50">
             {generatedQuiz && (
               <EditableQuizPanel
@@ -1604,7 +1611,6 @@ export function MyTasksView() {
             )}
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950">
             <Button
               variant="outline"
@@ -1628,7 +1634,6 @@ export function MyTasksView() {
         </DialogContent>
       </Dialog>
 
-      {/* Assign dialog */}
       {generatedQuiz && (
         <AssignQuizDialog
           open={assignOpen}
@@ -1641,7 +1646,6 @@ export function MyTasksView() {
         />
       )}
 
-      {/* Assign-from-card dialog: republish an existing quiz to another class */}
       {assignFromCardQuiz?.generatedContent && (
         <AssignQuizDialog
           open={assignFromCardOpen}
@@ -1664,7 +1668,6 @@ export function MyTasksView() {
         />
       )}
 
-      {/* Teacher quiz results dialog */}
       <Dialog open={resultsOpen} onOpenChange={setResultsOpen}>
         <DialogContent className="w-[90vw]! max-w-6xl! max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden rounded-2xl">
           <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-zinc-800">

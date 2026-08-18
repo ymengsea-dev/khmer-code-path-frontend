@@ -119,7 +119,6 @@ export function ClassCommentsPanel({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Comment list */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-3 pt-1 pb-2 space-y-2">
         {loading ? (
           <div className="flex justify-center py-8">
@@ -145,7 +144,6 @@ export function ClassCommentsPanel({
                 }}
                 className={cn("flex gap-2 group", isReply && "ml-5")}
               >
-                {/* Avatar */}
                 <div
                   className={cn(
                     "w-6 h-6 rounded-full shrink-0 mt-0.5 flex items-center justify-center text-[9px] font-bold",
@@ -157,7 +155,6 @@ export function ClassCommentsPanel({
                   {initials(comment.authorName)}
                 </div>
 
-                {/* Bubble */}
                 <div className="flex-1 min-w-0">
                   <div
                     className="relative rounded-lg px-3.5 py-2.5 text-xs backdrop-blur-md transition-all duration-500"
@@ -213,7 +210,6 @@ export function ClassCommentsPanel({
         )}
       </div>
 
-      {/* Compose bar */}
       {canPost && (
         <div className="shrink-0 px-3 pb-3 space-y-1.5">
           {replyingTo && (

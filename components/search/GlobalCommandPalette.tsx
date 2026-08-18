@@ -53,7 +53,6 @@ export function GlobalCommandPalette({
   const placeholder = selectedScope?.placeholder ?? "Spotlight Search";
   const defaultScopeId = scopes[0]?.id;
 
-  // Search debounce
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) return;
@@ -69,12 +68,10 @@ export function GlobalCommandPalette({
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [query, selectedScope?.id]);
 
-  // Reset focus when results change
   useEffect(() => {
     setFocusedIndex(-1);
   }, [visibleResults.length]);
 
-  // Reset state when opening
   useEffect(() => {
     if (!open) return;
     setIsCompact(false);
@@ -87,14 +84,12 @@ export function GlobalCommandPalette({
     return () => window.clearTimeout(timer);
   }, [open, defaultScopeId]);
 
-  // Re-show buttons 1s after query is cleared
   useEffect(() => {
     if (!open || query.trim().length > 0) return;
     const timer = window.setTimeout(() => setIsCompact(true), 1000);
     return () => window.clearTimeout(timer);
   }, [open, query]);
 
-  // Load scopes once
   useEffect(() => {
     if (!open || scopes.length > 0) return;
     let cancelled = false;
@@ -121,11 +116,8 @@ export function GlobalCommandPalette({
       >
         <div className="search-spotlight-bar flex flex-col gap-3 sm:flex-row sm:items-start">
 
-          {/* unified pill */}
           <div className="search-input-wrap min-w-0 flex-1">
             <div className="search-pill overflow-hidden rounded-[2rem]">
-
-              {/* input row */}
               <div className="relative">
                 <Search className="pointer-events-none absolute left-5 top-1/2 z-10 h-6 w-6 -translate-y-1/2 text-[#74747e]" />
                 <Input
@@ -172,7 +164,6 @@ export function GlobalCommandPalette({
                 />
               </div>
 
-              {/* expanding results */}
               {resultsVisible && (
                 <div
                   data-active={shouldShowResults ? "true" : "false"}
@@ -203,7 +194,6 @@ export function GlobalCommandPalette({
             </div>
           </div>
 
-          {/* scope buttons */}
           {scopes.length > 0 && (
             <div
               aria-hidden={!isCompact}

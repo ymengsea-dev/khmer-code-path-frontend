@@ -142,6 +142,7 @@ export interface CreateClassPayload {
   schedule?: string;
   roomNumber?: string;
   status?: ClassStatus;
+  scheduleSlots?: ScheduleSlotInput[];
 }
 
 export interface UpdateClassPayload {
@@ -209,14 +210,15 @@ export interface ScheduleSlot {
   dayOfWeek: WeekDay;
   startTime: string; // "HH:mm[:ss]"
   endTime: string;
-  room?: string | null;
+  roomId?: number | null;
+  roomName?: string | null;
 }
 
 export interface ScheduleSlotInput {
   dayOfWeek: WeekDay;
   startTime: string; // "HH:mm"
   endTime: string;
-  room?: string | null;
+  roomId?: number | null;
 }
 
 export interface ScheduleConflict {

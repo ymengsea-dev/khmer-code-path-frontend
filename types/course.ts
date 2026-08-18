@@ -14,13 +14,11 @@ export interface Course {
   level: Level;
   pts: number;
   bgColor: string;
-  /** Optional cover image URL for the course card */
   image?: string;
   description: string;
   technologies: Technology[];
   prerequisite?: string;
   achievement: string;
   locked?: boolean;
-  /** Optional completion percentage for learning view */
   progress?: number;
 }

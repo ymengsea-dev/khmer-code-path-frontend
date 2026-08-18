@@ -60,6 +60,8 @@ export interface AssignmentDto {
   submissionStatus?: string | null;
   submittedContent?: string | null;
   submissionScorePercent?: number | null;
+  submittedAttachmentName?: string | null;
+  submittedAttachmentUrl?: string | null;
   enrolledStudents?: number | null;
   submittedCount?: number | null;
   contentBlocks?: TaskContentBlockDto[] | null;
@@ -74,7 +76,15 @@ export interface AssignmentSubmissionDto {
   status: string;
   submittedAt: string;
   feedback: string | null;
-  grade: number | null;
+  grade: string | null;
+  scorePercent: number | null;
+  attachmentName: string | null;
+  attachmentUrl: string | null;
+}
+
+export interface GradeAssignmentPayload {
+  scorePercent: number;
+  feedback?: string;
 }
 
 export interface CreateAssignmentPayload {

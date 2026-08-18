@@ -264,7 +264,6 @@ export function LessonsView({
     onLessonCloseRef.current?.();
   }, [setParams]);
 
-  // Expose clearLesson to parent via ref
   useEffect(() => {
     if (clearLessonRef) clearLessonRef.current = clearLesson;
   }, [clearLesson, clearLessonRef]);
@@ -587,7 +586,6 @@ export function LessonsView({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-clip">
-      {/* Teacher action bar */}
       {canManage && Number.isFinite(parsedClassId) && onBackToClassDetail && (
         <div className="shrink-0 py-2.5">
           <button
@@ -608,7 +606,6 @@ export function LessonsView({
       {!loading &&
         !error &&
         (lesson ? (
-          /* ── 3-panel lesson reader ── */
           <div
             className="flex-1 flex min-h-0 overflow-hidden pt-1 pb-1 pr-1 gap-0"
             style={{ userSelect: dragging ? "none" : undefined }}
@@ -618,11 +615,8 @@ export function LessonsView({
               lessonTitle={lesson.title}
               lessonId={lesson.id}
             />
-            {/* LEFT column */}
             <div className="relative flex-1 flex flex-col min-h-0 min-w-0 gap-0 overflow-hidden">
-              {/* ── Floating toolbar — absolutely positioned over the lesson content ── */}
               <div className="absolute top-2 left-2 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
-                {/* Left: back + lesson title pill */}
                 <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
                   <button
                     type="button"
@@ -655,7 +649,6 @@ export function LessonsView({
                   </div>
                 </div>
 
-                {/* Right: toggle comments + toggle AI */}
                 <div className="flex items-center gap-1.5 shrink-0 pointer-events-auto">
                   <button
                     type="button"
@@ -724,7 +717,6 @@ export function LessonsView({
                 </div>
               </div>
 
-              {/* Lesson content — liquid glass card, fills full height */}
               <div
                 id="lesson-content-area"
                 className="flex-1 min-h-0 overflow-y-auto scrollbar-hide rounded-2xl pt-12"
@@ -746,7 +738,6 @@ export function LessonsView({
                 />
               </div>
 
-              {/* Vertical drag strip */}
               <div
                 onMouseDown={startBottomDrag}
                 className="shrink-0 flex items-center justify-center cursor-row-resize group py-[3px]"
@@ -754,7 +745,7 @@ export function LessonsView({
                 <div className="w-10 h-1 rounded-full bg-zinc-400/90 dark:bg-zinc-500 group-hover:bg-zinc-500 dark:group-hover:bg-zinc-400 transition-colors" />
               </div>
 
-              {/* Bottom panel — always in DOM, height 0 when collapsed */}
+              {/* Always in DOM, height 0 when collapsed */}
               <div
                 ref={bottomPanelRef}
                 className={cn(
@@ -776,7 +767,6 @@ export function LessonsView({
               >
                 {showBottom && (
                   <>
-                    {/* Tab row */}
                     <div className="shrink-0 flex items-center gap-1.5 px-3 h-10">
                       {(["comments", "materials"] as const).map((tab) => (
                         <button
@@ -820,7 +810,6 @@ export function LessonsView({
                         </label>
                       )}
                     </div>
-                    {/* Tab content */}
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pb-3">
                       {bottomPanel === "comments" &&
                         Number.isFinite(parsedClassId) && (
@@ -892,7 +881,6 @@ export function LessonsView({
               </div>
             </div>
 
-            {/* Horizontal drag strip — 3px gap to course content and AI panel */}
             <div
               onMouseDown={startAiDrag}
               className="shrink-0 flex items-center justify-center cursor-col-resize self-stretch group px-[3px] py-[3px]"
@@ -900,7 +888,7 @@ export function LessonsView({
               <div className="w-1 min-h-[2.5rem] h-10 rounded-full bg-zinc-400/90 dark:bg-zinc-500 group-hover:bg-zinc-500 dark:group-hover:bg-zinc-400 transition-colors" />
             </div>
 
-            {/* RIGHT: AI panel — always in DOM, width 0 when collapsed */}
+            {/* Always in DOM, width 0 when collapsed */}
             <div
               ref={aiPanelRef}
               className={cn(
@@ -924,7 +912,6 @@ export function LessonsView({
               {showAI &&
                 (!isTeacher ? (
                   <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    {/* Compact header */}
                     <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
                       <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                       <span className="text-xs font-bold text-foreground">
@@ -932,7 +919,7 @@ export function LessonsView({
                       </span>
                     </div>
 
-                    {/* Chat — fills remaining space, summary injected as chat message */}
+                    {/* Summary is injected here as a chat message */}
                     <div className="flex-1 min-h-0">
                       <LessonAskPanel
                         lessonId={lesson.id}
@@ -1042,7 +1029,6 @@ export function LessonsView({
             </div>
           </div>
         ) : (
-          /* ── Lesson cards list ── */
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide py-6">
             <ClassCourseContent
               lessons={lessons}

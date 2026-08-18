@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileUp, Layers, Loader2, Plus, FileText, Presentation } from "lucide-react";
+import {
+  FileUp,
+  Layers,
+  Loader2,
+  Plus,
+  FileText,
+  Presentation,
+  Video,
+  Users,
+  Check,
+  CornerDownRight,
+} from "lucide-react";
 import {
   GlassSearchInput,
   glassBtnPrimaryClass,
@@ -87,6 +98,7 @@ export function CourseContentView() {
   const [teacherClasses, setTeacherClasses] = useState<ClassSummary[]>([]);
   const [classesLoading, setClassesLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(
@@ -159,6 +171,7 @@ export function CourseContentView() {
 
   const openAssignDialog = async (template: MaterialLibraryItemDto) => {
     setAssignTemplate(template);
+    setSelectedClassId(null);
     setClassesLoading(true);
     try {
       const page = await classService.listClasses({ size: 50 });
@@ -236,15 +249,22 @@ export function CourseContentView() {
     }
   };
 
-  const handleAssign = async (classId: number, className: string) => {
-    if (!assignTemplate) return;
+  const closeAssign = () => {
+    setAssignTemplate(null);
+    setSelectedClassId(null);
+  };
+
+  const handleAssign = async () => {
+    if (!assignTemplate || selectedClassId == null) return;
+    const target = teacherClasses.find((c) => c.id === selectedClassId);
+    if (!target) return;
     setAssigning(true);
     try {
-      await lessonService.assignLibraryToClass(assignTemplate.id, classId);
+      await lessonService.assignLibraryToClass(assignTemplate.id, target.id);
       setMessage(
-        `"${assignTemplate.title}" added to ${className}. Students can open the lesson and download attached files.`,
+        `"${assignTemplate.title}" added to ${target.name}. Students can open the lesson and download attached files.`,
       );
-      setAssignTemplate(null);
+      closeAssign();
     } catch {
       setMessage("Assign failed. Check that you teach this class.");
     } finally {
@@ -533,54 +553,155 @@ export function CourseContentView() {
 
       <Dialog
         open={Boolean(assignTemplate)}
-        onOpenChange={(open) => !open && setAssignTemplate(null)}
+        onOpenChange={(open) => !open && closeAssign()}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Assign to class</DialogTitle>
-            <DialogDescription>
-              Creates a lesson in the class with this template&apos;s notes and{" "}
-              {assignTemplate?.assetCount ?? 0} attached file
-              {(assignTemplate?.assetCount ?? 0) === 1 ? "" : "s"}.
-            </DialogDescription>
+        <DialogContent className="glass-modal-solid sm:max-w-md gap-0 overflow-hidden p-0">
+          <DialogHeader className="space-y-3 px-6 pb-4 pt-6 text-left">
+            <DialogTitle className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">
+              Assign template
+            </DialogTitle>
+            {/* Source: the template being handed off */}
+            <div
+              className={cn(
+                "relative flex items-center gap-3 overflow-hidden rounded-2xl bg-linear-to-br p-3 pr-4 text-white shadow-sm",
+                assignTemplate?.gradient?.startsWith("from-")
+                  ? assignTemplate.gradient
+                  : "from-indigo-500 to-purple-600",
+              )}
+            >
+              <div className="absolute inset-0 bg-black/10" />
+              <div className="relative flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                {assignTemplate?.iconType === "VIDEO" ? (
+                  <Video className="size-5 text-white" />
+                ) : (
+                  <Presentation className="size-5 text-white" />
+                )}
+              </div>
+              <div className="relative min-w-0 flex-1">
+                <h2 className="truncate text-sm font-bold leading-tight drop-shadow-sm">
+                  {assignTemplate?.title ?? "Template"}
+                </h2>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-white/85">
+                  {assignTemplate?.moduleTag?.trim()
+                    ? `${assignTemplate.moduleTag.trim()} · `
+                    : ""}
+                  {assignTemplate?.assetCount ?? 0} file
+                  {(assignTemplate?.assetCount ?? 0) === 1 ? "" : "s"} attached
+                </p>
+              </div>
+            </div>
           </DialogHeader>
+
+          {/* Connector: source → destination */}
+          <div className="flex items-center gap-2 px-6 pb-2">
+            <CornerDownRight className="size-3.5 text-muted-foreground" />
+            <DialogDescription className="m-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Add as a lesson in
+            </DialogDescription>
+          </div>
+
+          {/* Destinations: the teacher's classes */}
           {classesLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-10">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : teacherClasses.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">
-              No classes found. Create a class first.
-            </p>
+            <div className="mx-6 mb-2 rounded-xl border border-dashed border-border px-4 py-8 text-center">
+              <p className="text-sm font-medium">No classes yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Create a class before assigning this template.
+              </p>
+            </div>
           ) : (
-            <ul className="grid gap-2 max-h-60 overflow-y-auto">
-              {teacherClasses.map((cls) => (
+            <ul className="grid max-h-64 gap-1 overflow-y-auto px-4 py-1">
+              {teacherClasses.map((cls) => {
+                const selected = selectedClassId === cls.id;
+                return (
                 <li key={cls.id}>
                   <button
                     type="button"
                     disabled={assigning}
+                    aria-pressed={selected}
+                    onClick={() => setSelectedClassId(cls.id)}
                     className={cn(
-                      glassBtnSubtleClass,
-                      "w-full text-left h-auto min-h-10 px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
+                      "group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                      selected
+                        ? "border-violet-400 bg-violet-50 dark:border-violet-500/50 dark:bg-violet-500/10"
+                        : "border-transparent hover:border-violet-300/60 hover:bg-violet-50 dark:hover:border-violet-500/30 dark:hover:bg-violet-500/10",
                     )}
-                    onClick={() => void handleAssign(cls.id, cls.name)}
                   >
-                    {cls.name}
-                    {cls.code ? (
-                      <span className="text-muted-foreground font-normal">
-                        {" "}
-                        ({cls.code})
-                      </span>
-                    ) : null}
+                    <span
+                      className={cn(
+                        "h-9 w-1.5 shrink-0 rounded-full bg-linear-to-b",
+                        cls.cardGradient?.startsWith("from-")
+                          ? cls.cardGradient
+                          : "from-slate-400 to-slate-600",
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold">
+                          {cls.name}
+                        </span>
+                        {cls.code ? (
+                          <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            {cls.code}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                        <Users className="size-3 shrink-0" />
+                        {cls.enrolledCount} student
+                        {cls.enrolledCount === 1 ? "" : "s"}
+                        {cls.semesterLabel ? (
+                          <span className="truncate opacity-60">
+                            · {cls.semesterLabel}
+                          </span>
+                        ) : null}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                        selected
+                          ? "border-violet-500 bg-violet-500 text-white"
+                          : "border-muted-foreground/30 text-transparent group-hover:border-violet-400",
+                      )}
+                    >
+                      <Check className="size-3" strokeWidth={3} />
+                    </span>
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignTemplate(null)}>
+
+          <DialogFooter className="mt-2 gap-2 border-t border-border/60 px-6 py-3 sm:justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={assigning}
+              onClick={closeAssign}
+            >
               Cancel
             </Button>
+            <button
+              type="button"
+              disabled={selectedClassId == null || assigning}
+              onClick={() => void handleAssign()}
+              className={cn(
+                glassBtnPrimaryClass,
+                "h-9.5 gap-2 px-4 text-sm font-semibold disabled:opacity-50",
+              )}
+            >
+              {assigning ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Check className="size-4" strokeWidth={2.5} />
+              )}
+              Assign to class
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
